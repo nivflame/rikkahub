@@ -17,6 +17,8 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
 
     val screenTimeTool by lazy { buildScreenTimeTool(context, eventBus) }
 
+    val browserTools by lazy { buildBrowserTools(context) }
+
     fun getTools(options: List<LocalToolOption>): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -36,6 +38,9 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
         }
         if (options.contains(LocalToolOption.ScreenTime)) {
             tools.add(screenTimeTool)
+        }
+        if (options.contains(LocalToolOption.Browser)) {
+            tools.addAll(browserTools)
         }
         return tools
     }

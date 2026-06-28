@@ -186,6 +186,20 @@ private fun AssistantLocalToolContent(
                     )
                 }
             )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_browser_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_browser_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Browser),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Browser, it) }
+                    )
+                }
+            )
         }
     }
 }
