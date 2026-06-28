@@ -75,6 +75,7 @@ android {
 
     buildTypes {
         release {
+            applicationIdSuffix = ".fork"
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
