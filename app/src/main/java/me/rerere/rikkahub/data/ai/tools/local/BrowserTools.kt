@@ -21,6 +21,18 @@ the browsing task is complete. Prefer browser_get_text for reading, and use brow
 to find the next page to open.
 """.trimIndent().replace("\n", " ")
 
+internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
+    "browser_open",
+    "browser_current_url",
+    "browser_get_text",
+    "browser_get_links",
+    "browser_back",
+    "browser_screenshot",
+    "browser_done",
+)
+
+val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
+
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_open",

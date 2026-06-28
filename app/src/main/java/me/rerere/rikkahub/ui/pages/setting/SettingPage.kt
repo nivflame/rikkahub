@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Earth
-import androidx.compose.material3.Switch
 import me.rerere.hugeicons.stroke.AiMagic
 import me.rerere.hugeicons.stroke.Alert01
 import me.rerere.hugeicons.stroke.Book01
@@ -202,17 +201,10 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_extensions)) },
                     )
                     item(
+                        onClick = { navController.navigate(Screen.SettingBrowser) },
                         leadingContent = { Icon(HugeIcons.Earth, null) },
-                        trailingContent = {
-                            Switch(
-                                checked = settings.enableBrowser,
-                                onCheckedChange = {
-                                    vm.updateSettings(settings.copy(enableBrowser = it))
-                                }
-                            )
-                        },
+                        supportingContent = { Text("Enable or disable individual browser tools") },
                         headlineContent = { Text("Browser") },
-                        supportingContent = { Text("Enable the browser tool and the browser entry on the chat screen") },
                     )
                 }
             }

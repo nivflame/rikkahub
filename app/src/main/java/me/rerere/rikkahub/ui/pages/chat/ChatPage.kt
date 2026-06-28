@@ -772,14 +772,12 @@ private fun TopBar(
             ) {
                 Icon(HugeIcons.MessageAdd01, "New Message")
             }
-            if (settings.enableBrowser) {
-                IconButton(
-                    onClick = {
-                        context.startActivity(Intent(context, BrowserActivity::class.java))
-                    }
-                ) {
-                    Icon(HugeIcons.Earth, "Browser")
+            IconButton(
+                onClick = {
+                    context.startActivity(Intent(context, BrowserActivity::class.java))
                 }
+            ) {
+                Icon(HugeIcons.Earth, "Browser")
             }
         },
     )

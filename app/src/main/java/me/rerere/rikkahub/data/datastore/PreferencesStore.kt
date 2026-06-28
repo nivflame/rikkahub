@@ -45,6 +45,7 @@ import me.rerere.rikkahub.data.sync.s3.S3Config
 import me.rerere.rikkahub.ui.theme.CustomTheme
 import me.rerere.rikkahub.ui.theme.PresetThemes
 import me.rerere.rikkahub.utils.JsonInstant
+import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
 import me.rerere.rikkahub.utils.toMutableStateFlow
 import me.rerere.search.SearchCommonOptions
 import me.rerere.search.SearchServiceOptions
@@ -83,7 +84,7 @@ class SettingsStore(
 
         // 模型选择
         val ENABLE_WEB_SEARCH = booleanPreferencesKey("enable_web_search")
-        val ENABLE_BROWSER = booleanPreferencesKey("enable_browser")
+        val ENABLED_BROWSER_TOOLS = stringPreferencesKey("enabled_browser_tools")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
@@ -165,7 +166,9 @@ class SettingsStore(
         }.map { preferences ->
             Settings(
                 enableWebSearch = preferences[ENABLE_WEB_SEARCH] == true,
-                enableBrowser = preferences[ENABLE_BROWSER] == true,
+                enabledBrowserTools = preferences[ENABLED_BROWSER_TOOLS]?.let {
+                    JsonInstant.decodeFromString<Set<String>>(it)
+                } ?: DEFAULT_ENABLED_BROWSER_TOOLS,
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
@@ -360,7 +363,7 @@ class SettingsStore(
             preferences[DISPLAY_SETTING] = JsonInstant.encodeToString(settings.displaySetting)
 
             preferences[ENABLE_WEB_SEARCH] = settings.enableWebSearch
-            preferences[ENABLE_BROWSER] = settings.enableBrowser
+            preferences[ENABLED_BROWSER_TOOLS] = JsonInstant.encodeToString(settings.enabledBrowserTools)
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
             preferences[FAST_MODEL] = settings.fastModelId.toString()
@@ -503,7 +506,7 @@ data class Settings(
     val developerMode: Boolean = false,
     val displaySetting: DisplaySetting = DisplaySetting(),
     val enableWebSearch: Boolean = false,
-    val enableBrowser: Boolean = false,
+    val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),

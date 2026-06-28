@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.browser
 
+import android.app.Activity
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
@@ -7,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -17,10 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.rerere.rikkahub.ui.components.nav.BackButton
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.rikkahub.ui.theme.CustomColors
 
 /**
@@ -55,7 +60,11 @@ private fun ViewerScreen() {
                         overflow = TextOverflow.Ellipsis
                     )
                 },
-                navigationIcon = { BackButton() },
+                navigationIcon = {
+                    IconButton(onClick = { (LocalContext.current as? Activity)?.finish() }) {
+                        Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
+                    }
+                },
                 colors = CustomColors.topBarColors,
             )
         },
