@@ -41,6 +41,7 @@ import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.SUBAGENT_LOCAL_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
+import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
@@ -91,6 +92,12 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                ToolSchemaCard(
+                    tool = buildSubagentTool(settings),
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
             Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Subagent model", style = MaterialTheme.typography.titleMedium)

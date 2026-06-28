@@ -35,6 +35,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import me.rerere.ai.core.InputSchema
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowDown01
@@ -218,6 +221,19 @@ private fun BrowserToolItem(
                                     type = if (schema.required?.contains(key) == true) TagType.INFO else TagType.DEFAULT
                                 ) {
                                     Text(key, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                        schema.properties.forEach { (key, prop) ->
+                            val desc = prop.jsonObject["description"]?.jsonPrimitive?.contentOrNull
+                            if (!desc.isNullOrBlank()) {
+                                Column(modifier = Modifier.padding(top = 4.dp)) {
+                                    Text(key, style = MaterialTheme.typography.labelMedium)
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                             }
                         }

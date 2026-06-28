@@ -11,6 +11,7 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -24,6 +25,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ASK_QUESTION_DESCRIPTION
+import me.rerere.rikkahub.data.ai.tools.local.buildAskQuestionTool
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.androidx.compose.koinViewModel
@@ -75,6 +77,16 @@ fun SettingAskQuestionPage(vm: SettingVM = koinViewModel()) {
                 minLines = 12,
                 maxLines = 24,
             )
+            Surface(
+                tonalElevation = 1.dp,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ToolSchemaCard(
+                    tool = buildAskQuestionTool(settings.askQuestionDescription),
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
         }
     }
 }

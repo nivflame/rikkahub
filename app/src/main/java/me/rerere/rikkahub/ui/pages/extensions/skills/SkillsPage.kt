@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -61,6 +62,8 @@ import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.ai.tools.buildUseSkillToolForDisplay
+import me.rerere.rikkahub.ui.pages.setting.ToolSchemaCard
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -121,6 +124,14 @@ fun SkillsPage() {
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                    ToolSchemaCard(
+                        tool = buildUseSkillToolForDisplay(),
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
             if (skills.isEmpty()) {
                 item {
                     Column(

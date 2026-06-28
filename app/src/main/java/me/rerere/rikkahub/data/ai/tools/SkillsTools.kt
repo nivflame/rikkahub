@@ -79,3 +79,25 @@ fun createSkillTools(
         )
     )
 }
+
+fun buildUseSkillToolForDisplay(): Tool = Tool(
+    name = "use_skill",
+    description = "Load and apply a skill to get specialized instructions or capabilities. " +
+        "Call this tool when the user's request matches one of the available skills.",
+    parameters = {
+        InputSchema.Obj(
+            properties = buildJsonObject {
+                put("name", buildJsonObject {
+                    put("type", "string")
+                    put("description", "The name of the skill to use")
+                })
+                put("path", buildJsonObject {
+                    put("type", "string")
+                    put("description", "Optional relative path to a file inside the skill directory. Omit to read the default SKILL.md instructions. Only use paths extracted from Markdown links in the SKILL.md content. Do NOT guess or infer paths.")
+                })
+            },
+            required = listOf("name")
+        )
+    },
+    execute = { error("display only") }
+)

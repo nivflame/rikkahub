@@ -64,6 +64,7 @@ import me.rerere.rikkahub.data.ai.tools.createConversationTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
+import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
 import me.rerere.rikkahub.data.ai.tools.createWorkspaceTools
@@ -624,29 +625,7 @@ class ChatService(
                     if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
                         val parentTools = this.toList()
                         add(
-                            Tool(
-                                name = "Subagent",
-                                description = "Launch a subagent to handle a multi-step task in the background. " +
-                                    "Each subagent type has specific tools. Available types: " +
-                                    settings.subagentPrompts.joinToString("; ") { "${it.name}: ${it.description}" } +
-                                    ". The subagent runs independently and its final result is returned to you " +
-                                    "when it completes. Do not also do the same work yourself, wait for the result.",
-                                parameters = {
-                                    InputSchema.Obj(
-                                        properties = buildJsonObject {
-                                            put("subagent_type", buildJsonObject {
-                                                put("type", "string")
-                                                put("description", "The subagent type. Available: " +
-                                    settings.subagentPrompts.joinToString(", ") { it.name })
-                                            })
-                                            put("prompt", buildJsonObject {
-                                                put("type", "string")
-                                                put("description", "The task for the subagent")
-                                            })
-                                        },
-                                        required = listOf("prompt")
-                                    )
-                                },
+                            buildSubagentTool(settings).copy(
                                 execute = {
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"

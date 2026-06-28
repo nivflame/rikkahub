@@ -17,6 +17,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.BubbleChatQuestion
 import me.rerere.hugeicons.stroke.Earth
+import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
@@ -64,6 +65,12 @@ fun SettingToolsPage() {
                 leadingContent = { Icon(HugeIcons.BubbleChatQuestion, null) },
                 supportingContent = { Text("Edit the AskQuestion tool description") },
                 headlineContent = { Text("AskQuestion") },
+            )
+            item(
+                onClick = { navController.navigate(Screen.Skills) },
+                leadingContent = { Icon(HugeIcons.Puzzle, null) },
+                supportingContent = { Text("Manage agent skills and their tools") },
+                headlineContent = { Text("Agent Skills") },
             )
         }
     }
