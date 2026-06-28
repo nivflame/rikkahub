@@ -104,7 +104,13 @@ object ToolUIRegistry {
         ReadFileToolUI,
         WriteFileToolUI,
         ShellToolUI,
-        BrowserToolUI,
+        BrowserToolUI("browser_open"),
+        BrowserToolUI("browser_current_url"),
+        BrowserToolUI("browser_get_text"),
+        BrowserToolUI("browser_get_links"),
+        BrowserToolUI("browser_back"),
+        BrowserToolUI("browser_screenshot"),
+        BrowserToolUI("browser_done"),
     ).associateBy { it.toolName }
 
     /** 查找工具对应的渲染器, 未注册时返回默认渲染器 */

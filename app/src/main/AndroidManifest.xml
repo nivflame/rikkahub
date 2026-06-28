@@ -50,14 +50,14 @@
       android:theme="@style/Theme.Rikkahub" />
     <activity
       android:name=".browser.BrowserActivity"
-      android:configChanges="keyboardHidden|orientation|screenSize"
+      android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density"
       android:exported="false"
       android:label="Browser"
       android:theme="@style/Theme.Rikkahub"
       android:windowSoftInputMode="adjustResize" />
     <activity
       android:name=".browser.BrowserViewerActivity"
-      android:configChanges="keyboardHidden|orientation|screenSize"
+      android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density"
       android:exported="false"
       android:label="Browser viewer"
       android:theme="@style/Theme.Rikkahub" />
