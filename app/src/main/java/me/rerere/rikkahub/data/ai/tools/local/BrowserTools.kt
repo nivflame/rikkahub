@@ -99,7 +99,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
             )
         },
         execute = {
-            val startIndex = it.jsonObject["start_index"]?.jsonPrimitive?.contentOrNull ?: 0
+            val startIndex = it.jsonObject["start_index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0
             val content = HeadlessBrowserSession.withController(context) {
                 it.getContent(BrowserController.MAX_CONTENT_CHARS, startIndex)
             }
