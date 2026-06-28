@@ -113,6 +113,8 @@ import me.rerere.rikkahub.ui.pages.setting.SettingThemePage
 import me.rerere.rikkahub.ui.pages.setting.SettingDonatePage
 import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
+import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
+import me.rerere.rikkahub.ui.pages.setting.SettingAskQuestionPage
 import me.rerere.rikkahub.ui.pages.setting.SettingFilesPage
 import me.rerere.rikkahub.ui.pages.setting.SettingMcpPage
 import me.rerere.rikkahub.ui.pages.setting.SettingModelPage
@@ -468,6 +470,14 @@ class RouteActivity : ComponentActivity() {
                                 SettingSubagentPage()
                             }
 
+                            entry<Screen.SettingTools> {
+                                SettingToolsPage()
+                            }
+
+                            entry<Screen.SettingAskQuestion> {
+                                SettingAskQuestionPage()
+                            }
+
                             entry<Screen.SettingFiles> {
                                 SettingFilesPage()
                             }
@@ -629,6 +639,12 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingSubagent : Screen
+
+    @Serializable
+    data object SettingTools : Screen
+
+    @Serializable
+    data object SettingAskQuestion : Screen
 
     @Serializable
     data object Backup : Screen

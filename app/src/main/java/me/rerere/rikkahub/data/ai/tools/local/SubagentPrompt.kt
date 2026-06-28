@@ -18,7 +18,7 @@ internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
     "time_info",
     "clipboard",
     "tts",
-    "ask_user",
+    "AskQuestion",
     "screen_time",
 )
 

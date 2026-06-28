@@ -167,8 +167,8 @@ private fun AssistantLocalToolContent(
                 },
                 trailingContent = {
                     Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.AskUser),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) }
+                        checked = assistant.localTools.contains(LocalToolOption.AskQuestion),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskQuestion, it) }
                     )
                 }
             )

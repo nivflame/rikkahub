@@ -566,7 +566,7 @@ class ChatService(
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
-                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions))
+                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription))
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }

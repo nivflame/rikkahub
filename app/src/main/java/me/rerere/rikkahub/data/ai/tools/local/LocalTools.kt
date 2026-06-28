@@ -13,8 +13,6 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
 
     val ttsTool by lazy { buildTextToSpeechTool(eventBus) }
 
-    val askUserTool by lazy { buildAskUserTool() }
-
     val screenTimeTool by lazy { buildScreenTimeTool(context, eventBus) }
 
     val browserTools by lazy { buildBrowserTools(context) }
@@ -22,7 +20,8 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
     fun getTools(
         options: List<LocalToolOption>,
         enabledBrowserTools: Set<String> = emptySet(),
-        browserToolDescriptions: Map<String, String> = emptyMap()
+        browserToolDescriptions: Map<String, String> = emptyMap(),
+        askQuestionDescription: String = ""
     ): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.JavascriptEngine)) {
@@ -37,8 +36,8 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
         if (options.contains(LocalToolOption.Tts)) {
             tools.add(ttsTool)
         }
-        if (options.contains(LocalToolOption.AskUser)) {
-            tools.add(askUserTool)
+        if (options.contains(LocalToolOption.AskQuestion)) {
+            tools.add(buildAskQuestionTool(askQuestionDescription))
         }
         if (options.contains(LocalToolOption.ScreenTime)) {
             tools.add(screenTimeTool)

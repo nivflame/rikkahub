@@ -45,6 +45,7 @@ import me.rerere.rikkahub.data.sync.s3.S3Config
 import me.rerere.rikkahub.ui.theme.CustomTheme
 import me.rerere.rikkahub.ui.theme.PresetThemes
 import me.rerere.rikkahub.utils.JsonInstant
+import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ASK_QUESTION_DESCRIPTION
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
 import me.rerere.rikkahub.data.ai.tools.local.defaultSubagentPrompts
@@ -92,6 +93,7 @@ class SettingsStore(
         val SUBAGENT_PROMPTS = stringPreferencesKey("subagent_prompts")
         val SUBAGENT_CONCURRENCY = intPreferencesKey("subagent_concurrency")
         val SUBAGENT_MODEL = stringPreferencesKey("subagent_model")
+        val ASK_QUESTION_DESCRIPTION = stringPreferencesKey("ask_question_description")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
@@ -185,6 +187,8 @@ class SettingsStore(
                 } ?: defaultSubagentPrompts(),
                 subagentConcurrency = preferences[SUBAGENT_CONCURRENCY] ?: 3,
                 subagentModelId = preferences[SUBAGENT_MODEL]?.takeIf { it.isNotBlank() }?.let { Uuid.parse(it) },
+                askQuestionDescription = preferences[ASK_QUESTION_DESCRIPTION]?.takeIf { it.isNotBlank() }
+                    ?: DEFAULT_ASK_QUESTION_DESCRIPTION,
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
@@ -385,6 +389,7 @@ class SettingsStore(
             preferences[SUBAGENT_PROMPTS] = JsonInstant.encodeToString(settings.subagentPrompts)
             preferences[SUBAGENT_CONCURRENCY] = settings.subagentConcurrency
             preferences[SUBAGENT_MODEL] = settings.subagentModelId?.toString() ?: ""
+            preferences[ASK_QUESTION_DESCRIPTION] = settings.askQuestionDescription
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
             preferences[FAST_MODEL] = settings.fastModelId.toString()
@@ -533,6 +538,7 @@ data class Settings(
     val subagentPrompts: List<SubagentPrompt> = defaultSubagentPrompts(),
     val subagentConcurrency: Int = 3,
     val subagentModelId: Uuid? = null,
+    val askQuestionDescription: String = DEFAULT_ASK_QUESTION_DESCRIPTION,
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),
