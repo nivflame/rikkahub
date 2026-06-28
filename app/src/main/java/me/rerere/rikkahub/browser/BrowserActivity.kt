@@ -5,21 +5,25 @@ import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,8 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.launch
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
@@ -45,6 +49,7 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.ChatService
+import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
@@ -111,9 +116,15 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                     )
                 }
             }
+            val currentUrl = controller?.currentUrl() ?: ""
+            val message = if (currentUrl.isNotBlank()) {
+                "The user is currently viewing this page in the browser: $currentUrl\n\nUser request: $text"
+            } else {
+                text
+            }
             val id = conversationId ?: Uuid.random().also { conversationId = it }
             chatService.initializeConversation(id)
-            chatService.sendMessage(id, listOf(UIMessagePart.Text(text)))
+            chatService.sendMessage(id, listOf(UIMessagePart.Text(message)))
             prompt = ""
         }
     }
@@ -121,11 +132,12 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = { BackButton() },
                 title = {
                     OutlinedTextField(
                         value = addressBar,
                         onValueChange = { addressBar = it },
-                        placeholder = { Text("Enter URL or search") },
+                        placeholder = { Text("Enter URL") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
@@ -133,7 +145,7 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                     )
                 },
                 actions = {
-                    IconButton(onClick = { navigate() }) {
+                    FilledTonalIconButton(onClick = { navigate() }) {
                         Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Go")
                     }
                 },
@@ -142,7 +154,7 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
         },
         containerColor = CustomColors.topBarColors.containerColor,
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -153,39 +165,55 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                         controller = BrowserController(webView, onUrlChanged = { addressBar = it })
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
-            Row(
+            Column(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .imePadding()
             ) {
-                OutlinedTextField(
-                    value = prompt,
-                    onValueChange = { prompt = it },
-                    placeholder = { Text("Ask the AI about this page") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { sendPrompt() })
-                )
-                IconButton(onClick = { sendPrompt() }) {
-                    Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
+                if (reply.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 3.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = reply,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp)
+                        )
+                    }
                 }
-            }
-            if (reply.isNotBlank()) {
-                Text(
-                    text = reply,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 200.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = prompt,
+                            onValueChange = { prompt = it },
+                            placeholder = { Text("Ask the AI about this page") },
+                            modifier = Modifier.weight(1f),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { sendPrompt() })
+                        )
+                        FilledTonalIconButton(onClick = { sendPrompt() }) {
+                            Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
+                        }
+                    }
+                }
             }
         }
     }

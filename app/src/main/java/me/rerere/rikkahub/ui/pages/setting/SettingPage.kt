@@ -43,6 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Earth
+import androidx.compose.material3.Switch
 import me.rerere.hugeicons.stroke.AiMagic
 import me.rerere.hugeicons.stroke.Alert01
 import me.rerere.hugeicons.stroke.Book01
@@ -198,6 +200,19 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         leadingContent = { Icon(HugeIcons.Package, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_extensions_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_extensions)) },
+                    )
+                    item(
+                        leadingContent = { Icon(HugeIcons.Earth, null) },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.enableBrowser,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(enableBrowser = it))
+                                }
+                            )
+                        },
+                        headlineContent = { Text("Browser") },
+                        supportingContent = { Text("Enable the browser tool and the browser entry on the chat screen") },
                     )
                 }
             }

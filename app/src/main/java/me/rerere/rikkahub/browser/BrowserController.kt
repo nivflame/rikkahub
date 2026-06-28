@@ -25,12 +25,17 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     private var loadDeferred: CompletableDeferred<Unit>? = null
 
+    @Volatile
+    private var readabilityInjected = false
+    private var readabilityScript: String? = null
+
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.userAgentString = webView.settings.userAgentString + " RikkaHubBrowser/1.0"
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                readabilityInjected = false
                 onUrlChanged?.invoke(url ?: "")
             }
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -63,10 +68,30 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         }
     } ?: "timeout going back"
 
-    suspend fun getText(maxChars: Int): String = withContext(Dispatchers.Main) {
-        val js = "(function(){ var b=document.body; return b ? b.innerText : ''; })();"
-        val raw = evaluateJavascriptAsync(js)
-        raw?.let { unquoteJsString(it) }?.take(maxChars) ?: ""
+    suspend fun getText(maxChars: Int): String {
+        ensureReadability()
+        return withContext(Dispatchers.Main) {
+            val js = "(function(){ try { var doc = document.cloneNode(true);" +
+                " var article = new Readability(doc).parse();" +
+                " return article ? (article.textContent || '') : (document.body ? document.body.innerText : '');" +
+                " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
+            val raw = evaluateJavascriptAsync(js)
+            raw?.let { unquoteJsString(it) }?.take(maxChars) ?: ""
+        }
+    }
+
+    private suspend fun ensureReadability() {
+        if (readabilityInjected) return
+        val script = readabilityScript ?: withContext(Dispatchers.IO) {
+            runCatching {
+                webView.context.assets.open("browser/readability.js").bufferedReader().use { it.readText() }
+            }.getOrNull()
+        } ?: ""
+        readabilityScript = script
+        if (script.isNotBlank()) {
+            withContext(Dispatchers.Main) { evaluateJavascriptAsync(script) }
+        }
+        readabilityInjected = true
     }
 
     suspend fun getLinks(maxCount: Int): String = withContext(Dispatchers.Main) {
@@ -80,12 +105,13 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     suspend fun screenshot(maxHeightPx: Int, context: Context): String? =
         withTimeoutOrNull(perToolTimeoutMs) {
-            withContext(Dispatchers.Main) {
+            val bitmap = withContext(Dispatchers.Main) {
                 layoutForCapture()
                 val w = webView.measuredWidth.coerceAtLeast(1)
                 val h = webView.measuredHeight.coerceAtLeast(1).coerceAtMost(maxHeightPx)
-                val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                webView.draw(Canvas(bitmap))
+                Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
+            }
+            withContext(Dispatchers.IO) {
                 val dir = File(context.cacheDir, "browser-shots").apply { mkdirs() }
                 val file = dir.resolve("shot-${System.currentTimeMillis()}.jpg")
                 FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 60, it) }
