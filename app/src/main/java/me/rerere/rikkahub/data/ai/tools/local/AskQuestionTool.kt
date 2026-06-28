@@ -8,8 +8,6 @@ import me.rerere.ai.core.InputSchema
 import me.rerere.ai.core.Tool
 
 internal val DEFAULT_ASK_QUESTION_DESCRIPTION = """
-# AskUserQuestion
-
 Use this tool when you need to ask the user questions during execution. This allows you to:
 1. Gather user preferences or requirements
 2. Clarify ambiguous instructions
@@ -29,25 +27,6 @@ Use the optional `preview` field on options when presenting concrete artifacts t
 - Configuration examples
 
 Preview content is rendered as markdown in a monospace box. Multi-line text with newlines is supported. When any option has a preview, the UI switches to a side-by-side layout with a vertical option list on the left and preview on the right. Do not use previews for simple preference questions where labels and descriptions suffice. Note: previews are only supported for single-select questions (not multiSelect).
-
-## Parameters
-
-- **questions** *(array, required)* (minItems: `1`, maxItems: `4`): Questions to ask the user (1-4 questions)
-  Array of objects:
-    - **question** *(string, required)*: The complete question to ask the user. Should be clear, specific, and end with a question mark. Example: "Which library should we use for date formatting?" If multiSelect is true, phrase it accordingly, e.g. "Which features do you want to enable?"
-    - **header** *(string, required)*: Very short label displayed as a chip/tag (max 12 chars). Examples: "Auth method", "Library", "Approach".
-    - **options** *(array, required)* (minItems: `2`, maxItems: `4`): The available choices for this question. Must have 2-4 options. Each option should be a distinct, mutually exclusive choice (unless multiSelect is enabled). There should be no 'Other' option, that will be provided automatically.
-      Array of objects:
-        - **label** *(string, required)*: The display text for this option that the user will see and select. Should be concise (1-5 words) and clearly describe the choice.
-        - **description** *(string, required)*: Explanation of what this option means or what will happen if chosen. Useful for providing context about trade-offs or implications.
-        - **preview** *(string)*: Optional preview content rendered when this option is focused. Use for mockups, code snippets, or visual comparisons that help users compare options. See the tool description for the expected content format.
-    - **multiSelect** *(boolean, required)*: Set to true to allow the user to select multiple options instead of just one. Use when choices are not mutually exclusive.
-- **answers** *(object)*: User answers collected by the permission component
-- **annotations** *(object)*: Optional per-question annotations from the user (e.g., notes on preview selections). Keyed by question text.
-
-**Required:** questions
-
-**Additional properties:** not allowed
 """.trimIndent()
 
 internal fun buildAskQuestionTool(description: String): Tool = Tool(
