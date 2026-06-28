@@ -20,7 +20,7 @@ import java.io.FileOutputStream
  * awaited via [WebViewClient.onPageFinished] with a hard per-tool timeout so a hung page
  * cannot wedge the agent loop.
  */
-class BrowserController(val webView: WebView) {
+class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
     private var loadDeferred: CompletableDeferred<Unit>? = null
@@ -30,8 +30,12 @@ class BrowserController(val webView: WebView) {
         webView.settings.domStorageEnabled = true
         webView.settings.userAgentString = webView.settings.userAgentString + " RikkaHubBrowser/1.0"
         webView.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                onUrlChanged?.invoke(url ?: "")
+            }
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
+                onUrlChanged?.invoke(url ?: "")
             }
         }
     }

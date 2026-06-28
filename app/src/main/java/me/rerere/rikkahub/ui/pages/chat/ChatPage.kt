@@ -63,6 +63,9 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
+import me.rerere.hugeicons.stroke.Earth
+import android.content.Intent
+import me.rerere.rikkahub.browser.BrowserActivity
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
@@ -767,6 +770,13 @@ private fun TopBar(
                 }
             ) {
                 Icon(HugeIcons.MessageAdd01, "New Message")
+            }
+            IconButton(
+                onClick = {
+                    context.startActivity(Intent(context, BrowserActivity::class.java))
+                }
+            ) {
+                Icon(HugeIcons.Earth, "Browser")
             }
         },
     )
