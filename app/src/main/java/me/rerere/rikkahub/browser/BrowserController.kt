@@ -277,15 +277,21 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         fullPage: Boolean = false
     ): String? = withTimeoutOrNull(perToolTimeoutMs) {
         val bitmap = withContext(Dispatchers.Main) {
-            layoutForCapture()
-            var w = webView.measuredWidth.coerceAtLeast(1)
-            var h = webView.measuredHeight.coerceAtLeast(1)
+            val metrics = context.resources.displayMetrics
+            val displayW = metrics.widthPixels.coerceAtLeast(1)
+            val displayH = metrics.heightPixels.coerceAtLeast(1)
+            // Use the WebView's current on-screen size when it is already laid out (what the user
+            // sees), otherwise fall back to the device display size for the headless WebView.
             if (fullPage) {
                 val sh = evaluateJavascriptAsync("document.documentElement.scrollHeight")
-                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: h
-                h = sh.coerceIn(1, maxHeightPx)
-                layoutForCapture(w, h)
+                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: displayH
+                val fw = webView.measuredWidth.takeIf { it > 0 } ?: displayW
+                layoutForCapture(fw, sh.coerceIn(1, maxHeightPx))
+            } else if (webView.measuredWidth <= 0 || webView.measuredHeight <= 0) {
+                layoutForCapture(displayW, displayH)
             }
+            val w = webView.measuredWidth.coerceAtLeast(1)
+            val h = webView.measuredHeight.coerceAtLeast(1)
             val full = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
             if (selector != null) {
                 val sel = Json.encodeToString(selector)
