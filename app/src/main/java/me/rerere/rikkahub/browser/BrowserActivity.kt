@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,11 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,7 +45,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +62,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.hugeicons.stroke.ArrowUp02
+import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
@@ -106,6 +113,16 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
     var addressBar by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
     var showFullReply by remember { mutableStateOf(false) }
+    var inputExpanded by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(inputExpanded) {
+        if (inputExpanded) {
+            kotlinx.coroutines.delay(100)
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
 
     LaunchedEffect(settings.browserConversationId) {
         if (conversationId == null) {
@@ -246,6 +263,16 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                 },
                 modifier = Modifier.fillMaxSize()
             )
+            if (inputExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable {
+                            focusManager.clearFocus()
+                            inputExpanded = false
+                        }
+                )
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -289,31 +316,60 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                         }
                     }
                 }
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 3.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                if (inputExpanded) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 3.dp,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = prompt,
+                                onValueChange = { prompt = it },
+                                placeholder = { Text("Ask the AI about this page") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequester),
+                                maxLines = 5,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(onSend = {
+                                    sendPrompt()
+                                    inputExpanded = false
+                                })
+                            )
+                            FilledTonalIconButton(onClick = { cancelGeneration() }) {
+                                Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Cancel")
+                            }
+                            FilledTonalIconButton(onClick = {
+                                sendPrompt()
+                                inputExpanded = false
+                            }) {
+                                Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
+                            }
+                        }
+                    }
+                } else {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        OutlinedTextField(
-                            value = prompt,
-                            onValueChange = { prompt = it },
-                            placeholder = { Text("Ask the AI about this page") },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { sendPrompt() })
-                        )
-                        FilledTonalIconButton(onClick = { cancelGeneration() }) {
-                            Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Cancel")
-                        }
-                        FilledTonalIconButton(onClick = { sendPrompt() }) {
-                            Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
+                        FloatingActionButton(
+                            onClick = { inputExpanded = true },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(imageVector = HugeIcons.Edit01, contentDescription = "Ask the AI")
                         }
                     }
                 }

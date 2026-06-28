@@ -41,6 +41,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     private val consoleLogs = ArrayDeque<String>()
     private val networkLogs = ArrayDeque<String>()
 
+    @Volatile
+    private var lastRequestAt = 0L
+
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -60,6 +63,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 request?.url?.let {
                     networkLogs.addLast("${request.method} ${it.toString().take(500)}")
                     if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
+                    lastRequestAt = System.currentTimeMillis()
                 }
                 return null
             }
@@ -86,6 +90,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 !userAgent.isNullOrBlank() -> webView.settings.userAgentString = userAgent
                 viewport != null && viewport.contains("mobile") -> webView.settings.userAgentString = MOBILE_USER_AGENT
             }
+            lastRequestAt = System.currentTimeMillis()
             when (type) {
                 "back" -> {
                     if (!webView.canGoBack()) return@withContext "no history to go back to"
@@ -113,6 +118,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                     loadDeferred?.await()
                 }
             }
+            awaitNetworkIdle()
             webView.url ?: ""
         }
     } ?: "timeout navigating"
@@ -121,14 +127,18 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.url ?: ""
     }
 
+    private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val now = System.currentTimeMillis()
+            if (lastRequestAt > 0 && now - lastRequestAt > quietMs) return
+            kotlinx.coroutines.delay(100)
+        }
+    }
+
     suspend fun getText(maxChars: Int): String {
         ensureReadability()
-        var result = readPageText(maxChars)
-        if (result.isBlank()) {
-            kotlinx.coroutines.delay(1500)
-            result = readPageText(maxChars)
-        }
-        return result
+        return readPageText(maxChars)
     }
 
     private suspend fun readPageText(maxChars: Int): String = withContext(Dispatchers.Main) {
