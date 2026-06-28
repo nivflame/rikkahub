@@ -56,7 +56,7 @@ private fun ParamRow(
     val type = obj["type"]?.jsonPrimitive?.contentOrNull
     val description = obj["description"]?.jsonPrimitive?.contentOrNull
     Column(
-        modifier = Modifier.padding(start = depth * 12.dp),
+        modifier = Modifier.padding(start = (depth * 12).dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
