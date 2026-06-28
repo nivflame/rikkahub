@@ -43,6 +43,7 @@ class BrowserViewerActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ViewerScreen() {
+    val context = LocalContext.current
     val url by HeadlessBrowserSession.urlFlow.collectAsStateWithLifecycle()
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -61,7 +62,7 @@ private fun ViewerScreen() {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { (LocalContext.current as? Activity)?.finish() }) {
+                    IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
                     }
                 },

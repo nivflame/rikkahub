@@ -97,6 +97,7 @@ class BrowserActivity : ComponentActivity() {
 @Composable
 private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var controller by remember { mutableStateOf<BrowserController?>(null) }
     var conversationId by remember { mutableStateOf(BrowserSessionState.conversationId) }
     var addressBar by remember { mutableStateOf("") }
@@ -181,7 +182,7 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    IconButton(onClick = { (LocalContext.current as? Activity)?.finish() }) {
+                    IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
                     }
                 },
