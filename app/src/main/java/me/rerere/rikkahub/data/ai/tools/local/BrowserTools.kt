@@ -12,7 +12,7 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.browser.BrowserController
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
-private const val BROWSER_SYSTEM_PROMPT = """
+private val BROWSER_SYSTEM_PROMPT = """
 You have browser tools to navigate the web. Use browser_open(url) to navigate to a URL,
 browser_get_text to read the main text of the current page, browser_get_links to list the
 links on the page so you can decide where to go next, browser_back to return to the previous
