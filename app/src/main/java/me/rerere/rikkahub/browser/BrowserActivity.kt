@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -41,23 +42,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.ArrowLeft01
-import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
+import me.rerere.hugeicons.stroke.Home01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
@@ -98,11 +99,26 @@ class BrowserActivity : ComponentActivity() {
 private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     var controller by remember { mutableStateOf<BrowserController?>(null) }
-    var conversationId by remember { mutableStateOf(BrowserSessionState.conversationId) }
+    var conversationId by remember { mutableStateOf<Uuid?>(null) }
+    var initialLoaded by remember { mutableStateOf(false) }
     var addressBar by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
     var showFullReply by remember { mutableStateOf(false) }
+
+    LaunchedEffect(settings.browserConversationId) {
+        if (conversationId == null) {
+            conversationId = settings.browserConversationId?.let { Uuid.parse(it) }
+        }
+    }
+
+    LaunchedEffect(settings.browserLastUrl, controller) {
+        if (!initialLoaded && controller != null) {
+            controller?.webView?.loadUrl(settings.browserLastUrl ?: HOME_URL)
+            initialLoaded = true
+        }
+    }
 
     val ui by produceState(initialValue = BrowserUiState(), conversationId) {
         val id = conversationId ?: return@produceState
@@ -168,10 +184,8 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
             } else {
                 text
             }
-            val id = conversationId ?: Uuid.random().also {
-                conversationId = it
-                BrowserSessionState.conversationId = it
-            }
+            val id = conversationId ?: Uuid.random().also { conversationId = it }
+            settingsStore.update { it.copy(browserConversationId = id.toString()) }
             chatService.initializeConversation(id)
             chatService.sendMessage(id, listOf(UIMessagePart.Text(message)))
             prompt = ""
@@ -198,8 +212,8 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                     )
                 },
                 actions = {
-                    FilledTonalIconButton(onClick = { navigate() }) {
-                        Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Go")
+                    FilledTonalIconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
+                        Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
                     }
                 },
                 colors = CustomColors.topBarColors,
@@ -217,14 +231,12 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                     WebView(context).also { webView ->
                         val c = BrowserController(
                             webView,
-                            onUrlChanged = {
-                                addressBar = it
-                                BrowserSessionState.lastUrl = it
+                            onUrlChanged = { url ->
+                                addressBar = url
+                                scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
                             }
                         )
                         controller = c
-                        val home = BrowserSessionState.lastUrl ?: HOME_URL
-                        webView.loadUrl(home)
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -235,15 +247,15 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                     .fillMaxWidth()
                     .imePadding()
             ) {
-                if (ui.steps.isNotEmpty()) {
+                ui.steps.lastOrNull()?.let { step ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ui.steps.forEach { step -> StepDot(step) }
+                        TrackerPill(step)
                     }
                 }
                 if (ui.reply.isNotBlank()) {
@@ -341,24 +353,39 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
 }
 
 @Composable
-private fun StepDot(step: BrowserStep) {
-    val (icon, tint) = when (step) {
-        is BrowserStep.Tool -> HugeIcons.Tools to MaterialTheme.colorScheme.primary
-        BrowserStep.Thinking -> HugeIcons.AiBrain01 to MaterialTheme.colorScheme.tertiary
-        BrowserStep.Done -> HugeIcons.Tick01 to MaterialTheme.colorScheme.secondary
+private fun TrackerPill(step: BrowserStep) {
+    val (label, icon, active) = when (step) {
+        is BrowserStep.Tool -> Triple("Agent calling ${step.name}", HugeIcons.Tools, true)
+        BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, true)
+        BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
     }
-    Box(
-        modifier = Modifier
-            .size(24.dp)
-            .clip(CircleShape)
-            .background(tint.copy(alpha = 0.15f)),
-        contentAlignment = Alignment.Center
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        shape = CircleShape,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(14.dp)
-        )
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (active) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }

@@ -571,27 +571,38 @@ class ChatService(
                             )
                         )
                     }
-                    mcpManager.getAllAvailableTools().also { allTools ->
-                        val invalidNames = allTools
-                            .map { it.second }
-                            .distinct()
-                            .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
-                        if (invalidNames.isNotEmpty()) {
-                            addError(
-                                error = IllegalStateException(
-                                    context.getString(
-                                        R.string.error_mcp_invalid_server_name,
-                                        invalidNames.joinToString(", ")
-                                    )
-                                ),
-                                conversationId = conversationId,
-                            )
-                            return
+                    val allMcpTools = mcpManager.getAllAvailableTools()
+                    val invalidNames = allMcpTools
+                        .map { it.second }
+                        .distinct()
+                        .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
+                    if (invalidNames.isNotEmpty()) {
+                        addError(
+                            error = IllegalStateException(
+                                context.getString(
+                                    R.string.error_mcp_invalid_server_name,
+                                    invalidNames.joinToString(", ")
+                                )
+                            ),
+                            conversationId = conversationId,
+                        )
+                        return
+                    }
+                    val bareCollisions = allMcpTools
+                        .filter { server ->
+                            settings.mcpServers.firstOrNull { it.id == server.first }
+                                ?.commonOptions?.bareNames == true
                         }
-                    }.forEach { (serverId, serverName, tool) ->
+                        .groupingBy { it.third.name }
+                        .eachCount()
+                        .filter { it.value > 1 }
+                        .keys
+                    allMcpTools.forEach { (serverId, serverName, tool) ->
+                        val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                            ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
                         add(
                             Tool(
-                                name = "mcp__${serverName}__${tool.name}",
+                                name = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}",
                                 description = tool.description ?: "",
                                 parameters = { tool.inputSchema },
                                 needsApproval = { tool.needsApproval },

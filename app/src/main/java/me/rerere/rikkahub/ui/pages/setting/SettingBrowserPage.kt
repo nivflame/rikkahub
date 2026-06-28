@@ -26,13 +26,15 @@ import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.androidx.compose.koinViewModel
 
 private val BROWSER_TOOL_LABELS: Map<String, String> = mapOf(
-    "browser_open" to "Open URL",
-    "browser_current_url" to "Current URL",
+    "browser_navigate" to "Navigate",
     "browser_get_text" to "Get page text",
     "browser_get_links" to "Get links",
-    "browser_back" to "Go back",
     "browser_screenshot" to "Screenshot",
-    "browser_done" to "Done",
+    "browser_interact" to "Interact",
+    "browser_dom_snapshot" to "DOM snapshot",
+    "browser_execute_script" to "Execute script",
+    "browser_logs" to "Logs",
+    "browser_close" to "Close",
 )
 
 @Composable

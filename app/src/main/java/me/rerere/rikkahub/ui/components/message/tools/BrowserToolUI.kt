@@ -39,11 +39,11 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
     @Composable
     override fun title(context: ToolUIContext): String = "Browser"
 
-    override fun hasSummary(context: ToolUIContext): Boolean = toolName == "browser_open"
+    override fun hasSummary(context: ToolUIContext): Boolean = toolName == "browser_navigate"
 
     @Composable
     override fun Summary(context: ToolUIContext) {
-        if (toolName != "browser_open") return
+        if (toolName != "browser_navigate") return
         val activityContext = LocalContext.current
         val url = context.arguments.getStringContent("url") ?: ""
         Row(

@@ -3,7 +3,12 @@ package me.rerere.rikkahub.browser
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.view.View
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
@@ -11,6 +16,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.io.File
 import java.io.FileOutputStream
 
@@ -28,6 +38,8 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     @Volatile
     private var readabilityInjected = false
     private var readabilityScript: String? = null
+    private val consoleLogs = ArrayDeque<String>()
+    private val networkLogs = ArrayDeque<String>()
 
     init {
         webView.settings.javaScriptEnabled = true
@@ -38,35 +50,76 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 readabilityInjected = false
                 onUrlChanged?.invoke(url ?: "")
             }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
                 onUrlChanged?.invoke(url ?: "")
             }
+
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                request?.url?.let {
+                    networkLogs.addLast("${request.method} ${it.toString().take(500)}")
+                    if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
+                }
+                return null
+            }
+        }
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    consoleLogs.addLast("[${it.messageLevel()}] ${it.message()}".take(500))
+                    if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
+                }
+                return true
+            }
         }
     }
 
-    suspend fun open(url: String): String = withTimeoutOrNull(perToolTimeoutMs) {
+    suspend fun navigate(
+        url: String,
+        type: String = "url",
+        viewport: String? = null,
+        userAgent: String? = null
+    ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
-            loadDeferred = CompletableDeferred()
-            webView.loadUrl(url)
-            loadDeferred?.await()
-            webView.url ?: url
+            when {
+                !userAgent.isNullOrBlank() -> webView.settings.userAgentString = userAgent
+                viewport != null && viewport.contains("mobile") -> webView.settings.userAgentString = MOBILE_USER_AGENT
+            }
+            when (type) {
+                "back" -> {
+                    if (!webView.canGoBack()) return@withContext "no history to go back to"
+                    loadDeferred = CompletableDeferred()
+                    webView.goBack()
+                    loadDeferred?.await()
+                }
+
+                "forward" -> {
+                    if (!webView.canGoForward()) return@withContext "no history to go forward to"
+                    loadDeferred = CompletableDeferred()
+                    webView.goForward()
+                    loadDeferred?.await()
+                }
+
+                "reload" -> {
+                    loadDeferred = CompletableDeferred()
+                    webView.reload()
+                    loadDeferred?.await()
+                }
+
+                else -> {
+                    loadDeferred = CompletableDeferred()
+                    webView.loadUrl(url.ifBlank { "about:blank" })
+                    loadDeferred?.await()
+                }
+            }
+            webView.url ?: ""
         }
-    } ?: "timeout loading $url"
+    } ?: "timeout navigating"
 
     suspend fun currentUrl(): String = withContext(Dispatchers.Main) {
         webView.url ?: ""
     }
-
-    suspend fun back(): String = withTimeoutOrNull(perToolTimeoutMs) {
-        withContext(Dispatchers.Main) {
-            if (!webView.canGoBack()) return@withContext "no history to go back to"
-            loadDeferred = CompletableDeferred()
-            webView.goBack()
-            loadDeferred?.await()
-            webView.url ?: ""
-        }
-    } ?: "timeout going back"
 
     suspend fun getText(maxChars: Int): String {
         ensureReadability()
@@ -103,22 +156,126 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         raw?.let { unquoteJsString(it) } ?: "[]"
     }
 
-    suspend fun screenshot(maxHeightPx: Int, context: Context): String? =
-        withTimeoutOrNull(perToolTimeoutMs) {
-            val bitmap = withContext(Dispatchers.Main) {
-                layoutForCapture()
-                val w = webView.measuredWidth.coerceAtLeast(1)
-                val h = webView.measuredHeight.coerceAtLeast(1).coerceAtMost(maxHeightPx)
-                Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
+    suspend fun interact(
+        action: String,
+        selector: String? = null,
+        value: String? = null,
+        key: String? = null,
+        text: String? = null,
+        doubleClick: Boolean = false
+    ): String = withContext(Dispatchers.Main) {
+        val params = buildJsonObject {
+            put("action", action)
+            put("selector", selector ?: "")
+            put("value", value ?: "")
+            put("key", key ?: "")
+            put("text", text ?: "")
+            put("doubleClick", doubleClick)
+        }
+        val js = "(function(){var p=$params;var el=p.selector?document.querySelector(p.selector):null;" +
+            "try{var a=p.action;" +
+            "if(a==='click'){if(!el)return 'element not found';el.dispatchEvent(new MouseEvent('click',{bubbles:true}));" +
+            "if(p.doubleClick)el.dispatchEvent(new MouseEvent('click',{bubbles:true}));return 'clicked';}" +
+            "if(a==='fill'){if(!el)return 'element not found';el.focus();el.value=p.value;" +
+            "el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';}" +
+            "if(a==='scroll'){if(el)el.scrollIntoView({block:'center'});else window.scrollBy(0,parseInt(p.value||'0'));return 'scrolled';}" +
+            "if(a==='hover'){if(!el)return 'element not found';el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));return 'hovered';}" +
+            "if(a==='press_key'){document.dispatchEvent(new KeyboardEvent('keydown',{key:p.key,bubbles:true}));" +
+            "document.dispatchEvent(new KeyboardEvent('keyup',{key:p.key,bubbles:true}));return 'pressed '+p.key;}" +
+            "if(a==='type_text'){if(!el)return 'element not found';el.focus();el.value=el.value+p.text;" +
+            "el.dispatchEvent(new Event('input',{bubbles:true}));return 'typed';}" +
+            "return 'unknown action';}catch(e){return 'error: '+e.message;}})();"
+        val raw = evaluateJavascriptAsync(js)
+        raw?.let { unquoteJsString(it) } ?: "ok"
+    }
+
+    suspend fun domSnapshot(selector: String?, maxNodes: Int): String = withContext(Dispatchers.Main) {
+        val sel = Json.encodeToString(selector ?: "")
+        val js = "(function(){var sel=$sel;var out=[];var skip=['script','style','noscript','svg','path','head','meta','link'];" +
+            "function walk(el,depth){if(out.length>$maxNodes||depth>8)return;" +
+            "if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(Array(depth+1).join('  ')+t.slice(0,120));return;}" +
+            "if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;" +
+            "var line=Array(depth+1).join('  ')+tag;var href=el.getAttribute('href');" +
+            "if(href)line+=' [href='+href.slice(0,120)+']';if((el.innerText||'').trim()&&el.children.length===0)line+=': '+el.innerText.trim().slice(0,80);" +
+            "out.push(line);for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}" +
+            "var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';" +
+            "walk(root,0);return out.join('\\n');})();"
+        val raw = evaluateJavascriptAsync(js)
+        raw?.let { unquoteJsString(it) } ?: "no snapshot"
+    }
+
+    suspend fun executeScript(expression: String): String = withContext(Dispatchers.Main) {
+        val raw = evaluateJavascriptAsync(expression)
+        raw?.let { unquoteJsString(it) } ?: "null"
+    }
+
+    suspend fun logs(type: String): String = withContext(Dispatchers.Main) {
+        val src = if (type == "network") networkLogs else consoleLogs
+        src.joinToString("\n").take(MAX_LOG_CHARS)
+    }
+
+    fun close() {
+        consoleLogs.clear()
+        networkLogs.clear()
+    }
+
+    suspend fun screenshot(
+        maxHeightPx: Int,
+        context: Context,
+        selector: String? = null,
+        fullPage: Boolean = false
+    ): String? = withTimeoutOrNull(perToolTimeoutMs) {
+        val bitmap = withContext(Dispatchers.Main) {
+            layoutForCapture()
+            var w = webView.measuredWidth.coerceAtLeast(1)
+            var h = webView.measuredHeight.coerceAtLeast(1)
+            if (fullPage) {
+                val sh = evaluateJavascriptAsync("document.documentElement.scrollHeight")
+                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: h
+                h = sh.coerceIn(1, maxHeightPx)
+                layoutForCapture(w, h)
             }
-            withContext(Dispatchers.IO) {
-                val dir = File(context.cacheDir, "browser-shots").apply { mkdirs() }
-                val file = dir.resolve("shot-${System.currentTimeMillis()}.jpg")
-                FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 60, it) }
-                bitmap.recycle()
-                file.absolutePath
+            val full = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
+            if (selector != null) {
+                val sel = Json.encodeToString(selector)
+                val rectRaw = evaluateJavascriptAsync(
+                    "(function(){var e=document.querySelector($sel);if(!e)return null;" +
+                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height});})();"
+                )
+                val rect = rectRaw?.let { parseRect(it) }
+                if (rect != null) {
+                    val cx = rect.left.toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
+                    val cy = rect.top.toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
+                    val cw = rect.width().toInt().coerceIn(1, w - cx)
+                    val ch = rect.height().toInt().coerceIn(1, h - cy)
+                    Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
+                } else {
+                    full
+                }
+            } else {
+                full
             }
         }
+        withContext(Dispatchers.IO) {
+            val dir = File(context.cacheDir, "browser-shots").apply { mkdirs() }
+            val file = dir.resolve("shot-${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 60, it) }
+            bitmap.recycle()
+            file.absolutePath
+        }
+    }
+
+    private fun parseRect(raw: String): RectF? {
+        val json = unquoteJsString(raw).ifBlank { return null }
+        return runCatching {
+            val obj = Json.parseToJsonElement(json).jsonObject
+            val x = obj["x"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            val y = obj["y"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            val w = obj["w"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            val h = obj["h"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            RectF(x, y, x + w, y + h)
+        }.getOrNull()
+    }
 
     private fun layoutForCapture(width: Int = 1080, height: Int = 1920) {
         val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
@@ -142,6 +299,11 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         const val DEFAULT_PER_TOOL_TIMEOUT_MS = 30_000L
         const val MAX_TEXT_CHARS = 64 * 1024
         const val MAX_LINKS = 200
+        const val MAX_DOM_NODES = 200
+        const val MAX_LOG_CHARS = 64 * 1024
+        const val MAX_LOG_LINES = 500
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
+        const val MOBILE_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
     }
 }

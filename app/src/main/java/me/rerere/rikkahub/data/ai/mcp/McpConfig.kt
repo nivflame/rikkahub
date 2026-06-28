@@ -10,7 +10,8 @@ data class McpCommonOptions(
     val enable: Boolean = true,
     val name: String = "",
     val headers: List<Pair<String, String>> = emptyList(),
-    val tools: List<McpTool> = emptyList()
+    val tools: List<McpTool> = emptyList(),
+    val bareNames: Boolean = false
 )
 
 @Serializable
