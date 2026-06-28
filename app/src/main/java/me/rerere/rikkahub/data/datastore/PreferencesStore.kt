@@ -85,7 +85,6 @@ class SettingsStore(
         // 模型选择
         val ENABLE_WEB_SEARCH = booleanPreferencesKey("enable_web_search")
         val ENABLED_BROWSER_TOOLS = stringPreferencesKey("enabled_browser_tools")
-        val BROWSER_CONVERSATION_ID = stringPreferencesKey("browser_conversation_id")
         val BROWSER_LAST_URL = stringPreferencesKey("browser_last_url")
         val BROWSER_TOOL_DESCRIPTIONS = stringPreferencesKey("browser_tool_descriptions")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
@@ -172,7 +171,6 @@ class SettingsStore(
                 enabledBrowserTools = preferences[ENABLED_BROWSER_TOOLS]?.let {
                     JsonInstant.decodeFromString<Set<String>>(it)
                 } ?: DEFAULT_ENABLED_BROWSER_TOOLS,
-                browserConversationId = preferences[BROWSER_CONVERSATION_ID]?.takeIf { it.isNotBlank() },
                 browserLastUrl = preferences[BROWSER_LAST_URL]?.takeIf { it.isNotBlank() },
                 browserToolDescriptions = preferences[BROWSER_TOOL_DESCRIPTIONS]?.let {
                     JsonInstant.decodeFromString<Map<String, String>>(it)
@@ -372,7 +370,6 @@ class SettingsStore(
 
             preferences[ENABLE_WEB_SEARCH] = settings.enableWebSearch
             preferences[ENABLED_BROWSER_TOOLS] = JsonInstant.encodeToString(settings.enabledBrowserTools)
-            preferences[BROWSER_CONVERSATION_ID] = settings.browserConversationId ?: ""
             preferences[BROWSER_LAST_URL] = settings.browserLastUrl ?: ""
             preferences[BROWSER_TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.browserToolDescriptions)
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
@@ -518,7 +515,6 @@ data class Settings(
     val displaySetting: DisplaySetting = DisplaySetting(),
     val enableWebSearch: Boolean = false,
     val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
-    val browserConversationId: String? = null,
     val browserLastUrl: String? = null,
     val browserToolDescriptions: Map<String, String> = emptyMap(),
     val favoriteModels: List<Uuid> = emptyList(),

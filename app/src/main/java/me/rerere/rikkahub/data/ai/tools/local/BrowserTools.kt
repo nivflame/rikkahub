@@ -16,18 +16,19 @@ import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 private val BROWSER_SYSTEM_PROMPT = """
 You have browser tools to navigate and automate the in-app WebView. Use browser_navigate to
-open a URL or go back, forward, and reload. Use browser_get_text to read the main text of the
-current page, browser_get_links to list links, browser_dom_snapshot to inspect the DOM tree,
-and browser_interact to click, fill, scroll, hover, or type on elements. Use browser_execute_script
-to run JavaScript, browser_logs to read console or network logs, and browser_screenshot to
-capture the page. Call browser_close when the browsing task is complete. Prefer browser_get_text
-for reading, and use browser_get_links or browser_dom_snapshot to find where to go next.
+open a URL or go back, forward, and reload. Use browser_get_content to read the current page
+as markdown (main content with links resolved to absolute URLs), browser_dom_snapshot to
+inspect the DOM tree, and browser_interact to click, fill, scroll, hover, or type on elements.
+Use browser_execute_script to run JavaScript, browser_logs to read console or network logs,
+and browser_screenshot to capture the page. Call browser_close when the browsing task is
+complete. Prefer browser_get_content for reading. If browser_get_content returns a truncation
+notice, call it again with the start_index shown in that notice until you have read the whole
+page before responding.
 """.trimIndent().replace("\n", " ")
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_navigate",
-    "browser_get_text",
-    "browser_get_links",
+    "browser_get_content",
     "browser_screenshot",
     "browser_interact",
     "browser_dom_snapshot",
@@ -82,25 +83,27 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         }
     ),
     Tool(
-        name = "browser_get_text",
-        description = "Return the main visible text of the current page, capped to " +
-            "${BrowserController.MAX_TEXT_CHARS} characters. Use this to read what is on the page.",
+        name = "browser_get_content",
+        description = "Return the current page as markdown (main content with links resolved " +
+            "to absolute URLs), paginated. If the result ends with a truncation notice, call " +
+            "this tool again with the start_index shown in that notice, and keep reading until " +
+            "there is no truncation. Use this to read what is on the page and find where to go next.",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("start_index", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Line number to start reading from. Default 0. Use the start_index from a truncation notice to continue.")
+                    })
+                }
+            )
+        },
         execute = {
-            val text = HeadlessBrowserSession.withController(context) {
-                it.getText(BrowserController.MAX_TEXT_CHARS)
+            val startIndex = it.jsonObject["start_index"]?.jsonPrimitive?.contentOrNull ?: 0
+            val content = HeadlessBrowserSession.withController(context) {
+                it.getContent(BrowserController.MAX_CONTENT_CHARS, startIndex)
             }
-            listOf(UIMessagePart.Text(text.ifBlank { "no text on the current page" }))
-        }
-    ),
-    Tool(
-        name = "browser_get_links",
-        description = "Return the links on the current page as JSON (href and text), capped " +
-            "to ${BrowserController.MAX_LINKS} links. Use this to find where to navigate next.",
-        execute = {
-            val links = HeadlessBrowserSession.withController(context) {
-                it.getLinks(BrowserController.MAX_LINKS)
-            }
-            listOf(UIMessagePart.Text(links))
+            listOf(UIMessagePart.Text(content))
         }
     ),
     Tool(

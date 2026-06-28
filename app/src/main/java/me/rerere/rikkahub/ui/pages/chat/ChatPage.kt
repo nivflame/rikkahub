@@ -774,7 +774,10 @@ private fun TopBar(
             }
             IconButton(
                 onClick = {
-                    context.startActivity(Intent(context, BrowserActivity::class.java))
+                    context.startActivity(
+                        Intent(context, BrowserActivity::class.java)
+                            .putExtra("conversationId", conversation.id.toString())
+                    )
                 }
             ) {
                 Icon(HugeIcons.Earth, "Browser")

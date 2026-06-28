@@ -38,6 +38,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     @Volatile
     private var readabilityInjected = false
     private var readabilityScript: String? = null
+    @Volatile
+    private var turndownInjected = false
+    private var turndownScript: String? = null
     private val consoleLogs = ArrayDeque<String>()
     private val networkLogs = ArrayDeque<String>()
 
@@ -51,6 +54,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 readabilityInjected = false
+                turndownInjected = false
                 onUrlChanged?.invoke(url ?: "")
             }
 
@@ -136,18 +140,43 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         }
     }
 
-    suspend fun getText(maxChars: Int): String {
+    suspend fun getContent(maxChars: Int, startIndex: Int): String {
         ensureReadability()
-        return readPageText(maxChars)
+        ensureTurndown()
+        val markdown = withContext(Dispatchers.Main) {
+            val js = "(function(){ try { var doc = document.cloneNode(true);" +
+                " var article = new Readability(doc).parse();" +
+                " var html = article ? (article.content || '') : (document.body ? document.body.outerHTML : '');" +
+                " if(!html) return '';" +
+                " var td = new TurndownService({headingStyle:'atx', bulletListMarker:'-', codeBlockStyle:'fenced'});" +
+                " td.addRule('absoluteLinks', {filter:function(n){return n.nodeName==='A' && n.getAttribute('href');}, replacement:function(c, n){var h=n.getAttribute('href'); try{h=new URL(h, location.href).href;}catch(e){} return '['+(c||n.textContent||'')+']('+h+')';}});" +
+                " return td.turndown(html);" +
+                " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
+            val raw = evaluateJavascriptAsync(js)
+            raw?.let { unquoteJsString(it) } ?: ""
+        }
+        return paginateMarkdown(markdown, startIndex, maxChars)
     }
 
-    private suspend fun readPageText(maxChars: Int): String = withContext(Dispatchers.Main) {
-        val js = "(function(){ try { var doc = document.cloneNode(true);" +
-            " var article = new Readability(doc).parse();" +
-            " return article ? (article.textContent || '') : (document.body ? document.body.innerText : '');" +
-            " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
-        val raw = evaluateJavascriptAsync(js)
-        raw?.let { unquoteJsString(it) }?.take(maxChars) ?: ""
+    private fun paginateMarkdown(markdown: String, startIndex: Int, maxChars: Int): String {
+        if (markdown.isBlank()) return "no content on the current page"
+        val lines = markdown.split("\n")
+        val total = lines.size
+        if (startIndex >= total) return "[No more content. Total lines: $total.]"
+        var chars = 0
+        var end = startIndex
+        for (i in startIndex until total) {
+            val len = lines[i].length + 1
+            if (chars + len > maxChars && i > startIndex) break
+            chars += len
+            end = i + 1
+        }
+        val slice = lines.subList(startIndex, end).joinToString("\n")
+        return if (end < total) {
+            slice + "\n\n[Content truncated. Total lines: $total. Showing lines $startIndex to ${end - 1}. Call browser_get_content again with start_index=$end to continue. Read all chunks before responding.]"
+        } else {
+            slice
+        }
     }
 
     private suspend fun ensureReadability() {
@@ -164,13 +193,18 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         readabilityInjected = true
     }
 
-    suspend fun getLinks(maxCount: Int): String = withContext(Dispatchers.Main) {
-        val js = "(function(){ var out=[]; var as=document.querySelectorAll('a[href]');" +
-            " for (var i=0;i<as.length && i<${maxCount};i++){" +
-            " out.push({href:as[i].href,text:(as[i].innerText||'').trim()}); }" +
-            " return JSON.stringify(out); })();"
-        val raw = evaluateJavascriptAsync(js)
-        raw?.let { unquoteJsString(it) } ?: "[]"
+    private suspend fun ensureTurndown() {
+        if (turndownInjected) return
+        val script = turndownScript ?: withContext(Dispatchers.IO) {
+            runCatching {
+                webView.context.assets.open("browser/turndown.js").bufferedReader().use { it.readText() }
+            }.getOrNull()
+        } ?: ""
+        turndownScript = script
+        if (script.isNotBlank()) {
+            withContext(Dispatchers.Main) { evaluateJavascriptAsync(script) }
+        }
+        turndownInjected = true
     }
 
     suspend fun interact(
@@ -315,6 +349,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     companion object {
         const val DEFAULT_PER_TOOL_TIMEOUT_MS = 30_000L
         const val MAX_TEXT_CHARS = 64 * 1024
+        const val MAX_CONTENT_CHARS = 50 * 1024
         const val MAX_LINKS = 200
         const val MAX_DOM_NODES = 200
         const val MAX_LOG_CHARS = 64 * 1024

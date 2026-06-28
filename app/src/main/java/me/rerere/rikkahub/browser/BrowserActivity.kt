@@ -95,20 +95,30 @@ class BrowserActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val conversationId = intent.getStringExtra("conversationId")
+            ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
-            BrowserScreen(chatService = chatService, settingsStore = settingsStore)
+            BrowserScreen(
+                chatService = chatService,
+                settingsStore = settingsStore,
+                initialConversationId = conversationId
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore) {
+private fun BrowserScreen(
+    chatService: ChatService,
+    settingsStore: SettingsStore,
+    initialConversationId: Uuid? = null
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     var controller by remember { mutableStateOf<BrowserController?>(null) }
-    var conversationId by remember { mutableStateOf<Uuid?>(null) }
+    var conversationId by remember { mutableStateOf(initialConversationId) }
     var initialLoaded by remember { mutableStateOf(false) }
     var addressBar by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
@@ -121,12 +131,6 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
         if (inputExpanded) {
             kotlinx.coroutines.delay(100)
             runCatching { focusRequester.requestFocus() }
-        }
-    }
-
-    LaunchedEffect(settings.browserConversationId) {
-        if (conversationId == null) {
-            conversationId = settings.browserConversationId?.let { Uuid.parse(it) }
         }
     }
 
@@ -207,7 +211,6 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                 text
             }
             val id = conversationId ?: Uuid.random().also { conversationId = it }
-            settingsStore.update { it.copy(browserConversationId = id.toString()) }
             chatService.initializeConversation(id)
             chatService.sendMessage(id, listOf(UIMessagePart.Text(message)))
             prompt = ""

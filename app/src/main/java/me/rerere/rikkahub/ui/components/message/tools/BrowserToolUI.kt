@@ -30,7 +30,7 @@ private const val PREVIEW_TEXT_CAP = 4000
 
 /**
  * Card UI for the browser tools. Renders a safe plain-text preview (the default highlighter
- * chokes on the large, non-JSON page text returned by browser_get_text) and a "View" button
+ * chokes on the large, non-JSON page markdown returned by browser_get_content) and a "View" button
  * that opens [BrowserViewerActivity] to watch the headless session.
  */
 class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
