@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.browser
 
 import android.app.Activity
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
@@ -177,7 +178,12 @@ private fun BrowserScreen(
     fun navigate() {
         val raw = addressBar.trim()
         if (raw.isBlank()) return
-        val url = if (raw.contains("://")) raw else "https://$raw"
+        val url = when {
+            raw.contains("://") -> raw
+            raw.contains(' ') -> "https://www.google.com/search?q=" + Uri.encode(raw)
+            raw.contains('.') -> "https://$raw"
+            else -> "https://www.google.com/search?q=" + Uri.encode(raw)
+        }
         controller?.webView?.loadUrl(url)
     }
 
