@@ -123,14 +123,21 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     suspend fun getText(maxChars: Int): String {
         ensureReadability()
-        return withContext(Dispatchers.Main) {
-            val js = "(function(){ try { var doc = document.cloneNode(true);" +
-                " var article = new Readability(doc).parse();" +
-                " return article ? (article.textContent || '') : (document.body ? document.body.innerText : '');" +
-                " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
-            val raw = evaluateJavascriptAsync(js)
-            raw?.let { unquoteJsString(it) }?.take(maxChars) ?: ""
+        var result = readPageText(maxChars)
+        if (result.isBlank()) {
+            kotlinx.coroutines.delay(1500)
+            result = readPageText(maxChars)
         }
+        return result
+    }
+
+    private suspend fun readPageText(maxChars: Int): String = withContext(Dispatchers.Main) {
+        val js = "(function(){ try { var doc = document.cloneNode(true);" +
+            " var article = new Readability(doc).parse();" +
+            " return article ? (article.textContent || '') : (document.body ? document.body.innerText : '');" +
+            " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
+        val raw = evaluateJavascriptAsync(js)
+        raw?.let { unquoteJsString(it) }?.take(maxChars) ?: ""
     }
 
     private suspend fun ensureReadability() {

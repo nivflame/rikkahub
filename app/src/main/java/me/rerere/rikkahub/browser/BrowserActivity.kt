@@ -143,6 +143,11 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
         }
     }
 
+    val generating by produceState(initialValue = false, conversationId) {
+        val id = conversationId ?: return@produceState
+        chatService.getGenerationJobStateFlow(id).collect { value = it != null }
+    }
+
     DisposableEffect(controller) {
         HeadlessBrowserSession.setActive(controller)
         onDispose { HeadlessBrowserSession.setActive(null) }
@@ -255,7 +260,7 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TrackerPill(step)
+                        TrackerPill(step, generating)
                     }
                 }
                 if (ui.reply.isNotBlank()) {
@@ -353,10 +358,10 @@ private fun BrowserScreen(chatService: ChatService, settingsStore: SettingsStore
 }
 
 @Composable
-private fun TrackerPill(step: BrowserStep) {
+private fun TrackerPill(step: BrowserStep, generating: Boolean) {
     val (label, icon, active) = when (step) {
-        is BrowserStep.Tool -> Triple("Agent calling ${step.name}", HugeIcons.Tools, true)
-        BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, true)
+        is BrowserStep.Tool -> Triple("Agent calling ${step.name}", HugeIcons.Tools, generating)
+        BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, generating)
         BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
     }
     Surface(
