@@ -702,6 +702,7 @@ private fun TopBar(
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    val context = LocalContext.current
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
