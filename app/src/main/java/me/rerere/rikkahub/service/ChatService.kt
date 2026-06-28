@@ -32,9 +32,14 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.Tool
+import me.rerere.ai.core.InputSchema
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.ProviderManager
@@ -57,6 +62,8 @@ import me.rerere.rikkahub.data.ai.GenerationHandler
 import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.ai.tools.createConversationTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
+import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
+import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
 import me.rerere.rikkahub.data.ai.tools.createWorkspaceTools
@@ -157,6 +164,8 @@ class ChatService(
 ) {
     // workspace 系统提示注入 (依赖 workspaceRepository, 故在类内构造)
     private val workspaceReminderTransformer = WorkspaceReminderTransformer(workspaceRepository)
+
+    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore, appScope, this) }
 
     // 统一会话管理
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
@@ -609,6 +618,41 @@ class ChatService(
                                 execute = {
                                     mcpManager.callTool(serverId, tool.name, it.jsonObject)
                                 },
+                            )
+                        )
+                    }
+                    if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
+                        val parentTools = this.toList()
+                        add(
+                            Tool(
+                                name = "Subagent",
+                                description = "Launch a subagent to handle a multi-step task in the background. " +
+                                    "Each subagent type has specific tools. Available types: " +
+                                    settings.subagentPrompts.joinToString("; ") { "${it.name}: ${it.description}" } +
+                                    ". The subagent runs independently and its final result is returned to you " +
+                                    "when it completes. Do not also do the same work yourself, wait for the result.",
+                                parameters = {
+                                    InputSchema.Obj(
+                                        properties = buildJsonObject {
+                                            put("subagent_type", buildJsonObject {
+                                                put("type", "string")
+                                                put("description", "The subagent type. Available: " +
+                                    settings.subagentPrompts.joinToString(", ") { it.name })
+                                            })
+                                            put("prompt", buildJsonObject {
+                                                put("type", "string")
+                                                put("description", "The task for the subagent")
+                                            })
+                                        },
+                                        required = listOf("prompt")
+                                    )
+                                },
+                                execute = {
+                                    val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
+                                        ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
+                                    val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
+                                    listOf(UIMessagePart.Text(subagentRunner.launch(conversationId, parentTools, type, task)))
+                                }
                             )
                         )
                     }

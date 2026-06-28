@@ -46,6 +46,8 @@ import me.rerere.rikkahub.ui.theme.CustomTheme
 import me.rerere.rikkahub.ui.theme.PresetThemes
 import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
+import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
+import me.rerere.rikkahub.data.ai.tools.local.defaultSubagentPrompts
 import me.rerere.rikkahub.utils.toMutableStateFlow
 import me.rerere.search.SearchCommonOptions
 import me.rerere.search.SearchServiceOptions
@@ -87,6 +89,9 @@ class SettingsStore(
         val ENABLED_BROWSER_TOOLS = stringPreferencesKey("enabled_browser_tools")
         val BROWSER_LAST_URL = stringPreferencesKey("browser_last_url")
         val BROWSER_TOOL_DESCRIPTIONS = stringPreferencesKey("browser_tool_descriptions")
+        val SUBAGENT_PROMPTS = stringPreferencesKey("subagent_prompts")
+        val SUBAGENT_CONCURRENCY = intPreferencesKey("subagent_concurrency")
+        val SUBAGENT_MODEL = stringPreferencesKey("subagent_model")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
@@ -175,6 +180,11 @@ class SettingsStore(
                 browserToolDescriptions = preferences[BROWSER_TOOL_DESCRIPTIONS]?.let {
                     JsonInstant.decodeFromString<Map<String, String>>(it)
                 } ?: emptyMap(),
+                subagentPrompts = preferences[SUBAGENT_PROMPTS]?.let {
+                    JsonInstant.decodeFromString<List<SubagentPrompt>>(it)
+                } ?: defaultSubagentPrompts(),
+                subagentConcurrency = preferences[SUBAGENT_CONCURRENCY] ?: 3,
+                subagentModelId = preferences[SUBAGENT_MODEL]?.takeIf { it.isNotBlank() }?.let { Uuid.parse(it) },
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
@@ -372,6 +382,9 @@ class SettingsStore(
             preferences[ENABLED_BROWSER_TOOLS] = JsonInstant.encodeToString(settings.enabledBrowserTools)
             preferences[BROWSER_LAST_URL] = settings.browserLastUrl ?: ""
             preferences[BROWSER_TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.browserToolDescriptions)
+            preferences[SUBAGENT_PROMPTS] = JsonInstant.encodeToString(settings.subagentPrompts)
+            preferences[SUBAGENT_CONCURRENCY] = settings.subagentConcurrency
+            preferences[SUBAGENT_MODEL] = settings.subagentModelId?.toString() ?: ""
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
             preferences[FAST_MODEL] = settings.fastModelId.toString()
@@ -517,6 +530,9 @@ data class Settings(
     val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
     val browserLastUrl: String? = null,
     val browserToolDescriptions: Map<String, String> = emptyMap(),
+    val subagentPrompts: List<SubagentPrompt> = defaultSubagentPrompts(),
+    val subagentConcurrency: Int = 3,
+    val subagentModelId: Uuid? = null,
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),

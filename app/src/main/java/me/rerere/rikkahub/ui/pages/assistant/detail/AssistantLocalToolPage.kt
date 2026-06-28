@@ -200,6 +200,20 @@ private fun AssistantLocalToolContent(
                     )
                 }
             )
+            item(
+                headlineContent = {
+                    Text("Subagent")
+                },
+                supportingContent = {
+                    Text("Let the assistant delegate multi-step tasks to background subagents")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Subagent),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Subagent, it) }
+                    )
+                }
+            )
         }
     }
 }
