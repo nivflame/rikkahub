@@ -444,7 +444,6 @@ private fun BrowserScreen(
                 }
             }
         }
-    }
 
     if (showFullReply) {
         Dialog(onDismissRequest = { showFullReply = false }) {
