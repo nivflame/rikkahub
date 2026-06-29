@@ -34,7 +34,6 @@ import org.koin.androidx.compose.koinViewModel
 fun SettingAskQuestionPage(vm: SettingVM = koinViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val settings by vm.settings.collectAsStateWithLifecycle()
-    var text by remember { mutableStateOf(settings.askQuestionDescription) }
 
     Scaffold(
         topBar = {
@@ -42,7 +41,9 @@ fun SettingAskQuestionPage(vm: SettingVM = koinViewModel()) {
                 title = { Text("AskQuestion") },
                 navigationIcon = { BackButton() },
                 actions = {
-                    TextButton(onClick = { text = DEFAULT_ASK_QUESTION_DESCRIPTION }) {
+                    TextButton(onClick = {
+                        vm.updateSettings(settings.copy(askQuestionDescription = DEFAULT_ASK_QUESTION_DESCRIPTION))
+                    }) {
                         Text("Reset")
                     }
                 },
@@ -61,22 +62,6 @@ fun SettingAskQuestionPage(vm: SettingVM = koinViewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "The description the model sees for the AskQuestion tool. Defaults to the reference prompt.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedTextField(
-                value = text,
-                onValueChange = {
-                    text = it
-                    vm.updateSettings(settings.copy(askQuestionDescription = it))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                textStyle = MaterialTheme.typography.bodySmall,
-                minLines = 12,
-                maxLines = 24,
-            )
             Surface(
                 tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.small,
@@ -85,6 +70,9 @@ fun SettingAskQuestionPage(vm: SettingVM = koinViewModel()) {
                 ToolSchemaCard(
                     tool = buildAskQuestionTool(settings.askQuestionDescription),
                     modifier = Modifier.padding(12.dp),
+                    onEditDescription = { desc ->
+                        vm.updateSettings(settings.copy(askQuestionDescription = desc))
+                    },
                 )
             }
         }

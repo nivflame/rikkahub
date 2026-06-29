@@ -113,17 +113,6 @@ internal fun buildAskQuestionTool(description: String): Tool = Tool(
                         put("additionalProperties", false)
                     })
                 })
-                put("metadata", buildJsonObject {
-                    put("type", "object")
-                    put("description", "Optional metadata for tracking and analytics purposes. Not displayed to user.")
-                    put("properties", buildJsonObject {
-                        put("source", buildJsonObject {
-                            put("type", "string")
-                            put("description", """Optional identifier for the source of this question (e.g., "remember" for /remember command). Used for analytics tracking.""")
-                        })
-                    })
-                    put("additionalProperties", false)
-                })
             },
             required = listOf("questions")
         )

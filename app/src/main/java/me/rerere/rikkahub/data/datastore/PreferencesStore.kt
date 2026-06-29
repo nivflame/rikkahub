@@ -48,7 +48,7 @@ import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ASK_QUESTION_DESCRIPTION
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
-import me.rerere.rikkahub.data.ai.tools.local.defaultSubagentPrompts
+import me.rerere.rikkahub.data.ai.tools.local.loadDefaultSubagentPrompts
 import me.rerere.rikkahub.utils.toMutableStateFlow
 import me.rerere.search.SearchCommonOptions
 import me.rerere.search.SearchServiceOptions
@@ -71,7 +71,7 @@ private val Context.settingsStore by preferencesDataStore(
 )
 
 class SettingsStore(
-    context: Context,
+    private val context: Context,
     scope: AppScope,
 ) : KoinComponent {
     companion object {
@@ -94,6 +94,7 @@ class SettingsStore(
         val SUBAGENT_CONCURRENCY = intPreferencesKey("subagent_concurrency")
         val SUBAGENT_MODEL = stringPreferencesKey("subagent_model")
         val ASK_QUESTION_DESCRIPTION = stringPreferencesKey("ask_question_description")
+        val TOOL_DESCRIPTIONS = stringPreferencesKey("tool_descriptions")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
@@ -184,11 +185,14 @@ class SettingsStore(
                 } ?: emptyMap(),
                 subagentPrompts = preferences[SUBAGENT_PROMPTS]?.let {
                     JsonInstant.decodeFromString<List<SubagentPrompt>>(it)
-                } ?: defaultSubagentPrompts(),
+                } ?: loadDefaultSubagentPrompts(context.assets),
                 subagentConcurrency = preferences[SUBAGENT_CONCURRENCY] ?: 3,
                 subagentModelId = preferences[SUBAGENT_MODEL]?.takeIf { it.isNotBlank() }?.let { Uuid.parse(it) },
                 askQuestionDescription = preferences[ASK_QUESTION_DESCRIPTION]?.takeIf { it.isNotBlank() }
                     ?: DEFAULT_ASK_QUESTION_DESCRIPTION,
+                toolDescriptions = preferences[TOOL_DESCRIPTIONS]?.let {
+                    JsonInstant.decodeFromString<Map<String, String>>(it)
+                } ?: emptyMap(),
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
@@ -390,6 +394,7 @@ class SettingsStore(
             preferences[SUBAGENT_CONCURRENCY] = settings.subagentConcurrency
             preferences[SUBAGENT_MODEL] = settings.subagentModelId?.toString() ?: ""
             preferences[ASK_QUESTION_DESCRIPTION] = settings.askQuestionDescription
+            preferences[TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.toolDescriptions)
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
             preferences[FAST_MODEL] = settings.fastModelId.toString()
@@ -535,10 +540,11 @@ data class Settings(
     val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
     val browserLastUrl: String? = null,
     val browserToolDescriptions: Map<String, String> = emptyMap(),
-    val subagentPrompts: List<SubagentPrompt> = defaultSubagentPrompts(),
+    val subagentPrompts: List<SubagentPrompt> = emptyList(),
     val subagentConcurrency: Int = 3,
     val subagentModelId: Uuid? = null,
     val askQuestionDescription: String = DEFAULT_ASK_QUESTION_DESCRIPTION,
+    val toolDescriptions: Map<String, String> = emptyMap(),
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),

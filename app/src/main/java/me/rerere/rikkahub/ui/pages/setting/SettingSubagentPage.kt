@@ -93,9 +93,13 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                val subagentTool = buildSubagentTool(settings)
                 ToolSchemaCard(
-                    tool = buildSubagentTool(settings),
+                    tool = subagentTool.copy(description = settings.toolDescriptions["Subagent"] ?: subagentTool.description),
                     modifier = Modifier.padding(12.dp),
+                    onEditDescription = { desc ->
+                        vm.updateSettings(settings.copy(toolDescriptions = settings.toolDescriptions + ("Subagent" to desc)))
+                    },
                 )
             }
             Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {

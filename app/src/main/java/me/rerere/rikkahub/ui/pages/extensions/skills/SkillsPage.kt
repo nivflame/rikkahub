@@ -51,6 +51,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.R
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -71,12 +74,16 @@ import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun SkillsPage() {
     val navController = LocalNavController.current
     val vm = koinViewModel<SkillsVM>()
     val skills by vm.skills.collectAsStateWithLifecycle()
+    val settingsStore = koinInject<SettingsStore>()
+    val scope = rememberCoroutineScope()
+    val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -126,9 +133,15 @@ fun SkillsPage() {
         ) {
             item {
                 Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                    val useSkillTool = buildUseSkillToolForDisplay()
                     ToolSchemaCard(
-                        tool = buildUseSkillToolForDisplay(),
+                        tool = useSkillTool.copy(description = settings.toolDescriptions["use_skill"] ?: useSkillTool.description),
                         modifier = Modifier.padding(12.dp),
+                        onEditDescription = { desc ->
+                            scope.launch {
+                                settingsStore.update(settings.copy(toolDescriptions = settings.toolDescriptions + ("use_skill" to desc)))
+                            }
+                        },
                     )
                 }
             }

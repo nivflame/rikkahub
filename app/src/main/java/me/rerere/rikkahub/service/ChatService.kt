@@ -578,7 +578,7 @@ class ChatService(
                                 enabledSkills = assistant.enabledSkills,
                                 allSkills = skillManager.listSkills(),
                                 skillManager = skillManager,
-                            )
+                            ).map { it.copy(description = settings.toolDescriptions[it.name] ?: it.description) }
                         )
                     }
                     val allMcpTools = mcpManager.getAllAvailableTools()
@@ -624,8 +624,10 @@ class ChatService(
                     }
                     if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
                         val parentTools = this.toList()
+                        val subagentTool = buildSubagentTool(settings)
                         add(
-                            buildSubagentTool(settings).copy(
+                            subagentTool.copy(
+                                description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
                                 execute = {
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
