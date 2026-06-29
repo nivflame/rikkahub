@@ -290,6 +290,7 @@ fun ChatInput(
                                 enableSearch = enableSearch,
                                 onUpdateAssistant = onUpdateAssistant,
                                 onToggleSearch = onToggleSearch,
+                                hazeState = hazeState,
                             )
                         }
 
