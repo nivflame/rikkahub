@@ -180,8 +180,7 @@ internal fun FilesPicker(
             }
         val activeCount =
             assistant.quickMessageIds.size +
-                modeAndLorebookCount +
-                assistant.enabledSkills.size
+                modeAndLorebookCount
         ListItem(
             leadingContent = {
                 Icon(

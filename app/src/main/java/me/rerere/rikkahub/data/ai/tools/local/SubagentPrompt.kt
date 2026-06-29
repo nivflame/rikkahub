@@ -14,16 +14,12 @@ data class SubagentPrompt(
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
-    "javascript_engine",
     "time_info",
-    "clipboard",
     "tts",
     "AskQuestion",
-    "screen_time",
 )
 
 private val SUBAGENT_READ_ONLY_DISABLE: List<String> = listOf(
-    "javascript_engine",
     "browser_interact",
     "browser_execute_script",
 )

@@ -57,21 +57,7 @@ class SkillManager(
 
     suspend fun deleteSkill(name: String): Boolean = withContext(Dispatchers.IO) {
         val skillDir = resolveSkillDir(name) ?: return@withContext false
-        val deleted = skillDir.deleteRecursively()
-        if (deleted) {
-            settingsStore.update { settings ->
-                settings.copy(
-                    assistants = settings.assistants.map { assistant ->
-                        if (assistant.enabledSkills.contains(name)) {
-                            assistant.copy(enabledSkills = assistant.enabledSkills - name)
-                        } else {
-                            assistant
-                        }
-                    }
-                )
-            }
-        }
-        deleted
+        skillDir.deleteRecursively()
     }
 
     fun getSkillDir(skillName: String): File? = resolveSkillDir(skillName)

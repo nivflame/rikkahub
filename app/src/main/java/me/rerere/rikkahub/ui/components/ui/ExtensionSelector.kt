@@ -49,15 +49,6 @@ fun ExtensionSelector(
     onNavigateToPrompts: () -> Unit = {},
     onNavigateToSkills: () -> Unit = {},
 ) {
-    val skillManager: SkillManager = koinInject()
-    var skills by remember { mutableStateOf<List<SkillMetadata>>(emptyList()) }
-
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            skills = skillManager.listSkills()
-        }
-    }
-
     val useConversationInjections =
         assistant.allowConversationPromptInjection && conversation != null && onUpdateConversation != null
     val selectedModeInjectionIds = if (useConversationInjections) {
@@ -71,7 +62,7 @@ fun ExtensionSelector(
         assistant.lorebookIds
     }
 
-    val pagerState = rememberPagerState { 4 }
+    val pagerState = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -103,13 +94,6 @@ fun ExtensionSelector(
                     scope.launch { pagerState.animateScrollToPage(2) }
                 },
                 text = { Text(stringResource(R.string.extension_selector_tab_lorebooks)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 3,
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(3) }
-                },
-                text = { Text(stringResource(R.string.extension_selector_tab_skills)) }
             )
         }
 
@@ -196,30 +180,6 @@ fun ExtensionSelector(
                             message = stringResource(R.string.extension_selector_lorebooks_empty),
                             buttonText = stringResource(R.string.extension_selector_go_to_extensions),
                             onAction = onNavigateToPrompts,
-                        )
-                    }
-                }
-
-                3 -> {
-                    if (skills.isNotEmpty()) {
-                        SkillsContent(
-                            skills = skills,
-                            enabledSkills = assistant.enabledSkills,
-                            onToggle = { name, checked ->
-                                val newSkills = if (checked) {
-                                    assistant.enabledSkills + name
-                                } else {
-                                    assistant.enabledSkills - name
-                                }
-                                onUpdate(assistant.copy(enabledSkills = newSkills))
-                            },
-                            onManage = onNavigateToSkills,
-                        )
-                    } else {
-                        ExtensionEmptyState(
-                            message = stringResource(R.string.extension_selector_skills_empty),
-                            buttonText = stringResource(R.string.extension_selector_go_to_skills),
-                            onAction = onNavigateToSkills,
                         )
                     }
                 }

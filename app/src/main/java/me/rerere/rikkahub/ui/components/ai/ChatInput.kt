@@ -284,6 +284,13 @@ fun ChatInput(
                                 )
                             }
 
+                            ToolsButton(
+                                assistant = assistant,
+                                settings = settings,
+                                enableSearch = enableSearch,
+                                onUpdateAssistant = onUpdateAssistant,
+                                onToggleSearch = onToggleSearch,
+                            )
                         }
 
                         ActionIconButton(

@@ -67,21 +67,18 @@ internal fun buildSkillTool(
 )
 
 fun createSkillTools(
-    enabledSkills: Set<String>,
     allSkills: List<SkillMetadata>,
     skillManager: SkillManager,
 ): List<Tool> {
-    val available = allSkills.filter { it.name in enabledSkills }
+    val available = allSkills
     if (available.isEmpty()) return emptyList()
     return listOf(
         buildSkillTool(available) { json ->
             val name = json.jsonObject["skill"]?.jsonPrimitive?.content
                 ?: error("skill is required")
-            if (name !in enabledSkills) {
-                error("Skill '$name' is not available. Available skills: ${enabledSkills.joinToString()}")
-            }
             val skill = available.firstOrNull { it.name == name }
-            if (skill?.disableModelInvocation == true) {
+                ?: error("Skill '$name' not found")
+            if (skill.disableModelInvocation) {
                 error("Skill '$name' cannot be invoked by the model. Ask the user to invoke it with /$name.")
             }
             val path = json.jsonObject["path"]?.jsonPrimitive?.content

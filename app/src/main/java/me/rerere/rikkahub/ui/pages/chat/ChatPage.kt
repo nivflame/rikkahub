@@ -76,6 +76,7 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.data.files.SkillManager
+import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.service.ChatError
 import me.rerere.rikkahub.ui.components.ai.ChatInput
 import me.rerere.rikkahub.ui.components.ai.FilesPicker
@@ -289,7 +290,7 @@ private fun ChatPageContent(
     var showFilesSheet by remember { mutableStateOf(false) }
     val skillManager: SkillManager = koinInject()
 
-    val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository, assistant.enabledSkills) {
+    val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository, assistant.localTools) {
         buildList {
             if (assistant.workspaceId != null) {
                 add(
@@ -300,10 +301,11 @@ private fun ChatPageContent(
                     )
                 )
             }
-            val skills = runCatching { skillManager.listSkills() }.getOrDefault(emptyList())
-                .filter { it.name in assistant.enabledSkills }
-            if (skills.isNotEmpty()) {
-                add(SkillCompletionProvider(skills))
+            if (LocalToolOption.Skill in assistant.localTools) {
+                val skills = runCatching { skillManager.listSkills() }.getOrDefault(emptyList())
+                if (skills.isNotEmpty()) {
+                    add(SkillCompletionProvider(skills))
+                }
             }
         }
     }

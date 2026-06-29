@@ -406,8 +406,9 @@ class ChatService(
     ): Pair<String, List<UIMessagePart>>? = withContext(Dispatchers.IO) {
         val match = Regex("^/(\\S+)").find(text.trim()) ?: return@withContext null
         val skillName = match.groupValues[1]
+        if (LocalToolOption.Skill !in assistant.localTools) return@withContext null
         val skill = skillManager.listSkills().firstOrNull {
-            it.name == skillName && it.name in assistant.enabledSkills
+            it.name == skillName
         } ?: return@withContext null
         if (!skill.disableModelInvocation) return@withContext null
         val body = skillManager.readSkillBody(skillName) ?: return@withContext null
@@ -602,10 +603,9 @@ class ChatService(
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
                     addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd))
-                    if (assistant.enabledSkills.isNotEmpty()) {
+                    if (LocalToolOption.Skill in assistant.localTools) {
                         addAll(
                             createSkillTools(
-                                enabledSkills = assistant.enabledSkills,
                                 allSkills = skillManager.listSkills(),
                                 skillManager = skillManager,
                             ).map { it.copy(description = settings.toolDescriptions[it.name] ?: it.description) }
