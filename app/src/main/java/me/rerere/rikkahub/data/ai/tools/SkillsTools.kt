@@ -28,8 +28,8 @@ Important:
 
 internal fun buildSkillTool(
     available: List<SkillMetadata>,
-    execute: suspend (JsonElement) -> List<UIMessagePart>,
     description: String = DEFAULT_SKILL_TOOL_DESCRIPTION,
+    execute: suspend (JsonElement) -> List<UIMessagePart>,
 ): Tool = Tool(
     name = "Skill",
     description = description,
