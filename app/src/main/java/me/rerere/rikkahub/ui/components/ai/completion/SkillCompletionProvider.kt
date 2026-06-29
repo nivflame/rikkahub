@@ -16,7 +16,6 @@ class SkillCompletionProvider(
         val query = mention.query.lowercase()
         val items = skills
             .filter { query.isBlank() || it.name.lowercase().contains(query) }
-            .take(MAX_ITEMS)
             .map { skill ->
                 ChatCompletionItem(
                     label = "/${skill.name}",
@@ -49,9 +48,5 @@ class SkillCompletionProvider(
             query = query,
             range = TextRange(start, cursor),
         )
-    }
-
-    companion object {
-        private const val MAX_ITEMS = 8
     }
 }

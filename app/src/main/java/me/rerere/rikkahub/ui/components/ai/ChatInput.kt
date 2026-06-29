@@ -513,7 +513,6 @@ private fun TextInputRow(
                                 .thenBy { it.label.length }
                                 .thenBy { it.label.lowercase() }
                         )
-                        .take(8)
                     list.copy(items = mergedItems)
                 }
             }
@@ -588,8 +587,9 @@ private fun CompletionPopup(
 ) {
     Surface(
         modifier = Modifier
+            .padding(top = 8.dp)
             .fillMaxWidth()
-            .heightIn(max = 280.dp),
+            .heightIn(max = 168.dp),
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 2.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
