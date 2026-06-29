@@ -3,6 +3,7 @@ package me.rerere.rikkahub.browser
 import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
@@ -83,6 +85,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -153,6 +156,13 @@ private fun BrowserScreen(
         if (inputExpanded) {
             kotlinx.coroutines.delay(100)
             runCatching { focusRequester.requestFocus() }
+        }
+    }
+
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible) {
+            focusManager.clearFocus()
         }
     }
 
@@ -270,6 +280,12 @@ private fun BrowserScreen(
                     controller = c
                 }
             },
+            update = { webView ->
+                webView.setLayerType(
+                    if (enableBlur) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_HARDWARE,
+                    null,
+                )
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState)
@@ -292,6 +308,7 @@ private fun BrowserScreen(
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(8.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .then(blurModifier),
             shape = RoundedCornerShape(16.dp),
             color = containerColor,
@@ -350,6 +367,7 @@ private fun BrowserScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .then(blurModifier),
                         color = containerColor,
                         shape = RoundedCornerShape(16.dp),
@@ -385,6 +403,7 @@ private fun BrowserScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(8.dp)
+                            .clip(RoundedCornerShape(28.dp))
                             .then(blurModifier),
                         color = containerColor,
                         shape = RoundedCornerShape(28.dp),
