@@ -172,6 +172,7 @@ class SkillManager(
                 description = description,
                 compatibility = frontmatter["compatibility"],
                 allowedTools = frontmatter["allowed-tools"]?.split(" ")?.filter { it.isNotBlank() } ?: emptyList(),
+                disableModelInvocation = frontmatter["disable-model-invocation"]?.trim()?.equals("true", ignoreCase = true) == true,
                 skillDir = skillDir,
             )
         }.getOrElse {
@@ -186,6 +187,7 @@ data class SkillMetadata(
     val description: String,
     val compatibility: String? = null,
     val allowedTools: List<String> = emptyList(),
+    val disableModelInvocation: Boolean = false,
     val skillDir: File,
 ) {
     val skillFile: File get() = skillDir.resolve("SKILL.md")

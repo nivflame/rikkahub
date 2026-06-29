@@ -65,7 +65,7 @@ import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.Screen
-import me.rerere.rikkahub.data.ai.tools.buildUseSkillToolForDisplay
+import me.rerere.rikkahub.data.ai.tools.buildSkillToolForDisplay
 import me.rerere.rikkahub.ui.pages.setting.ToolSchemaCard
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
@@ -133,13 +133,13 @@ fun SkillsPage() {
         ) {
             item {
                 Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
-                    val useSkillTool = buildUseSkillToolForDisplay()
+                    val useSkillTool = buildSkillToolForDisplay()
                     ToolSchemaCard(
-                        tool = useSkillTool.copy(description = settings.toolDescriptions["use_skill"] ?: useSkillTool.description),
+                        tool = useSkillTool.copy(description = settings.toolDescriptions["Skill"] ?: useSkillTool.description),
                         modifier = Modifier.padding(12.dp),
                         onEditDescription = { desc ->
                             scope.launch {
-                                settingsStore.update(settings.copy(toolDescriptions = settings.toolDescriptions + ("use_skill" to desc)))
+                                settingsStore.update(settings.copy(toolDescriptions = settings.toolDescriptions + ("Skill" to desc)))
                             }
                         },
                     )

@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -350,12 +351,20 @@ class ChatService(
                     ?: settings.getCurrentAssistant()
                 val processedContent = preprocessUserInputParts(content, assistant)
 
+                // Slash command interception for disable-model-invocation skills.
+                val firstText = processedContent.firstNotNullOfOrNull { it as? UIMessagePart.Text }
+                val interception = firstText?.text?.let { interceptSkillSlashCommand(it, assistant) }
+                val userContent = interception?.second ?: processedContent
+                val skillSystemMessage = interception?.first
+
                 // 添加消息到列表
                 val newConversation = currentConversation.copy(
-                    messageNodes = currentConversation.messageNodes + UIMessage(
-                        role = MessageRole.USER,
-                        parts = processedContent,
-                    ).toMessageNode(),
+                    messageNodes = currentConversation.messageNodes + buildList {
+                        if (skillSystemMessage != null) {
+                            add(UIMessage.system(skillSystemMessage).toMessageNode())
+                        }
+                        add(UIMessage(role = MessageRole.USER, parts = userContent).toMessageNode())
+                    },
                 )
                 saveConversation(conversationId, newConversation)
 
@@ -389,6 +398,27 @@ class ChatService(
                 else -> part
             }
         }
+    }
+
+    private suspend fun interceptSkillSlashCommand(
+        text: String,
+        assistant: Assistant,
+    ): Pair<String, List<UIMessagePart>>? = withContext(Dispatchers.IO) {
+        val match = Regex("^/(\\S+)").find(text.trim()) ?: return@withContext null
+        val skillName = match.groupValues[1]
+        val skill = skillManager.listSkills().firstOrNull {
+            it.name == skillName && it.name in assistant.enabledSkills
+        } ?: return@withContext null
+        if (!skill.disableModelInvocation) return@withContext null
+        val body = skillManager.readSkillBody(skillName) ?: return@withContext null
+        val task = text.trim().substring(match.range.last + 1).trim()
+        val userContent = if (task.isBlank()) {
+            listOf(UIMessagePart.Text("Begin."))
+        } else {
+            listOf(UIMessagePart.Text(task))
+        }
+        val systemContent = "Skill `$skillName` invoked by the user. Follow its instructions:\n\n$body"
+        systemContent to userContent
     }
 
     // ---- 重新生成消息 ----
