@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,7 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Tools
@@ -104,24 +106,33 @@ fun ToolsButton(
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 )
 
-                SectionHeader("Local Tools")
-                localToolOptions().forEach { option ->
-                    val count = if (option == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
-                    ToolEntryRow(
+                val toolEntries = localToolOptions().map { option ->
+                    ToolEntry(
                         label = localToolLabel(option),
-                        count = count,
+                        count = if (option == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1,
                         checked = option in assistant.localTools,
                         onCheckedChange = { checked ->
                             val newTools = if (checked) assistant.localTools + option else assistant.localTools - option
                             onUpdateAssistant(assistant.copy(localTools = newTools))
                         },
                     )
-                }
+                } + ToolEntry(
+                    label = "Web Search",
+                    count = 1,
+                    checked = enableSearch,
+                    onCheckedChange = onToggleSearch,
+                )
+                ToolGrid(toolEntries)
 
                 if (settings.mcpServers.isNotEmpty()) {
-                    SectionHeader("MCP Servers")
-                    settings.mcpServers.forEach { server ->
-                        ToolEntryRow(
+                    HorizontalDivider()
+                    Text(
+                        text = "MCP Servers",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    val mcpEntries = settings.mcpServers.map { server ->
+                        ToolEntry(
                             label = server.commonOptions.name.ifBlank { server.id.toString() },
                             count = mcpCountByServer[server.id] ?: 0,
                             checked = server.id in assistant.mcpServers,
@@ -135,64 +146,80 @@ fun ToolsButton(
                             },
                         )
                     }
+                    ToolGrid(mcpEntries)
                 }
+            }
+        }
+    }
+}
 
-                SectionHeader("Web Search")
-                ToolEntryRow(
-                    label = "Web Search",
-                    count = 1,
-                    checked = enableSearch,
-                    onCheckedChange = onToggleSearch,
-                )
+private data class ToolEntry(
+    val label: String,
+    val count: Int,
+    val checked: Boolean,
+    val onCheckedChange: (Boolean) -> Unit,
+)
+
+@Composable
+private fun ToolGrid(entries: List<ToolEntry>) {
+    entries.chunked(2).forEach { row ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            row.forEach { entry ->
+                ToolChipContainer(entry = entry, modifier = Modifier.weight(1f))
+            }
+            if (row.size == 1) {
+                Spacer(Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 4.dp),
-    )
-}
-
-@Composable
-private fun ToolEntryRow(
-    label: String,
-    count: Int,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+private fun ToolChipContainer(
+    entry: ToolEntry,
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = entry.label,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (entry.count > 1) {
+                CountChip(entry.count)
             }
-            if (count > 1) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                ) {
-                    Text(
-                        text = count.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            Switch(checked = entry.checked, onCheckedChange = entry.onCheckedChange)
         }
+    }
+}
+
+@Composable
+private fun CountChip(count: Int) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+        )
     }
 }
 
