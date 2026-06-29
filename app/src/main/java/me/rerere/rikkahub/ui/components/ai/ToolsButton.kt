@@ -204,6 +204,7 @@ private fun ToolChipContainer(
             if (entry.count > 1) {
                 CountChip(entry.count)
             }
+            Spacer(Modifier.weight(1f))
             Switch(checked = entry.checked, onCheckedChange = entry.onCheckedChange)
         }
     }

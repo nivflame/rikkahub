@@ -31,10 +31,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -51,7 +49,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -73,9 +70,30 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.ChatService
-import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 
 private const val HOME_URL = "https://www.google.com"
 
@@ -223,55 +241,74 @@ private fun BrowserScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = { (context as? Activity)?.finish() }) {
-                        Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
-                    }
-                },
-                title = {
-                    OutlinedTextField(
-                        value = addressBar,
-                        onValueChange = { addressBar = it },
-                        placeholder = { Text("Enter URL") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                        keyboardActions = KeyboardActions(onGo = { navigate() })
+    val hazeState = rememberHazeState()
+    val enableBlur = settings.displaySetting.enableBlurEffect
+    val containerTint = MaterialTheme.colorScheme.surfaceContainerLow
+    val hazeStyle = HazeMaterials.thin(containerColor = containerTint)
+    val blurModifier: Modifier = if (enableBlur) {
+        Modifier.hazeEffect(state = hazeState) { blurEffect { style = hazeStyle } }
+    } else Modifier
+    val containerColor = if (enableBlur) Color.Transparent else containerTint
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        AndroidView(
+            factory = { context ->
+                WebView(context).also { webView ->
+                    val c = BrowserController(
+                        webView,
+                        onUrlChanged = { url ->
+                            addressBar = url
+                            scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
+                        }
                     )
-                },
-                actions = {
-                    FilledTonalIconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
-                        Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
-                    }
-                },
-                colors = CustomColors.topBarColors,
-            )
-        },
-        containerColor = CustomColors.topBarColors.containerColor,
-    ) { padding ->
-        Box(
+                    controller = c
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .hazeSource(state = hazeState)
+        )
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .then(blurModifier),
+            color = containerColor,
+            shadowElevation = if (enableBlur) 0.dp else 1.dp,
         ) {
-            AndroidView(
-                factory = { context ->
-                    WebView(context).also { webView ->
-                        val c = BrowserController(
-                            webView,
-                            onUrlChanged = { url ->
-                                addressBar = url
-                                scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
-                            }
-                        )
-                        controller = c
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                IconButton(onClick = { (context as? Activity)?.finish() }) {
+                    Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
+                }
+                OutlinedTextField(
+                    value = addressBar,
+                    onValueChange = { addressBar = it },
+                    placeholder = { Text("Enter URL") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                    keyboardActions = KeyboardActions(onGo = { navigate() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                    ),
+                )
+                FilledTonalIconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
+                    Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
+                }
+            }
+        }
             if (inputExpanded) {
                 Box(
                     modifier = Modifier
@@ -287,6 +324,7 @@ private fun BrowserScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .imePadding()
+                    .navigationBarsPadding()
             ) {
                 ui.steps.lastOrNull()?.let { step ->
                     Row(
@@ -296,28 +334,31 @@ private fun BrowserScreen(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TrackerPill(step, generating)
+                        TrackerPill(step, generating, blurModifier, containerColor)
                     }
                 }
                 if (ui.reply.isNotBlank()) {
                     Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 3.dp,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .then(blurModifier),
+                        color = containerColor,
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .padding(12.dp),
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = ui.reply,
+                            MarkdownBlock(
+                                content = ui.reply,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(max = 120.dp),
                                 style = MaterialTheme.typography.bodySmall,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
                             )
                             FilledTonalIconButton(onClick = { showFullReply = true }) {
                                 Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
@@ -325,14 +366,18 @@ private fun BrowserScreen(
                         }
                     }
                 }
-                if (inputExpanded) {
+                AnimatedVisibility(
+                    visible = inputExpanded,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                ) {
                     Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 3.dp,
-                        shape = RoundedCornerShape(28.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(8.dp)
+                            .then(blurModifier),
+                        color = containerColor,
+                        shape = RoundedCornerShape(28.dp),
                     ) {
                         Row(
                             modifier = Modifier
@@ -353,7 +398,12 @@ private fun BrowserScreen(
                                 keyboardActions = KeyboardActions(onSend = {
                                     sendPrompt()
                                     inputExpanded = false
-                                })
+                                }),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                ),
                             )
                             FilledTonalIconButton(onClick = { cancelGeneration() }) {
                                 Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Cancel")
@@ -366,17 +416,27 @@ private fun BrowserScreen(
                             }
                         }
                     }
-                } else {
+                }
+                if (!inputExpanded) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.End
                     ) {
+                        val fabInteractionSource = remember { MutableInteractionSource() }
+                        val fabPressed by fabInteractionSource.collectIsPressedAsState()
+                        val fabScale by animateFloatAsState(
+                            targetValue = if (fabPressed) 0.9f else 1f,
+                            label = "fabScale",
+                        )
                         FloatingActionButton(
                             onClick = { inputExpanded = true },
+                            shape = CircleShape,
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            interactionSource = fabInteractionSource,
+                            modifier = Modifier.scale(fabScale),
                         ) {
                             Icon(imageVector = HugeIcons.Edit01, contentDescription = "Ask the AI")
                         }
@@ -408,13 +468,13 @@ private fun BrowserScreen(
                             Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Close")
                         }
                     }
-                    Text(
-                        text = ui.reply,
-                        style = MaterialTheme.typography.bodyMedium,
+                    MarkdownBlock(
+                        content = ui.reply,
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -423,15 +483,20 @@ private fun BrowserScreen(
 }
 
 @Composable
-private fun TrackerPill(step: BrowserStep, generating: Boolean) {
+private fun TrackerPill(
+    step: BrowserStep,
+    generating: Boolean,
+    blurModifier: Modifier,
+    containerColor: Color,
+) {
     val (label, icon, active) = when (step) {
         is BrowserStep.Tool -> Triple("Agent calling ${step.name}", HugeIcons.Tools, generating)
         BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, generating)
         BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
     }
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
+        modifier = Modifier.then(blurModifier),
+        color = containerColor,
         shape = CircleShape,
     ) {
         Row(
