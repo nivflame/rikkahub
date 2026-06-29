@@ -144,7 +144,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 " if(!html) return '';" +
                 " var td = new TurndownService({headingStyle:'atx', bulletListMarker:'-', codeBlockStyle:'fenced'});" +
                 " td.addRule('absoluteLinks', {filter:function(n){return n.nodeName==='A' && n.getAttribute('href');}, replacement:function(c, n){var h=n.getAttribute('href'); try{h=new URL(h, location.href).href;}catch(e){} return '['+(c||n.textContent||'')+']('+h+')';}});" +
-                " return td.turndown(html);" +
+                " var md = td.turndown(html);" +
+                " if(md && md.replace(/\\s/g,'').length < 200 && document.body) return document.body.innerText;" +
+                " return md;" +
                 " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
             val raw = evaluateJavascriptAsync(js)
             raw?.let { unquoteJsString(it) } ?: ""
@@ -223,7 +225,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             "if(p.doubleClick)el.dispatchEvent(new MouseEvent('click',{bubbles:true}));return 'clicked';}" +
             "if(a==='fill'){if(!el)return 'element not found';el.focus();el.value=p.value;" +
             "el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';}" +
-            "if(a==='scroll'){if(el)el.scrollIntoView({block:'center'});else window.scrollBy(0,parseInt(p.value||'0'));return 'scrolled';}" +
+            "if(a==='scroll'){var v=parseInt(p.value||'0');if(el){var node=el;while(node&&node!==document.body){var oy=getComputedStyle(node).overflowY;if(oy==='auto'||oy==='scroll'){node.scrollTop+=v;return 'scrolled';}node=node.parentElement;}}window.scrollBy(0,v);return 'scrolled';}" +
             "if(a==='hover'){if(!el)return 'element not found';el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));return 'hovered';}" +
             "if(a==='press_key'){document.dispatchEvent(new KeyboardEvent('keydown',{key:p.key,bubbles:true}));" +
             "document.dispatchEvent(new KeyboardEvent('keyup',{key:p.key,bubbles:true}));return 'pressed '+p.key;}" +
@@ -238,7 +240,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         val sel = Json.encodeToString(selector ?: "")
         val js = """
 (function(){var sel=$sel,out=[],refCount=0,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];
-function roleOf(el){var r=el.getAttribute('role');if(r)return r;var tag=el.tagName.toLowerCase();
+function roleOf(el){var r=el.getAttribute('role');if(r==='none'||r==='presentation')return null;if(r)return r;var tag=el.tagName.toLowerCase();
 if(tag==='a')return el.getAttribute('href')?'link':null;
 if(tag==='button')return 'button';
 if(tag==='input'){var ty=(el.getAttribute('type')||'text').toLowerCase();if(ty==='checkbox')return 'checkbox';if(ty==='radio')return 'radio';if(ty==='submit'||ty==='button'||ty==='reset')return 'button';if(ty==='search')return 'searchbox';return 'textbox';}
@@ -255,7 +257,7 @@ var leafRoles=['link','button','img','heading','listitem'];
 function walk(el,depth){if(out.length>$maxNodes)return;
 if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(ind(depth)+'text: '+t.slice(0,120));return;}
 if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;
-var role=roleOf(el);
+var role=roleOf(el);if(role==='alert')return;
 if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
 var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' "'+name+'"';
 var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}
