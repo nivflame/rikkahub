@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,6 +96,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
+import me.rerere.rikkahub.ui.context.LocalSettings
 
 private const val HOME_URL = "https://www.google.com"
 
@@ -250,6 +253,7 @@ private fun BrowserScreen(
     } else Modifier
     val containerColor = if (enableBlur) Color.Transparent else containerTint
 
+    CompositionLocalProvider(LocalSettings provides settings) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -271,21 +275,35 @@ private fun BrowserScreen(
                 .hazeSource(state = hazeState)
         )
 
+        if (inputExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        focusManager.clearFocus()
+                        inputExpanded = false
+                    }
+            )
+        }
+
         Surface(
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(8.dp)
                 .then(blurModifier),
+            shape = RoundedCornerShape(16.dp),
             color = containerColor,
-            shadowElevation = if (enableBlur) 0.dp else 1.dp,
+            shadowElevation = 3.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 IconButton(onClick = { (context as? Activity)?.finish() }) {
                     Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
@@ -309,16 +327,6 @@ private fun BrowserScreen(
                 }
             }
         }
-            if (inputExpanded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable {
-                            focusManager.clearFocus()
-                            inputExpanded = false
-                        }
-                )
-            }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -345,6 +353,8 @@ private fun BrowserScreen(
                             .then(blurModifier),
                         color = containerColor,
                         shape = RoundedCornerShape(16.dp),
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     ) {
                         Row(
                             modifier = Modifier
@@ -378,6 +388,8 @@ private fun BrowserScreen(
                             .then(blurModifier),
                         color = containerColor,
                         shape = RoundedCornerShape(28.dp),
+                        shadowElevation = 3.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     ) {
                         Row(
                             modifier = Modifier
@@ -478,6 +490,7 @@ private fun BrowserScreen(
                 }
             }
         }
+    }
     }
 }
 
