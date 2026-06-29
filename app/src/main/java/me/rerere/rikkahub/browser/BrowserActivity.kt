@@ -3,7 +3,6 @@ package me.rerere.rikkahub.browser
 import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,7 +46,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
@@ -92,12 +90,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.context.LocalSettings
 
@@ -254,14 +246,8 @@ private fun BrowserScreen(
         }
     }
 
-    val hazeState = rememberHazeState()
-    val enableBlur = settings.displaySetting.enableBlurEffect
-    val containerTint = MaterialTheme.colorScheme.surfaceContainerLow
-    val hazeStyle = HazeMaterials.thin(containerColor = containerTint)
-    val blurModifier: Modifier = if (enableBlur) {
-        Modifier.hazeEffect(state = hazeState) { blurEffect { style = hazeStyle } }
-    } else Modifier
-    val containerColor = if (enableBlur) Color.Transparent else containerTint
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val topBarColor = MaterialTheme.colorScheme.surfaceContainer
 
     CompositionLocalProvider(LocalSettings provides settings) {
     Box(
@@ -280,15 +266,7 @@ private fun BrowserScreen(
                     controller = c
                 }
             },
-            update = { webView ->
-                webView.setLayerType(
-                    if (enableBlur) View.LAYER_TYPE_SOFTWARE else View.LAYER_TYPE_HARDWARE,
-                    null,
-                )
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(state = hazeState)
+            modifier = Modifier.fillMaxSize()
         )
 
         if (inputExpanded) {
@@ -304,16 +282,11 @@ private fun BrowserScreen(
 
         Surface(
             modifier = Modifier
-                .align(Alignment.TopCenter)
+                .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(8.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .then(blurModifier),
-            shape = RoundedCornerShape(16.dp),
-            color = containerColor,
-            shadowElevation = 3.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                .windowInsetsPadding(WindowInsets.statusBars),
+            color = topBarColor,
+            tonalElevation = 2.dp,
         ) {
             Row(
                 modifier = Modifier
@@ -359,16 +332,14 @@ private fun BrowserScreen(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TrackerPill(step, generating, blurModifier, containerColor)
+                        TrackerPill(step, generating, containerColor)
                     }
                 }
                 if (ui.reply.isNotBlank()) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .then(blurModifier),
+                            .padding(horizontal = 8.dp),
                         color = containerColor,
                         shape = RoundedCornerShape(16.dp),
                         shadowElevation = 3.dp,
@@ -402,9 +373,7 @@ private fun BrowserScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .then(blurModifier),
+                            .padding(8.dp),
                         color = containerColor,
                         shape = RoundedCornerShape(28.dp),
                         shadowElevation = 3.dp,
@@ -517,7 +486,6 @@ private fun BrowserScreen(
 private fun TrackerPill(
     step: BrowserStep,
     generating: Boolean,
-    blurModifier: Modifier,
     containerColor: Color,
 ) {
     val (label, icon, active) = when (step) {
@@ -526,9 +494,9 @@ private fun TrackerPill(
         BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
     }
     Surface(
-        modifier = Modifier.then(blurModifier),
         color = containerColor,
         shape = CircleShape,
+        shadowElevation = 3.dp,
     ) {
         Row(
             modifier = Modifier
