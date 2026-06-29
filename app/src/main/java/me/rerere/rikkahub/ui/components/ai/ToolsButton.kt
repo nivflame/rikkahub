@@ -30,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -39,10 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.mcp.McpManager
@@ -58,15 +53,12 @@ fun ToolsButton(
     enableSearch: Boolean,
     onUpdateAssistant: (Assistant) -> Unit,
     onToggleSearch: (Boolean) -> Unit,
-    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     val mcpManager: McpManager = koinInject()
     var expanded by remember { mutableStateOf(false) }
-    val enableBlur = settings.displaySetting.enableBlurEffect
     val menuShape = RoundedCornerShape(24.dp)
     val menuTint = MaterialTheme.colorScheme.surfaceContainerHigh
-    val menuHazeStyle = HazeMaterials.thin(containerColor = menuTint)
 
     val localCount = assistant.localTools.sumOf {
         if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
@@ -91,15 +83,10 @@ fun ToolsButton(
                 Surface(
                     modifier = Modifier
                         .width(280.dp)
-                        .clip(menuShape)
-                        .then(
-                            if (enableBlur) Modifier.hazeEffect(state = hazeState) {
-                                blurEffect { style = menuHazeStyle }
-                            } else Modifier
-                        ),
+                        .clip(menuShape),
                     shape = menuShape,
-                    color = if (enableBlur) Color.Transparent else menuTint,
-                    tonalElevation = if (enableBlur) 0.dp else 2.dp,
+                    color = menuTint,
+                    tonalElevation = 2.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 ) {
                     Column(
