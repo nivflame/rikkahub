@@ -16,12 +16,14 @@ import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 private val BROWSER_SYSTEM_PROMPT = """
 You have browser tools to navigate and automate the in-app WebView. Use browser_navigate to
-open a URL or go back, forward, and reload. Use browser_get_content to read the current page
-as markdown (main content with links resolved to absolute URLs), browser_dom_snapshot to
-inspect the DOM tree, and browser_interact to click, fill, scroll, hover, or type on elements.
-Use browser_execute_script to run JavaScript, browser_logs to read console or network logs,
-and browser_screenshot to capture the page. Prefer browser_get_content for reading. If
-browser_get_content returns a truncation notice, call it again with the start_index shown in
+open a URL or go back, forward, and reload. Use browser_get_content to read article pages as
+markdown (main content with links resolved to absolute URLs), and browser_dom_snapshot to get
+an accessibility tree of the page (roles, names, links, and interactive elements with refs).
+Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with
+the [data-rkref="eN"] selector from the snapshot. Use browser_execute_script to run JavaScript,
+browser_logs to read console or network logs, and browser_screenshot to capture the page. For
+search results or structured list pages, prefer browser_dom_snapshot over browser_get_content.
+If browser_get_content returns a truncation notice, call it again with the start_index shown in
 that notice until you have read the whole page before responding.
 """.trimIndent().replace("\n", " ")
 
@@ -77,9 +79,10 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_get_content",
         description = """
-            Read the current page as markdown (main content with links resolved to absolute URLs), paginated.
+            Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.
 
             Usage notes:
+            - Use this for article pages. For search results or structured list pages, use browser_dom_snapshot instead
             - This is the primary tool for reading page content
             - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
         """.trimIndent(),
@@ -144,7 +147,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
 
             Usage notes:
             - Actions: click, fill, scroll, hover, press_key, type_text
-            - A selector is required for all actions except press_key
+            - A selector is required for all actions except press_key. Use a [data-rkref="eN"] selector from browser_dom_snapshot for reliable targeting
             - Use value for fill (text to type) and scroll (pixels to scroll by)
         """.trimIndent(),
         parameters = {
@@ -197,10 +200,12 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_dom_snapshot",
         description = """
-            Return a text outline of the DOM tree of the current page, capped to ${BrowserController.MAX_DOM_NODES} nodes.
+            Return an accessibility tree of the current page: semantic roles, names, links, and interactive elements, capped to ${BrowserController.MAX_DOM_NODES} nodes.
 
             Usage notes:
             - Use this to inspect page structure and find elements to interact with
+            - Interactive elements are tagged with a ref, e.g. [ref=e1]. Pass that as the selector [data-rkref="e1"] to browser_interact
+            - For reading article text, prefer browser_get_content. For search results or structured list pages, prefer this tool
             - Scope the snapshot to a subtree by providing a selector
         """.trimIndent(),
         parameters = {

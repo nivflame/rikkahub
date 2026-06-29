@@ -236,15 +236,36 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     suspend fun domSnapshot(selector: String?, maxNodes: Int): String = withContext(Dispatchers.Main) {
         val sel = Json.encodeToString(selector ?: "")
-        val js = "(function(){var sel=$sel;var out=[];var skip=['script','style','noscript','svg','path','head','meta','link'];" +
-            "function walk(el,depth){if(out.length>$maxNodes||depth>8)return;" +
-            "if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(Array(depth+1).join('  ')+t.slice(0,120));return;}" +
-            "if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;" +
-            "var line=Array(depth+1).join('  ')+tag;var href=el.getAttribute('href');" +
-            "if(href)line+=' [href='+href.slice(0,120)+']';if((el.innerText||'').trim()&&el.children.length===0)line+=': '+el.innerText.trim().slice(0,80);" +
-            "out.push(line);for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}" +
-            "var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';" +
-            "walk(root,0);return out.join('\\n');})();"
+        val js = """
+(function(){var sel=$sel,out=[],refCount=0,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];
+function roleOf(el){var r=el.getAttribute('role');if(r)return r;var tag=el.tagName.toLowerCase();
+if(tag==='a')return el.getAttribute('href')?'link':null;
+if(tag==='button')return 'button';
+if(tag==='input'){var ty=(el.getAttribute('type')||'text').toLowerCase();if(ty==='checkbox')return 'checkbox';if(ty==='radio')return 'radio';if(ty==='submit'||ty==='button'||ty==='reset')return 'button';if(ty==='search')return 'searchbox';return 'textbox';}
+if(tag==='textarea')return 'textbox';if(tag==='select')return 'combobox';if(tag==='img')return 'img';
+if(tag==='h1'||tag==='h2'||tag==='h3'||tag==='h4'||tag==='h5'||tag==='h6')return 'heading';
+if(tag==='nav')return 'navigation';if(tag==='main')return 'main';if(tag==='article')return 'article';
+if(tag==='section')return 'region';if(tag==='aside')return 'complementary';if(tag==='header')return 'banner';
+if(tag==='footer')return 'contentinfo';if(tag==='form')return 'form';if(tag==='ul'||tag==='ol')return 'list';
+if(tag==='li')return 'listitem';if(tag==='table')return 'table';return null;}
+function nameOf(el){return (el.getAttribute('aria-label')||el.getAttribute('alt')||el.getAttribute('title')||el.getAttribute('placeholder')||(el.innerText||'').trim()||'').slice(0,120);}
+function directText(el){var s='';for(var i=0;i<el.childNodes.length;i++){var n=el.childNodes[i];if(n.nodeType===3)s+=n.textContent;}return s.trim();}
+function ind(d){return Array(d+1).join('  ');}
+var leafRoles=['link','button','img','heading','listitem'];
+function walk(el,depth){if(out.length>$maxNodes)return;
+if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(ind(depth)+'text: '+t.slice(0,120));return;}
+if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;
+var role=roleOf(el);
+if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
+var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' "'+name+'"';
+var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}
+if(role==='heading')line+=' [level='+(tag.charAt(1)||'1')+']';
+if((tag==='input'||tag==='textarea')&&el.value)line+=' [value='+String(el.value).slice(0,80)+']';
+if(['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'].indexOf(role)>=0){refCount++;var ref='e'+refCount;el.setAttribute('data-rkref',ref);line+=' [ref='+ref+']';}
+out.push(line);
+if(!name||leafRoles.indexOf(role)<0){for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}}
+var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';walk(root,0);return out.join('\n');})();
+        """.trimIndent()
         val raw = evaluateJavascriptAsync(js)
         raw?.let { unquoteJsString(it) } ?: "no snapshot"
     }
