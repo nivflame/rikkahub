@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.ui.components.ai
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.BorderStroke
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +66,7 @@ fun ToolsButton(
     val enableBlur = settings.displaySetting.enableBlurEffect
     val menuShape = RoundedCornerShape(24.dp)
     val menuTint = MaterialTheme.colorScheme.surfaceContainerHigh
+    val menuHazeStyle = HazeMaterials.thin(containerColor = menuTint)
 
     val localCount = assistant.localTools.sumOf {
         if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
@@ -93,7 +94,7 @@ fun ToolsButton(
                         .clip(menuShape)
                         .then(
                             if (enableBlur) Modifier.hazeEffect(state = hazeState) {
-                                blurEffect { style = HazeMaterials.thin(containerColor = menuTint) }
+                                blurEffect { style = menuHazeStyle }
                             } else Modifier
                         ),
                     shape = menuShape,
@@ -157,11 +158,11 @@ private object AboveEndPopupProvider : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
-        popupSize: IntSize,
         layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
     ): IntOffset {
-        val x = (anchorBounds.right - popupSize.width).coerceAtLeast(0)
-        val y = (anchorBounds.top - popupSize.height).coerceAtLeast(0)
+        val x = (anchorBounds.right - popupContentSize.width).coerceAtLeast(0)
+        val y = (anchorBounds.top - popupContentSize.height).coerceAtLeast(0)
         return IntOffset(x, y)
     }
 }
