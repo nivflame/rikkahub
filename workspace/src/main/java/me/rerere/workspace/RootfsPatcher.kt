@@ -148,7 +148,7 @@ class RootfsPatcher {
         ).forEach { relative ->
             val target = File(linuxDir, relative)
             if (target.exists() || Files.isSymbolicLink(target.toPath())) {
-                target.toPath().delete()
+                Files.deleteIfExists(target.toPath())
                 target.writeText(noop)
                 target.setExecutable(true, false)
             }
