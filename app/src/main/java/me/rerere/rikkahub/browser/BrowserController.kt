@@ -86,14 +86,8 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     suspend fun navigate(
         url: String,
         type: String = "url",
-        viewport: String? = null,
-        userAgent: String? = null
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
-            when {
-                !userAgent.isNullOrBlank() -> webView.settings.userAgentString = userAgent
-                viewport != null && viewport.contains("mobile") -> webView.settings.userAgentString = MOBILE_USER_AGENT
-            }
             lastRequestAt = System.currentTimeMillis()
             when (type) {
                 "back" -> {
@@ -361,7 +355,5 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         const val MAX_LOG_CHARS = 64 * 1024
         const val MAX_LOG_LINES = 500
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
-        const val MOBILE_USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
     }
 }

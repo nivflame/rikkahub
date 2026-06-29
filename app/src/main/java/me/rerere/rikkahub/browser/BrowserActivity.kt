@@ -1,6 +1,5 @@
 package me.rerere.rikkahub.browser
 
-import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,7 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -60,7 +59,6 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
-import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
@@ -72,6 +70,7 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.ChatService
+import me.rerere.rikkahub.ui.theme.RikkahubTheme
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
 import androidx.compose.animation.AnimatedVisibility
@@ -115,11 +114,13 @@ class BrowserActivity : ComponentActivity() {
         val conversationId = intent.getStringExtra("conversationId")
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
-            BrowserScreen(
-                chatService = chatService,
-                settingsStore = settingsStore,
-                initialConversationId = conversationId
-            )
+            RikkahubTheme {
+                BrowserScreen(
+                    chatService = chatService,
+                    settingsStore = settingsStore,
+                    initialConversationId = conversationId
+                )
+            }
         }
     }
 }
@@ -250,39 +251,11 @@ private fun BrowserScreen(
     val topBarColor = MaterialTheme.colorScheme.surfaceContainer
 
     CompositionLocalProvider(LocalSettings provides settings) {
-    Box(
+    Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        AndroidView(
-            factory = { context ->
-                WebView(context).also { webView ->
-                    val c = BrowserController(
-                        webView,
-                        onUrlChanged = { url ->
-                            addressBar = url
-                            scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
-                        }
-                    )
-                    controller = c
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        if (inputExpanded) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable {
-                        focusManager.clearFocus()
-                        inputExpanded = false
-                    }
-            )
-        }
-
         Surface(
             modifier = Modifier
-                .align(Alignment.TopStart)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.statusBars),
             color = topBarColor,
@@ -295,9 +268,6 @@ private fun BrowserScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                IconButton(onClick = { (context as? Activity)?.finish() }) {
-                    Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
-                }
                 OutlinedTextField(
                     value = addressBar,
                     onValueChange = { addressBar = it },
@@ -317,6 +287,37 @@ private fun BrowserScreen(
                 }
             }
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            AndroidView(
+                factory = { context ->
+                    WebView(context).also { webView ->
+                        val c = BrowserController(
+                            webView,
+                            onUrlChanged = { url ->
+                                addressBar = url
+                                scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
+                            }
+                        )
+                        controller = c
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (inputExpanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable {
+                            focusManager.clearFocus()
+                            inputExpanded = false
+                        }
+                )
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -444,13 +445,19 @@ private fun BrowserScreen(
                 }
             }
         }
+    }
 
     if (showFullReply) {
         Dialog(onDismissRequest = { showFullReply = false }) {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .padding(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(28.dp),
+                shadowElevation = 6.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             ) {
                 Column(
                     modifier = Modifier
@@ -471,6 +478,7 @@ private fun BrowserScreen(
                         content = ui.reply,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .weight(1f)
                             .verticalScroll(rememberScrollState())
                             .padding(top = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,

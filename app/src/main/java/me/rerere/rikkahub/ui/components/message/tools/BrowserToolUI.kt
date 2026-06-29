@@ -136,6 +136,5 @@ private fun browserActionLabel(toolName: String): String = when (toolName) {
     "browser_dom_snapshot" -> "DOM Snapshot"
     "browser_execute_script" -> "Execute Script"
     "browser_logs" -> "Logs"
-    "browser_close" -> "Close"
     else -> toolName
 }

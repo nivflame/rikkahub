@@ -20,10 +20,9 @@ open a URL or go back, forward, and reload. Use browser_get_content to read the 
 as markdown (main content with links resolved to absolute URLs), browser_dom_snapshot to
 inspect the DOM tree, and browser_interact to click, fill, scroll, hover, or type on elements.
 Use browser_execute_script to run JavaScript, browser_logs to read console or network logs,
-and browser_screenshot to capture the page. Call browser_close when the browsing task is
-complete. Prefer browser_get_content for reading. If browser_get_content returns a truncation
-notice, call it again with the start_index shown in that notice until you have read the whole
-page before responding.
+and browser_screenshot to capture the page. Prefer browser_get_content for reading. If
+browser_get_content returns a truncation notice, call it again with the start_index shown in
+that notice until you have read the whole page before responding.
 """.trimIndent().replace("\n", " ")
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
@@ -34,7 +33,6 @@ internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_dom_snapshot",
     "browser_execute_script",
     "browser_logs",
-    "browser_close",
 )
 
 val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
@@ -42,31 +40,27 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_navigate",
-        description = "Navigate the browser. Opens a URL by default, or goes back, forward, " +
-            "or reloads. The page is loaded and ready when this returns. Optionally set a " +
-            "viewport (e.g. \"375x667,mobile\") or userAgent.",
+        description = """
+            Navigate the in-app browser to a URL, or go back, forward, or reload.
+
+            Usage notes:
+            - The page is fully loaded and ready when this tool returns
+            - Set type to "back", "forward", or "reload" to navigate history instead of opening a URL
+        """.trimIndent(),
         systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("url", buildJsonObject {
                         put("type", "string")
-                        put("description", "The URL to navigate to (required for type \"url\")")
+                        put("description", "The URL to navigate to. Required when type is \"url\"")
                     })
                     put("type", buildJsonObject {
                         put("type", "string")
                         put("enum", buildJsonArray {
                             add("url"); add("back"); add("forward"); add("reload")
                         })
-                        put("description", "Navigation type, default \"url\"")
-                    })
-                    put("viewport", buildJsonObject {
-                        put("type", "string")
-                        put("description", "Viewport override, e.g. \"1920x1080\" or \"375x667,mobile\"")
-                    })
-                    put("userAgent", buildJsonObject {
-                        put("type", "string")
-                        put("description", "Override the User-Agent header")
+                        put("description", "Navigation type. Defaults to \"url\"")
                     })
                 }
             )
@@ -74,26 +68,27 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         execute = {
             val url = it.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: ""
             val type = it.jsonObject["type"]?.jsonPrimitive?.contentOrNull ?: "url"
-            val viewport = it.jsonObject["viewport"]?.jsonPrimitive?.contentOrNull
-            val userAgent = it.jsonObject["userAgent"]?.jsonPrimitive?.contentOrNull
             val result = HeadlessBrowserSession.withController(context) { controller ->
-                controller.navigate(url, type, viewport, userAgent)
+                controller.navigate(url, type)
             }
             listOf(UIMessagePart.Text("navigated to: $result"))
         }
     ),
     Tool(
         name = "browser_get_content",
-        description = "Return the current page as markdown (main content with links resolved " +
-            "to absolute URLs), paginated. If the result ends with a truncation notice, call " +
-            "this tool again with the start_index shown in that notice, and keep reading until " +
-            "there is no truncation. Use this to read what is on the page and find where to go next.",
+        description = """
+            Read the current page as markdown (main content with links resolved to absolute URLs), paginated.
+
+            Usage notes:
+            - This is the primary tool for reading page content
+            - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("start_index", buildJsonObject {
                         put("type", "number")
-                        put("description", "Line number to start reading from. Default 0. Use the start_index from a truncation notice to continue.")
+                        put("description", "Line number to start reading from. Defaults to 0. Use the start_index from a truncation notice to continue reading")
                     })
                 }
             )
@@ -108,19 +103,23 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_screenshot",
-        description = "Capture the current page as a JPEG image and return it. Optionally " +
-            "capture a single element by selector or the full scrollable page. Use this only " +
-            "when you need to see the visual layout, not for reading text.",
+        description = """
+            Capture the current page as a JPEG image.
+
+            Usage notes:
+            - Use this to see the visual layout, not for reading text (use browser_get_content for text)
+            - Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("selector", buildJsonObject {
                         put("type", "string")
-                        put("description", "CSS selector of the element to capture. Omit for the viewport.")
+                        put("description", "CSS selector of the element to capture. Omit to capture the viewport")
                     })
                     put("fullPage", buildJsonObject {
                         put("type", "boolean")
-                        put("description", "Capture the entire scrollable page (default false)")
+                        put("description", "Capture the entire scrollable page. Defaults to false")
                     })
                 }
             )
@@ -140,8 +139,14 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_interact",
-        description = "Interact with a DOM element on the current page: click, fill, scroll, " +
-            "hover, press_key, or type_text.",
+        description = """
+            Interact with a DOM element on the current page.
+
+            Usage notes:
+            - Actions: click, fill, scroll, hover, press_key, type_text
+            - A selector is required for all actions except press_key
+            - Use value for fill (text to type) and scroll (pixels to scroll by)
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -150,15 +155,15 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         put("enum", buildJsonArray {
                             add("click"); add("fill"); add("scroll"); add("hover"); add("press_key"); add("type_text")
                         })
-                        put("description", "The interaction action")
+                        put("description", "The interaction action to perform")
                     })
                     put("selector", buildJsonObject {
                         put("type", "string")
-                        put("description", "CSS selector of the target element (required except for press_key)")
+                        put("description", "CSS selector of the target element. Required for all actions except press_key")
                     })
                     put("value", buildJsonObject {
                         put("type", "string")
-                        put("description", "For fill: text to type. For scroll: pixels to scroll by.")
+                        put("description", "For fill: the text to type. For scroll: the number of pixels to scroll by")
                     })
                     put("key", buildJsonObject {
                         put("type", "string")
@@ -166,11 +171,11 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                     })
                     put("text", buildJsonObject {
                         put("type", "string")
-                        put("description", "For type_text: text to append to the element")
+                        put("description", "For type_text: the text to append to the element")
                     })
                     put("doubleClick", buildJsonObject {
                         put("type", "boolean")
-                        put("description", "For click: double-click (default false)")
+                        put("description", "For click: double-click the element. Defaults to false")
                     })
                 },
                 required = listOf("action")
@@ -191,15 +196,19 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_dom_snapshot",
-        description = "Return a text outline of the DOM tree of the current page (or a scoped " +
-            "element), capped to ${BrowserController.MAX_DOM_NODES} nodes. Use this to inspect " +
-            "page structure and find elements to interact with.",
+        description = """
+            Return a text outline of the DOM tree of the current page, capped to ${BrowserController.MAX_DOM_NODES} nodes.
+
+            Usage notes:
+            - Use this to inspect page structure and find elements to interact with
+            - Scope the snapshot to a subtree by providing a selector
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("selector", buildJsonObject {
                         put("type", "string")
-                        put("description", "CSS selector to scope the snapshot. Omit for the whole page.")
+                        put("description", "CSS selector to scope the snapshot. Omit for the whole page")
                     })
                 }
             )
@@ -214,15 +223,18 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_execute_script",
-        description = "Execute a JavaScript expression in the current page and return the " +
-            "result as a string. Use this for custom extraction or actions not covered by " +
-            "other browser tools.",
+        description = """
+            Execute a JavaScript expression in the current page and return the result as a string.
+
+            Usage notes:
+            - Use this for custom extraction or actions not covered by the other browser tools
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("expression", buildJsonObject {
                         put("type", "string")
-                        put("description", "JavaScript expression to evaluate")
+                        put("description", "The JavaScript expression to evaluate")
                     })
                 },
                 required = listOf("expression")
@@ -238,8 +250,12 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_logs",
-        description = "Return captured browser logs. Use type \"console\" for console output " +
-            "or \"network\" for network request URLs (no response bodies).",
+        description = """
+            Return captured browser logs.
+
+            Usage notes:
+            - Use type "console" for console output, or "network" for network request URLs (no response bodies)
+        """.trimIndent(),
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -248,7 +264,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         put("enum", buildJsonArray {
                             add("console"); add("network")
                         })
-                        put("description", "Log type to retrieve (default \"console\")")
+                        put("description", "The log type to retrieve. Defaults to \"console\"")
                     })
                 }
             )
@@ -259,15 +275,6 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                 it.logs(type)
             }
             listOf(UIMessagePart.Text(logs.ifBlank { "no logs" }))
-        }
-    ),
-    Tool(
-        name = "browser_close",
-        description = "Signal that the browsing task is complete and clear captured logs. " +
-            "Call this when you have finished navigating and reading.",
-        execute = {
-            HeadlessBrowserSession.withController(context) { it.close() }
-            listOf(UIMessagePart.Text("browser task complete"))
         }
     )
 )

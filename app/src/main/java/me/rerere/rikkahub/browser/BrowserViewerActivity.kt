@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.rikkahub.ui.theme.CustomColors
+import me.rerere.rikkahub.ui.theme.RikkahubTheme
 
 /**
  * Mirrored viewer for the headless chat browser. Displays a second WebView that follows the
@@ -36,7 +37,9 @@ import me.rerere.rikkahub.ui.theme.CustomColors
 class BrowserViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { ViewerScreen() }
+        setContent {
+            RikkahubTheme { ViewerScreen() }
+        }
     }
 }
 
