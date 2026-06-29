@@ -1,15 +1,17 @@
 package me.rerere.rikkahub.ui.components.ai
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,29 +53,32 @@ fun ToolsButton(
 
     val allMcpTools = runCatching { mcpManager.getAllAvailableTools() }.getOrDefault(emptyList())
     val mcpCountByServer = allMcpTools.groupingBy { it.first }.eachCount()
-
     val localCount = assistant.localTools.sumOf {
         if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
     }
     val mcpCount = allMcpTools.count { it.first in assistant.mcpServers }
     val total = localCount + mcpCount + (if (enableSearch) 1 else 0)
 
-    ToggleSurface(
-        checked = total > 0,
-        onClick = { showSheet = true },
-        modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Box(modifier = modifier) {
+        ToggleSurface(
+            checked = total > 0,
+            onClick = { showSheet = true },
         ) {
-            BadgedBox(badge = { if (total > 0) Badge { Text(total.toString()) } }) {
+            Row(
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Icon(
                     imageVector = HugeIcons.Tools,
                     contentDescription = "Tools",
                     modifier = Modifier.size(24.dp),
                 )
+            }
+        }
+        if (total > 0) {
+            Badge(modifier = Modifier.align(Alignment.TopEnd)) {
+                Text(total.toString())
             }
         }
     }
@@ -90,6 +95,7 @@ fun ToolsButton(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.8f)
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
