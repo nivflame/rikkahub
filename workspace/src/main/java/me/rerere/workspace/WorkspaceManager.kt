@@ -128,6 +128,7 @@ class WorkspaceManager(
         stdin: ByteArray? = null,
     ): WorkspaceCommandResult {
         require(command.isNotBlank()) { "Command is required" }
+        provisionIfNeeded(root)
         val workingDir = fileSystem.resolve(filesDir(root), cwd)
         require(workingDir.exists()) { "Working directory does not exist: $cwd" }
         require(workingDir.isDirectory) { "Working path is not a directory: $cwd" }
@@ -145,6 +146,28 @@ class WorkspaceManager(
                 stdin = stdin,
             )
         )
+    }
+
+    private fun provisionIfNeeded(root: String) {
+        if (!hasRootfs(root)) return
+        val marker = File(workspaceDir(root), PROVISION_MARKER)
+        if (marker.isFile) return
+        val result = shellRunner.execute(
+            WorkspaceShellContext(
+                root = root,
+                command = PROVISION_COMMAND,
+                cwd = "",
+                filesDir = filesDir(root),
+                linuxDir = linuxDir(root),
+                tempDir = tempDir(root),
+                workingDir = filesDir(root),
+                timeoutMillis = PROVISION_TIMEOUT_MS,
+                stdin = null,
+            )
+        )
+        if (result.exitCode == 0) {
+            marker.writeText("provisioned\n")
+        }
     }
 
     private fun requireValidRoot(root: String) {
@@ -176,6 +199,9 @@ class WorkspaceManager(
         private const val LINUX_DIR = "linux"
         private const val TEMP_DIR = "tmp"
         const val DEFAULT_COMMAND_TIMEOUT_MS = 30_000L
+        private const val PROVISION_MARKER = ".rikkahub-provisioned"
+        private const val PROVISION_COMMAND = "apt-get update -qq && apt-get install -y -qq ca-certificates wget which"
+        private const val PROVISION_TIMEOUT_MS = 120_000L
         private val ROOT_NAME_REGEX = Regex("[A-Za-z0-9._-]+")
     }
 }

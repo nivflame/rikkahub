@@ -17,6 +17,7 @@ class RootfsPatcher {
         ensureLocale(etcDir, options.locale)
         ensureGroupNames(etcDir, options.groupIds.ifEmpty { currentSupplementaryGroupIds() })
         ensureTempDirs(linuxDir)
+        disableSlowTriggers(linuxDir)
     }
 
     private fun ensureRootfsDns(
@@ -138,6 +139,22 @@ class RootfsPatcher {
         )
     }
 
+    private fun disableSlowTriggers(linuxDir: File) {
+        val noop = "#!/bin/sh\nexit 0\n"
+        listOf(
+            "usr/bin/mandb",
+            "usr/bin/update-mime-database",
+            "usr/bin/update-desktop-database",
+        ).forEach { relative ->
+            val target = File(linuxDir, relative)
+            if (target.exists() || Files.isSymbolicLink(target.toPath())) {
+                target.toPath().delete()
+                target.writeText(noop)
+                target.setExecutable(true, false)
+            }
+        }
+    }
+
     private fun ensureTempDirs(linuxDir: File) {
         listOf("tmp", "var/tmp", "root").forEach { path ->
             File(linuxDir, path).mkdirs()
@@ -176,8 +193,7 @@ class RootfsPatcher {
         )
         private val DEFAULT_DNS_SERVERS = listOf(
             "1.1.1.1",
-            "8.8.8.8",
-            "223.5.5.5",
+            "1.0.0.1",
         )
     }
 }
