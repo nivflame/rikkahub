@@ -259,7 +259,7 @@ var role=roleOf(el);
 if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
 var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' "'+name+'"';
 var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}
-if(role==='heading')line+=' [level='+(tag.charAt(1)||'1')+']';
+if(role==='heading'){var lvl=el.getAttribute('aria-level');if(!lvl&&tag.length===2&&tag.charAt(0)==='h')lvl=tag.charAt(1);if(lvl)line+=' [level='+lvl+']';}
 if((tag==='input'||tag==='textarea')&&el.value)line+=' [value='+String(el.value).slice(0,80)+']';
 if(['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'].indexOf(role)>=0){refCount++;var ref='e'+refCount;el.setAttribute('data-rkref',ref);line+=' [ref='+ref+']';}
 out.push(line);
