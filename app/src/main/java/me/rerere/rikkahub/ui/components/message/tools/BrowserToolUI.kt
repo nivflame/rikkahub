@@ -37,7 +37,7 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
     override fun icon(context: ToolUIContext) = HugeIcons.Earth
 
     @Composable
-    override fun title(context: ToolUIContext): String = "Browser"
+    override fun title(context: ToolUIContext): String = "Browser: ${browserActionLabel(toolName)}"
 
     override fun hasSummary(context: ToolUIContext): Boolean = toolName == "browser_navigate"
 
@@ -126,4 +126,16 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
             }
         }
     }
+}
+
+private fun browserActionLabel(toolName: String): String = when (toolName) {
+    "browser_navigate" -> "Navigate"
+    "browser_get_content" -> "Get Content"
+    "browser_screenshot" -> "Screenshot"
+    "browser_interact" -> "Interact"
+    "browser_dom_snapshot" -> "DOM Snapshot"
+    "browser_execute_script" -> "Execute Script"
+    "browser_logs" -> "Logs"
+    "browser_close" -> "Close"
+    else -> toolName
 }

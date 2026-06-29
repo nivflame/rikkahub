@@ -62,10 +62,10 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.hugeicons.stroke.ArrowUp02
-import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
+import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
@@ -246,7 +246,7 @@ private fun BrowserScreen(
         }
     }
 
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     val topBarColor = MaterialTheme.colorScheme.surfaceContainer
 
     CompositionLocalProvider(LocalSettings provides settings) {
@@ -433,12 +433,12 @@ private fun BrowserScreen(
                         FloatingActionButton(
                             onClick = { inputExpanded = true },
                             shape = CircleShape,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                             interactionSource = fabInteractionSource,
                             modifier = Modifier.scale(fabScale),
                         ) {
-                            Icon(imageVector = HugeIcons.Edit01, contentDescription = "Ask the AI")
+                            Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
                         }
                     }
                 }
