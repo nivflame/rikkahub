@@ -654,6 +654,23 @@ class ChatService(
                     }
                     if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
                         val parentTools = this.toList()
+                        val existingToolNames = parentTools.map { it.name }.toSet()
+                        val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
+                        val subagentParentTools = parentTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
+                            val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                                ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
+                            val toolName = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}"
+                            if (toolName in existingToolNames) return@mapNotNull null
+                            Tool(
+                                name = toolName,
+                                description = tool.description ?: "",
+                                parameters = { tool.inputSchema },
+                                needsApproval = { tool.needsApproval },
+                                execute = {
+                                    mcpManager.callTool(serverId, tool.name, it.jsonObject)
+                                },
+                            )
+                        }
                         val subagentTool = buildSubagentTool(settings)
                         add(
                             subagentTool.copy(
@@ -662,7 +679,7 @@ class ChatService(
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    listOf(UIMessagePart.Text(subagentRunner.launch(conversationId, parentTools, type, task)))
+                                    listOf(UIMessagePart.Text(subagentRunner.launch(conversationId, subagentParentTools, type, task)))
                                 }
                             )
                         )

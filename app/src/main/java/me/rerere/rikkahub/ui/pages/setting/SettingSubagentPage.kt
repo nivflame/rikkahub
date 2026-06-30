@@ -58,7 +58,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
 
     val toolNames = remember(settings.mcpServers) {
         SUBAGENT_LOCAL_TOOL_NAMES + ALL_BROWSER_TOOL_NAMES + settings.mcpServers.flatMap { server ->
-            server.commonOptions.tools.filter { it.enable }.map { "mcp__${server.commonOptions.name}__${it.name}" }
+            server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
         }
     }
 

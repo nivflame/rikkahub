@@ -70,7 +70,7 @@ class SubagentRunner(
             // Search and skill tools (not in the toggleable name set) are always inherited.
             val toggleableNames = SUBAGENT_LOCAL_TOOL_NAMES.toSet() + ALL_BROWSER_TOOL_NAMES.toSet() +
                 settings.mcpServers.flatMap { server ->
-                    server.commonOptions.tools.filter { it.enable }
+                    server.commonOptions.tools
                         .map { "mcp__${server.commonOptions.name}__${it.name}" }
                 }.toSet()
             tool.name in def.enabledTools || tool.name !in toggleableNames
