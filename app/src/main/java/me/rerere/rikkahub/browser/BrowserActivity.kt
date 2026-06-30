@@ -3,6 +3,7 @@ package me.rerere.rikkahub.browser
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
+import androidx.navigation3.runtime.NavKey
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -68,6 +69,8 @@ import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.ui.context.LocalNavController
+import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
@@ -115,11 +118,13 @@ class BrowserActivity : ComponentActivity() {
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
             RikkahubTheme {
-                BrowserScreen(
-                    chatService = chatService,
-                    settingsStore = settingsStore,
-                    initialConversationId = conversationId
-                )
+                CompositionLocalProvider(LocalNavController provides Navigator(remember { mutableListOf<NavKey>() })) {
+                    BrowserScreen(
+                        chatService = chatService,
+                        settingsStore = settingsStore,
+                        initialConversationId = conversationId
+                    )
+                }
             }
         }
     }

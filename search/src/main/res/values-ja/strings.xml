@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-  <string name="ooggle_desc">OoggleはヘッドレスWebViewでGoogleの検索結果をスクレイピングします。APIキー不要。Googleのページ構造に依存し、同意画面やCAPTCHAにより失敗することがあります。</string>
+  <string name="ooggle_desc">OoggleはヘッドレスWebViewでウェブ検索結果を取得します。APIキー不要。検索エンジンのページ構造に依存し、同意画面やCAPTCHAにより失敗することがあります。</string>
   <string name="click_to_get_api_key">クリックしてAPI Keyを取得</string>
   <string name="searxng_desc_1">settings.yml内でjson formatサポートを有効にする必要があります:</string>
   <string name="searxng_desc_2">search:\n  formats:\n    - html\n    - json</string>

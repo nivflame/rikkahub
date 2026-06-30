@@ -63,7 +63,6 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
             try {
                 webView.settings.javaScriptEnabled = true
                 webView.settings.domStorageEnabled = true
-                webView.settings.userAgentString = DESKTOP_UA
                 webView.settings.setSupportZoom(false)
                 webView.isVerticalScrollBarEnabled = false
                 webView.isHorizontalScrollBarEnabled = false
@@ -81,7 +80,7 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                     ) {
                         if (request.isForMainFrame && pageLoaded.isActive) {
                             pageLoaded.completeExceptionally(
-                                Exception("Failed to load Google: ${error.description}")
+                                Exception("Failed to load search page: ${error.description}")
                             )
                         }
                     }
@@ -90,7 +89,7 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                 val deadline = System.currentTimeMillis() + timeoutMs
                 webView.loadUrl(searchUrl)
                 withTimeoutOrNull(deadline - System.currentTimeMillis()) { pageLoaded.await() }
-                    ?: error("Search timed out waiting for Google to load")
+                    ?: error("Search timed out waiting for the page to load")
 
                 var results = emptyList<SearchResultItem>()
                 var lastCount = 0
@@ -110,8 +109,8 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                 }
 
                 require(results.isNotEmpty()) {
-                    "Search failed: no organic results found. " +
-                        "Google may have shown a consent or captcha page."
+                        "Search failed: no organic results found. " +
+                        "The search engine may have shown a consent or captcha page."
                 }
 
                 SearchResult(items = results.take(resultSize))
@@ -153,34 +152,32 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
         }
 }
 
-private const val DESKTOP_UA =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-
 private val EXTRACT_JS = """
     (function() {
       window.scrollTo(0, document.body.scrollHeight);
       var seen = {};
       var results = [];
-      document.querySelectorAll('div.MjjYud').forEach(function(div) {
-        if (div.querySelector('.related-question-pair')) return;
-        var h3 = div.querySelector('h3');
-        if (!h3) return;
-        var link = div.querySelector('a.sXtWJb')
-          || (h3.closest ? h3.closest('a') : null)
-          || div.querySelector('h3 a');
-        if (!link) return;
-        var href = link.href;
+      document.querySelectorAll('a.WlydOe.eR6uYd').forEach(function(a) {
+        var href = a.href;
         if (!href || href.indexOf('http') !== 0 || href.indexOf('google.com/search') !== -1) return;
+        if (href.indexOf('youtube.com/watch') > -1) return;
         if (seen[href]) return;
         seen[href] = true;
-        var title = h3.textContent.trim();
+        var titleEl = a.querySelector('div.eAaXgc') || a.querySelector('div.pontCc');
+        var title = titleEl ? titleEl.textContent.trim() : '';
         if (!title) return;
-        var sn = div.querySelector('div.VwiC3b')
-          || div.querySelector('div.lEBKkf')
-          || div.querySelector('span.aCOpRe')
-          || div.querySelector('[data-sncf]');
-        results.push({ title: title, url: href, text: sn ? sn.textContent.trim() : '' });
+        var timeEl = a.querySelector('div.OSrXXb');
+        var sourceEl = a.querySelector('div.xLCVmd') || a.querySelector('div.iDBaYb');
+        var time = timeEl ? timeEl.textContent.trim() : '';
+        var source = sourceEl ? sourceEl.textContent.trim() : '';
+        var snippet = '';
+        var container = a.closest('div.Ww4FFb') || a.parentElement.parentElement;
+        if (container) {
+          var snEl = container.querySelector('div.VwiC3b');
+          if (snEl) snippet = snEl.textContent.trim();
+        }
+        var text = snippet || [source, time].filter(function(s) { return s; }).join(', ');
+        results.push({ title: title, url: href, text: text });
       });
       return results;
     })()
@@ -196,12 +193,14 @@ private val EXTRACT_NEWS_JS = """
         if (!href || href.indexOf('http') !== 0 || href.indexOf('google.com/search') !== -1) return;
         if (seen[href]) return;
         seen[href] = true;
-        var lines = a.innerText.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
-        if (lines.length < 2) return;
-        var source = lines[0];
-        var title = lines[1];
-        var date = lines.length > 2 ? lines[2] : '';
-        var text = date ? source + ', ' + date : source;
+        var titleEl = a.querySelector('div.n0jPhd');
+        var title = titleEl ? titleEl.textContent.trim() : '';
+        if (!title) return;
+        var sourceEl = a.querySelector('div.SoAPf > div:first-child');
+        var timeEl = a.querySelector('div.M8eS9e');
+        var source = sourceEl ? sourceEl.textContent.trim() : '';
+        var date = timeEl ? timeEl.textContent.trim() : '';
+        var text = [source, date].filter(function(s) { return s; }).join(', ');
         results.push({ title: title, url: href, text: text });
       });
       return results;

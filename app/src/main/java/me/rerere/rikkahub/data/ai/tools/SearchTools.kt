@@ -31,7 +31,7 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                     - Use the correct year in search queries:
                       - Today is ${LocalDate.now().toLocalString(true)}.
                       - Example: If the user asks for "latest React docs", search for "React documentation" with the current year, NOT last year
-                    - Set news to true to search Google News (recency-focused) instead of general web search
+                    - Set news to true to search news results (recency-focused) instead of general web search
 
                     Response format:
                     - items[].id (short id), title, url, text
@@ -59,7 +59,7 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                                 put("type", "string")
                             })
                             put("news", buildJsonObject {
-                                put("description", "Set to true to search Google News instead of general web search")
+                                put("description", "Set to true to search news results instead of general web search")
                                 put("type", "boolean")
                             })
                         },

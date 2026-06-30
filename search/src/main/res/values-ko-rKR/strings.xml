@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-  <string name="ooggle_desc">Ooggle은 헤드리스 WebView로 Google 검색 결과를 스크래핑합니다. API 키 불필요. Google 페이지 구조에 의존하며 동의 화면이나 캡차로 인해 실패할 수 있습니다.</string>
+  <string name="ooggle_desc">Ooggle은 헤드리스 WebView로 웹 검색 결과를 가져옵니다. API 키 불필요. 검색 엔진 페이지 구조에 의존하며 동의 화면이나 캡차로 인해 실패할 수 있습니다.</string>
   <string name="click_to_get_api_key">API 키를 받으려면 클릭하세요.</string>
   <string name="searxng_desc_1">settings.yml에서 JSON 형식 지원을 활성화해야 합니다:</string>
   <string name="searxng_desc_2">search:\n  formats:\n    - html\n    - json</string>

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-  <string name="ooggle_desc">Ooggle 透過無頭 WebView 抓取 Google 搜尋結果，無需 API Key。結果依賴 Google 頁面結構，偶爾可能因同意頁或驗證碼失敗。</string>
+  <string name="ooggle_desc">Ooggle 透過無頭 WebView 取得網頁搜尋結果，無需 API Key。結果依賴搜尋引擎頁面結構，偶爾可能因同意頁或驗證碼失敗。</string>
   <string name="click_to_get_api_key">點擊獲取API Key</string>
   <string name="searxng_desc_1">settings.yml內需要開啟json format支援:</string>
   <string name="searxng_desc_2">search:\n  formats:\n    - html\n    - json</string>
