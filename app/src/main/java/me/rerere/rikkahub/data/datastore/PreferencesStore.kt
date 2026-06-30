@@ -285,10 +285,14 @@ class SettingsStore(
             providers = providers.map { provider ->
                 val defaultProvider = DEFAULT_PROVIDERS.find { it.id == provider.id }
                 if (defaultProvider != null) {
+                    val existingModelIds = provider.models.map { it.modelId }.toSet()
+                    val mergedModels = provider.models + defaultProvider.models
+                        .filter { it.modelId !in existingModelIds }
                     provider.copyProvider(
                         builtIn = defaultProvider.builtIn,
                         description = defaultProvider.description,
                         shortDescription = defaultProvider.shortDescription,
+                        models = mergedModels,
                     )
                 } else provider
             }.toMutableList()
