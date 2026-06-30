@@ -67,7 +67,7 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                 webView.isVerticalScrollBarEnabled = false
                 webView.isHorizontalScrollBarEnabled = false
 
-                val pageLoaded = CompletableDeferred<Unit>()
+                var pageLoaded = CompletableDeferred<Unit>()
                 webView.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
                         pageLoaded.complete(Unit)
@@ -87,33 +87,47 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                 }
 
                 val deadline = System.currentTimeMillis() + timeoutMs
-                webView.loadUrl(searchUrl)
-                withTimeoutOrNull(deadline - System.currentTimeMillis()) { pageLoaded.await() }
-                    ?: error("Search timed out waiting for the page to load")
+                val allResults = mutableListOf<SearchResultItem>()
+                val seenUrls = mutableSetOf<String>()
+                var start = 0
 
-                var results = emptyList<SearchResultItem>()
-                var lastCount = 0
-                var stableRounds = 0
-                while (System.currentTimeMillis() < deadline) {
-                    delay(700)
-                    val extractJs = if (news) EXTRACT_NEWS_JS else EXTRACT_JS
-                    val items = parseItems(webView.evaluateJs(extractJs))
-                    if (items.size > lastCount) {
-                        lastCount = items.size
-                        stableRounds = 0
-                    } else {
-                        stableRounds++
+                while (allResults.size < resultSize && System.currentTimeMillis() < deadline) {
+                    val pageUrl = if (start == 0) searchUrl else "$searchUrl&start=$start"
+                    pageLoaded = CompletableDeferred()
+                    webView.loadUrl(pageUrl)
+                    withTimeoutOrNull(deadline - System.currentTimeMillis()) { pageLoaded.await() }
+                        ?: break
+
+                    var pageResults = emptyList<SearchResultItem>()
+                    var lastCount = 0
+                    var stableRounds = 0
+                    while (System.currentTimeMillis() < deadline) {
+                        delay(700)
+                        val extractJs = if (news) EXTRACT_NEWS_JS else EXTRACT_JS
+                        val items = parseItems(webView.evaluateJs(extractJs))
+                        if (items.size > lastCount) {
+                            lastCount = items.size
+                            stableRounds = 0
+                        } else {
+                            stableRounds++
+                        }
+                        if (items.isNotEmpty()) pageResults = items
+                        if (pageResults.size >= resultSize || stableRounds >= 8) break
                     }
-                    if (items.isNotEmpty()) results = items
-                    if (results.size >= resultSize || stableRounds >= 8) break
+
+                    val newResults = pageResults.filter { it.url !in seenUrls }
+                    if (newResults.isEmpty()) break
+                    allResults.addAll(newResults)
+                    newResults.forEach { seenUrls.add(it.url) }
+                    start += 10
                 }
 
-                require(results.isNotEmpty()) {
-                        "Search failed: no organic results found. " +
+                require(allResults.isNotEmpty()) {
+                    "Search failed: no organic results found. " +
                         "The search engine may have shown a consent or captcha page."
                 }
 
-                SearchResult(items = results.take(resultSize))
+                SearchResult(items = allResults.take(resultSize))
             } finally {
                 webView.stopLoading()
                 webView.destroy()
