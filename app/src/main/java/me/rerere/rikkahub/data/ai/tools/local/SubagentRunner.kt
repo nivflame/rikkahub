@@ -1,8 +1,5 @@
 package me.rerere.rikkahub.data.ai.tools.local
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.Tool
 import me.rerere.ai.provider.Model
@@ -14,20 +11,15 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.model.Assistant
-import me.rerere.rikkahub.service.ChatService
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.uuid.Uuid
 
 class SubagentRunner(
     private val generationHandler: GenerationHandler,
     private val settingsStore: SettingsStore,
-    private val appScope: CoroutineScope,
-    private val chatService: ChatService,
 ) {
     private val running = AtomicInteger(0)
 
-    fun launch(
-        conversationId: Uuid,
+    suspend fun runSync(
         parentTools: List<Tool>,
         subagentType: String,
         prompt: String,
@@ -44,18 +36,13 @@ class SubagentRunner(
             ?: return "Subagent model is not configured. Set it in Settings, Subagent."
 
         running.incrementAndGet()
-        appScope.launch {
-            try {
-                val result = runSubagent(def, prompt, model, parentTools, settings)
-                injectResult(conversationId, def.name, result)
-            } catch (e: Exception) {
-                injectResult(conversationId, def.name, "error: ${e.message}")
-            } finally {
-                running.decrementAndGet()
-            }
+        try {
+            return runSubagent(def, prompt, model, parentTools, settings)
+        } catch (e: Exception) {
+            return "error: ${e.message}"
+        } finally {
+            running.decrementAndGet()
         }
-        return "Subagent '${def.name}' started in background. You will be notified with the " +
-            "result when it completes. You can continue with other work in the meantime."
     }
 
     private suspend fun runSubagent(
@@ -66,8 +53,6 @@ class SubagentRunner(
         settings: Settings,
     ): String {
         val subTools = parentTools.filter { tool ->
-            // Local, browser, and MCP tools are gated by the per-subagent enabledTools list.
-            // Search and skill tools (not in the toggleable name set) are always inherited.
             val toggleableNames = SUBAGENT_LOCAL_TOOL_NAMES.toSet() + ALL_BROWSER_TOOL_NAMES.toSet() +
                 settings.mcpServers.flatMap { server ->
                     server.commonOptions.tools
@@ -102,14 +87,5 @@ class SubagentRunner(
             ?.joinToString("") { it.text }
             ?.takeIf { it.isNotBlank() }
             ?: "(subagent finished with no text output)"
-    }
-
-    private suspend fun injectResult(conversationId: Uuid, name: String, result: String) {
-        // Wait until the main generation is idle so injecting does not cancel a running turn.
-        chatService.getGenerationJobStateFlow(conversationId).first { it == null }
-        chatService.sendMessage(
-            conversationId,
-            listOf(UIMessagePart.Text("[Subagent '$name' result]\n$result")),
-        )
     }
 }

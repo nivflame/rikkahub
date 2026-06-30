@@ -167,7 +167,7 @@ class ChatService(
     // workspace 系统提示注入 (依赖 workspaceRepository, 故在类内构造)
     private val workspaceReminderTransformer = WorkspaceReminderTransformer(workspaceRepository)
 
-    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore, appScope, this) }
+    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore) }
 
     // 统一会话管理
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
@@ -679,7 +679,7 @@ class ChatService(
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    listOf(UIMessagePart.Text(subagentRunner.launch(conversationId, subagentParentTools, type, task)))
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task)))
                                 }
                             )
                         )
