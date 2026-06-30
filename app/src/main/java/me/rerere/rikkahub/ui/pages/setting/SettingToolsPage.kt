@@ -61,6 +61,12 @@ fun SettingToolsPage() {
                 headlineContent = { Text("Subagent") },
             )
             item(
+                onClick = { navController.navigate(Screen.SettingToolSearch) },
+                leadingContent = { Icon(HugeIcons.Puzzle, null) },
+                supportingContent = { Text("Defer tools so the agent fetches their schemas on demand, saving tokens") },
+                headlineContent = { Text("ToolSearch") },
+            )
+            item(
                 onClick = { navController.navigate(Screen.SettingAskQuestion) },
                 leadingContent = { Icon(HugeIcons.BubbleChatQuestion, null) },
                 supportingContent = { Text("Edit the AskQuestion tool description") },

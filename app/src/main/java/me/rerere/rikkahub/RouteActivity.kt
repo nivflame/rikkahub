@@ -113,6 +113,7 @@ import me.rerere.rikkahub.ui.pages.setting.SettingThemePage
 import me.rerere.rikkahub.ui.pages.setting.SettingDonatePage
 import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
+import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingAskQuestionPage
 import me.rerere.rikkahub.ui.pages.setting.SettingFilesPage
@@ -470,6 +471,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingSubagentPage()
                             }
 
+                            entry<Screen.SettingToolSearch> {
+                                SettingToolSearchPage()
+                            }
+
                             entry<Screen.SettingTools> {
                                 SettingToolsPage()
                             }
@@ -639,6 +644,7 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingSubagent : Screen
+    data object SettingToolSearch : Screen
 
     @Serializable
     data object SettingTools : Screen
