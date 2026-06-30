@@ -44,7 +44,6 @@ fun Process.readResult(timeoutMillis: Long, stdin: ByteArray? = null): Workspace
     try {
         val finished = waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
         if (!finished) {
-            toHandle().descendants().forEach { it.destroyForcibly() }
             destroyForcibly()
         }
         stdinWriter?.join(1_000)
@@ -58,8 +57,7 @@ fun Process.readResult(timeoutMillis: Long, stdin: ByteArray? = null): Workspace
             truncated = stdout.truncated || stderr.truncated,
         )
     } catch (e: InterruptedException) {
-        // 调用方线程被中断（如协程取消时的 runInterruptible），杀掉进程及其子进程避免命令继续执行
-        toHandle().descendants().forEach { it.destroyForcibly() }
+        // 调用方线程被中断（如协程取消时的 runInterruptible），杀掉进程避免命令继续执行
         destroyForcibly()
         // 进程被杀后 stdout/stderr 会关闭, 这里 join 回收两个采集线程, 避免每次取消泄漏一对线程
         stdinWriter?.join(1_000)
