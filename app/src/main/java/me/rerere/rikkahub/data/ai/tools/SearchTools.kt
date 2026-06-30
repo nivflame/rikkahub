@@ -23,7 +23,7 @@ fun createSearchTools(settings: Settings): Set<Tool> {
     return buildSet {
         add(
             Tool(
-                name = "search_web",
+                name = "WebSearch",
                 description = """
                     Allows you to search the web
 

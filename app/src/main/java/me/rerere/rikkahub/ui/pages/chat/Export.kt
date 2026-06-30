@@ -725,7 +725,7 @@ private fun ChainOfThoughtScope.ExportedToolStep(
             else -> stringResource(R.string.chat_message_tool_call_generic, tool.toolName)
         }
 
-        "search_web" -> {
+        "WebSearch" -> {
             val query = runCatching {
                 tool.inputAsJson().jsonObject["query"]?.jsonPrimitiveOrNull?.contentOrNull ?: ""
             }.getOrDefault("")
@@ -747,7 +747,7 @@ private fun ChainOfThoughtScope.ExportedToolStep(
                         else -> HugeIcons.Wrench01
                     }
 
-                    "search_web" -> HugeIcons.Search01
+                    "WebSearch" -> HugeIcons.Search01
                     "scrape_web" -> HugeIcons.Earth
                     else -> HugeIcons.Wrench01
                 },
