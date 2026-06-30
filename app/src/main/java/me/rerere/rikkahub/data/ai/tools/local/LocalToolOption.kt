@@ -28,4 +28,8 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("skill")
     data object Skill : LocalToolOption()
+
+    @Serializable
+    @SerialName("tool_search")
+    data object ToolSearch : LocalToolOption()
 }

@@ -170,6 +170,20 @@ private fun AssistantLocalToolContent(
                     )
                 }
             )
+            ListItem(
+                headlineContent = {
+                    Text("ToolSearch")
+                },
+                supportingContent = {
+                    Text("Defer selected tools so the agent fetches their schemas on demand, saving context tokens")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.ToolSearch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.ToolSearch, it) }
+                    )
+                }
+            )
         }
     }
 }

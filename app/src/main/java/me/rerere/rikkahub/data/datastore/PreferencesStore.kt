@@ -95,6 +95,7 @@ class SettingsStore(
         val SUBAGENT_MODEL = stringPreferencesKey("subagent_model")
         val ASK_QUESTION_DESCRIPTION = stringPreferencesKey("ask_question_description")
         val TOOL_DESCRIPTIONS = stringPreferencesKey("tool_descriptions")
+        val DEFERRED_TOOLS = stringPreferencesKey("deferred_tools")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
@@ -193,6 +194,9 @@ class SettingsStore(
                 toolDescriptions = preferences[TOOL_DESCRIPTIONS]?.let {
                     JsonInstant.decodeFromString<Map<String, String>>(it)
                 } ?: emptyMap(),
+                deferredTools = preferences[DEFERRED_TOOLS]?.let {
+                    JsonInstant.decodeFromString<Set<String>>(it)
+                } ?: emptySet(),
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
@@ -406,6 +410,7 @@ class SettingsStore(
             preferences[SUBAGENT_MODEL] = settings.subagentModelId?.toString() ?: ""
             preferences[ASK_QUESTION_DESCRIPTION] = settings.askQuestionDescription
             preferences[TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.toolDescriptions)
+            preferences[DEFERRED_TOOLS] = JsonInstant.encodeToString(settings.deferredTools)
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
             preferences[FAST_MODEL] = settings.fastModelId.toString()
@@ -556,6 +561,7 @@ data class Settings(
     val subagentModelId: Uuid? = null,
     val askQuestionDescription: String = DEFAULT_ASK_QUESTION_DESCRIPTION,
     val toolDescriptions: Map<String, String> = emptyMap(),
+    val deferredTools: Set<String> = emptySet(),
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),

@@ -66,6 +66,7 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
 import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
+import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
 import me.rerere.rikkahub.data.ai.tools.createWorkspaceTools
@@ -594,7 +595,8 @@ class ChatService(
                     add(workspaceReminderTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = buildList {
+                tools = run {
+                    val allTools = buildList {
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
@@ -683,6 +685,19 @@ class ChatService(
                                 }
                             )
                         )
+                    }
+                    if (LocalToolOption.ToolSearch in assistant.localTools && settings.deferredTools.isNotEmpty()) {
+                        val active = mutableListOf<Tool>()
+                        val deferred = mutableListOf<Tool>()
+                        allTools.forEach { tool ->
+                            if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
+                        }
+                        if (deferred.isNotEmpty()) {
+                            active.add(buildToolSearchTool(deferred, active))
+                        }
+                        active
+                    } else {
+                        allTools
                     }
                 },
             ).onCompletion {
