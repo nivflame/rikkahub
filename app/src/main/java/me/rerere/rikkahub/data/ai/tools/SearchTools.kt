@@ -31,6 +31,7 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                     - Use the correct year in search queries:
                       - Today is ${LocalDate.now().toLocalString(true)}.
                       - Example: If the user asks for "latest React docs", search for "React documentation" with the current year, NOT last year
+                    - Set news to true to search Google News (recency-focused) instead of general web search
 
                     Response format:
                     - items[].id (short id), title, url, text
@@ -57,6 +58,10 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                                 put("description", "The search query to use")
                                 put("type", "string")
                             })
+                            put("news", buildJsonObject {
+                                put("description", "Set to true to search Google News instead of general web search")
+                                put("type", "boolean")
+                            })
                         },
                         required = listOf("query")
                     )
@@ -75,10 +80,9 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                         JsonInstantPretty.encodeToJsonElement(result.getOrThrow()).jsonObject.let { json ->
                             val map = json.toMutableMap()
                             map["items"] =
-                                JsonArray(map["items"]!!.jsonArray.mapIndexed { index, item ->
+                                JsonArray(map["items"]!!.jsonArray.map { item ->
                                     JsonObject(item.jsonObject.toMutableMap().apply {
                                         put("id", JsonPrimitive(Uuid.random().toString().take(6)))
-                                        put("index", JsonPrimitive(index + 1))
                                     })
                                 })
                             JsonObject(map)

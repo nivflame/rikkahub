@@ -53,8 +53,9 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
             val context = SearchService.appContext
                 ?: error("SearchService is not initialized with a Context")
             val query = params["query"]?.jsonPrimitive?.content ?: error("query is required")
+            val news = params["news"]?.jsonPrimitive?.content?.equals("true", ignoreCase = true) == true
             val searchUrl = "https://www.google.com/search?q=" +
-                URLEncoder.encode(query, "UTF-8") + "&uccb=1"
+                URLEncoder.encode(query, "UTF-8") + "&uccb=1" + (if (news) "&tbm=nws" else "")
             val resultSize = commonOptions.resultSize.coerceIn(1, 10)
             val timeoutMs = serviceOptions.timeoutSeconds.coerceAtLeast(5).toLong() * 1000
 
@@ -96,7 +97,8 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                 var stableRounds = 0
                 while (System.currentTimeMillis() < deadline) {
                     delay(700)
-                    val items = parseItems(webView.evaluateJs(EXTRACT_JS))
+                    val extractJs = if (news) EXTRACT_NEWS_JS else EXTRACT_JS
+                    val items = parseItems(webView.evaluateJs(extractJs))
                     if (items.size > lastCount) {
                         lastCount = items.size
                         stableRounds = 0
@@ -104,7 +106,7 @@ object OoggleSearchService : SearchService<SearchServiceOptions.OoggleOptions> {
                         stableRounds++
                     }
                     if (items.isNotEmpty()) results = items
-                    if (results.size >= resultSize || stableRounds >= 5) break
+                    if (results.size >= resultSize || stableRounds >= 8) break
                 }
 
                 require(results.isNotEmpty()) {
@@ -157,7 +159,7 @@ private const val DESKTOP_UA =
 
 private val EXTRACT_JS = """
     (function() {
-      window.scrollBy(0, window.innerHeight * 3);
+      window.scrollTo(0, document.body.scrollHeight);
       var seen = {};
       var results = [];
       document.querySelectorAll('div.MjjYud').forEach(function(div) {
@@ -179,6 +181,28 @@ private val EXTRACT_JS = """
           || div.querySelector('span.aCOpRe')
           || div.querySelector('[data-sncf]');
         results.push({ title: title, url: href, text: sn ? sn.textContent.trim() : '' });
+      });
+      return results;
+    })()
+""".trimIndent()
+
+private val EXTRACT_NEWS_JS = """
+    (function() {
+      window.scrollTo(0, document.body.scrollHeight);
+      var seen = {};
+      var results = [];
+      document.querySelectorAll('a.WlydOe').forEach(function(a) {
+        var href = a.href;
+        if (!href || href.indexOf('http') !== 0 || href.indexOf('google.com/search') !== -1) return;
+        if (seen[href]) return;
+        seen[href] = true;
+        var lines = a.innerText.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+        if (lines.length < 2) return;
+        var source = lines[0];
+        var title = lines[1];
+        var date = lines.length > 2 ? lines[2] : '';
+        var text = date ? source + ', ' + date : source;
+        results.push({ title: title, url: href, text: text });
       });
       return results;
     })()
