@@ -97,6 +97,7 @@ object ToolUIRegistry {
         ClipboardToolUI,
         TextToSpeechToolUI,
         UseSkillToolUI,
+        SubagentToolUI,
         RecentChatsToolUI,
         ConversationSearchToolUI,
         EditFileToolUI,

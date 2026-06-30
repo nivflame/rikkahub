@@ -20,4 +20,9 @@ val DEFAULT_PROVIDERS: List<ProviderSetting> = listOf(
             ),
         ),
     ),
+    ProviderSetting.OpenAI(
+        id = Uuid.parse("d5e7f8a2-3b6c-4d8e-9f0a-1b2c3d4e5f6a"),
+        name = "Fireworks",
+        baseUrl = "https://api.fireworks.ai/inference/v1",
+    ),
 )

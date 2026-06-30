@@ -46,8 +46,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import me.rerere.common.http.jsonObjectOrNull
+import me.rerere.ai.ui.UIMessagePart
 import me.rerere.highlight.HighlightText
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Clipboard
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Eraser
@@ -345,6 +347,38 @@ object UseSkillToolUI : ToolUIRenderer {
         val skillName = context.arguments.getStringContent("skill") ?: ""
         val path = context.arguments.getStringContent("path")
         return if (path != null) "Skill: $skillName / $path" else "Skill: $skillName"
+    }
+}
+
+object SubagentToolUI : ToolUIRenderer {
+    override val toolName: String = "Subagent"
+
+    override fun icon(context: ToolUIContext): ImageVector = HugeIcons.AiBrain01
+
+    @Composable
+    override fun title(context: ToolUIContext): String {
+        val type = context.arguments.getStringContent("subagent_type") ?: "general-purpose"
+        return "Subagent: $type"
+    }
+
+    private fun responseText(context: ToolUIContext): String =
+        context.tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+
+    override fun hasSummary(context: ToolUIContext): Boolean =
+        context.tool.isExecuted && responseText(context).isNotBlank()
+
+    @Composable
+    override fun Summary(context: ToolUIContext) {
+        val text = responseText(context)
+        if (text.isBlank()) return
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.shimmer(isLoading = context.loading),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
