@@ -20,7 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.files.SkillManager
@@ -47,10 +49,6 @@ fun ExtensionSelector(
     onNavigateToPrompts: () -> Unit = {},
     onNavigateToSkills: () -> Unit = {},
 ) {
-    val skillManager: SkillManager = koinInject()
-    LaunchedEffect(Unit) {
-        skillManager.pruneOrphanedEnabledSkills()
-    }
     val useConversationInjections =
         assistant.allowConversationPromptInjection && conversation != null && onUpdateConversation != null
     val selectedModeInjectionIds = if (useConversationInjections) {
