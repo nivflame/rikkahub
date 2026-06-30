@@ -170,7 +170,7 @@ private fun AssistantLocalToolContent(
                     )
                 }
             )
-            ListItem(
+            item(
                 headlineContent = {
                     Text("ToolSearch")
                 },
