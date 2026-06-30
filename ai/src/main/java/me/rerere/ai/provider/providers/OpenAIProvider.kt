@@ -127,10 +127,12 @@ class OpenAIProvider(
             chatCompletionsAPI.streamText(providerSetting, messages, params)
         }
         return if (providerSetting.autoRetry) {
-            flow.retry { attempt, e ->
+            var retryCount = 0
+            flow.retry { e ->
                 val isRateLimit = e.message?.contains("429") == true
-                if (isRateLimit && attempt < 5) {
-                    Log.w(TAG, "streamText: rate limited, retry ${attempt + 1}/5 in 5s")
+                if (isRateLimit && retryCount < 5) {
+                    retryCount++
+                    Log.w(TAG, "streamText: rate limited, retry $retryCount/5 in 5s")
                     delay(5000)
                     true
                 } else {
