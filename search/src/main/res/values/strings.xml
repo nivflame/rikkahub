@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
-  <string name="bing_desc">Note that Bing search is crawler-based, which may be unstable and is not recommended.</string>
+  <string name="ooggle_desc">Ooggle scrapes Google search results via a headless WebView. No API key needed. Results depend on Google\'s page layout and may occasionally fail due to consent or captcha pages.</string>
   <string name="click_to_get_api_key">Click to get API Key</string>
   <string name="searxng_desc_1">settings.yml needs to enable json format support:</string>
   <string name="searxng_desc_2">search:\n  formats:\n    - html\n    - json</string>

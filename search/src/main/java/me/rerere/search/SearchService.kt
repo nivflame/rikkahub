@@ -48,7 +48,7 @@ interface SearchService<T : SearchServiceOptions> {
                 is SearchServiceOptions.TavilyOptions -> TavilySearchService
                 is SearchServiceOptions.ExaOptions -> ExaSearchService
                 is SearchServiceOptions.ZhipuOptions -> ZhipuSearchService
-                is SearchServiceOptions.BingLocalOptions -> BingSearchService
+                is SearchServiceOptions.OoggleOptions -> OoggleSearchService
                 is SearchServiceOptions.SearXNGOptions -> SearXNGService
                 is SearchServiceOptions.LinkUpOptions -> LinkUpService
                 is SearchServiceOptions.BraveOptions -> BraveSearchService
@@ -77,8 +77,12 @@ interface SearchService<T : SearchServiceOptions> {
         @Volatile
         internal var keyRoulette: KeyRoulette = KeyRoulette.default()
 
+        @Volatile
+        internal var appContext: Context? = null
+
         fun init(client: OkHttpClient, context: Context? = null) {
             httpClient = client
+            appContext = context
             keyRoulette = if (context != null) KeyRoulette.lru(context) else KeyRoulette.default()
         }
 
@@ -137,10 +141,10 @@ sealed class SearchServiceOptions {
         get() = TYPES[this::class] ?: "Unknown"
 
     companion object {
-        val DEFAULT = BingLocalOptions()
+        val DEFAULT = OoggleOptions()
 
         val TYPES = mapOf(
-            BingLocalOptions::class to "Bing",
+            OoggleOptions::class to "Ooggle",
             RikkaHubOptions::class to "RikkaHub",
             ZhipuOptions::class to "智谱",
             TavilyOptions::class to "Tavily",
@@ -162,9 +166,10 @@ sealed class SearchServiceOptions {
     }
 
     @Serializable
-    @SerialName("bing_local")
-    class BingLocalOptions(
-        override val id: Uuid = Uuid.random()
+    @SerialName("ooggle")
+    data class OoggleOptions(
+        override val id: Uuid = Uuid.random(),
+        val timeoutSeconds: Int = 15,
     ) : SearchServiceOptions()
 
     @Serializable

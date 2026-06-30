@@ -583,6 +583,7 @@
   <string name="search_detail_summary">Summary</string>
   <string name="search_detail_summary_desc">Enable summary generation</string>
   <string name="search_detail_system_prompt">System Prompt</string>
+  <string name="search_detail_timeout_seconds">Timeout (seconds)</string>
   <string name="search_detail_unknown_error">Unknown error</string>
   <string name="search_detail_username">Username</string>
   <string name="search_page_hint">Enter keywords and press Search to find messages</string>

@@ -230,7 +230,7 @@ class SettingsStore(
                 developerMode = preferences[DEVELOPER_MODE] == true,
                 displaySetting = JsonInstant.decodeFromString(preferences[DISPLAY_SETTING] ?: "{}"),
                 searchServices = preferences[SEARCH_SERVICES]?.let {
-                    JsonInstant.decodeFromString(it)
+                    JsonInstant.decodeFromString(it.replace("\"bing_local\"", "\"ooggle\""))
                 } ?: listOf(SearchServiceOptions.DEFAULT),
                 searchCommonOptions = preferences[SEARCH_COMMON]?.let {
                     JsonInstant.decodeFromString(it)

@@ -198,7 +198,9 @@ private fun SearchServiceOptionsEditor(
         is SearchServiceOptions.PerplexityOptions -> {
             PerplexityOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.BingLocalOptions -> {}
+        is SearchServiceOptions.OoggleOptions -> {
+            OoggleOptionsConfig(options) { onUpdateOptions(it) }
+        }
         is SearchServiceOptions.FirecrawlOptions -> {
             FirecrawlOptions(options) { onUpdateOptions(it) }
         }
@@ -406,6 +408,28 @@ internal fun ExaOptions(
                 onUpdateOptions(options.copy(apiKey = it))
             },
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+internal fun OoggleOptionsConfig(
+    options: SearchServiceOptions.OoggleOptions,
+    onUpdateOptions: (SearchServiceOptions.OoggleOptions) -> Unit
+) {
+    FormItem(
+        label = {
+            Text(stringResource(R.string.search_detail_timeout_seconds))
+        }
+    ) {
+        OutlinedTextField(
+            value = options.timeoutSeconds.toString(),
+            onValueChange = {
+                val seconds = it.toIntOrNull() ?: options.timeoutSeconds
+                onUpdateOptions(options.copy(timeoutSeconds = seconds.coerceAtLeast(5)))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
         )
     }
 }
