@@ -59,7 +59,8 @@ fun ToolsButton(
         if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
     }
     val mcpCount = allMcpTools.count { it.first in assistant.mcpServers }
-    val total = localCount + mcpCount + (if (enableSearch) 1 else 0)
+    val workspaceCount = if (assistant.workspaceId != null) 4 else 0
+    val total = localCount + mcpCount + workspaceCount + (if (enableSearch) 1 else 0)
 
     Box(modifier = modifier) {
         ToggleSurface(
@@ -117,6 +118,13 @@ fun ToolsButton(
                         },
                     )
                 } + ToolEntry(
+                    label = "Workspace",
+                    count = if (assistant.workspaceId != null) 4 else 0,
+                    checked = assistant.workspaceId != null,
+                    onCheckedChange = { checked ->
+                        if (!checked) onUpdateAssistant(assistant.copy(workspaceId = null))
+                    },
+                ) + ToolEntry(
                     label = "Web Search",
                     count = 1,
                     checked = enableSearch,
