@@ -686,6 +686,7 @@ class ChatService(
                             )
                         )
                     }
+                    }
                     if (LocalToolOption.ToolSearch in assistant.localTools && settings.deferredTools.isNotEmpty()) {
                         val active = mutableListOf<Tool>()
                         val deferred = mutableListOf<Tool>()

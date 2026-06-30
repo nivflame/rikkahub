@@ -36,9 +36,12 @@ internal fun buildToolSearchTool(
         )
     },
     systemPrompt = { _, _ ->
-        if (deferredTools.isEmpty()) return@Tool ""
-        "Deferred tools (use ToolSearch to fetch their schemas): " +
-            deferredTools.joinToString(", ") { it.name }
+        if (deferredTools.isEmpty()) {
+            ""
+        } else {
+            "Deferred tools (use ToolSearch to fetch their schemas): " +
+                deferredTools.joinToString(", ") { it.name }
+        }
     },
     execute = { input ->
         val query = input.jsonObject["query"]?.jsonPrimitive?.contentOrNull ?: ""
@@ -65,7 +68,7 @@ internal fun buildToolSearchTool(
             } else {
                 "{}"
             }
-            val descEscaped = Json.encodeToString(serializer(), tool.description)
+            val descEscaped = Json.encodeToString(tool.description)
             "<function>{\"description\": $descEscaped, \"name\": \"${tool.name}\", \"parameters\": $paramsJson}</function>"
         }
 
