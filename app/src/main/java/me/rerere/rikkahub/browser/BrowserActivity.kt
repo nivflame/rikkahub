@@ -89,6 +89,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -165,9 +166,14 @@ private fun BrowserScreen(
 
     val isImeVisible = WindowInsets.isImeVisible
     LaunchedEffect(isImeVisible) {
-        if (!isImeVisible) {
+        if (!isImeVisible && inputExpanded) {
             focusManager.clearFocus()
+            inputExpanded = false
         }
+    }
+
+    BackHandler(enabled = inputExpanded) {
+        inputExpanded = false
     }
 
     LaunchedEffect(settings.browserLastUrl, controller) {
