@@ -152,6 +152,7 @@ private fun BrowserScreen(
     var inputExpanded by remember { mutableStateOf(false) }
     var canGoBack by remember { mutableStateOf(false) }
     var canGoForward by remember { mutableStateOf(false) }
+    var replyDismissed by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -197,6 +198,10 @@ private fun BrowserScreen(
                 ?: emptyList()
             value = BrowserUiState(reply = reply, steps = steps)
         }
+    }
+
+    LaunchedEffect(ui.reply) {
+        if (ui.reply.isNotBlank()) replyDismissed = false
     }
 
     val generating by produceState(initialValue = false, conversationId) {
@@ -265,9 +270,7 @@ private fun BrowserScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars),
+            modifier = Modifier.fillMaxWidth(),
             color = topBarColor,
             tonalElevation = 2.dp,
         ) {
@@ -278,6 +281,7 @@ private fun BrowserScreen(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                 keyboardActions = KeyboardActions(onGo = { navigate() }),
@@ -340,7 +344,7 @@ private fun BrowserScreen(
                         TrackerPill(step, generating, containerColor)
                     }
                 }
-                if (ui.reply.isNotBlank()) {
+                if (ui.reply.isNotBlank() && !replyDismissed) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -353,19 +357,22 @@ private fun BrowserScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(8.dp),
                             verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             MarkdownBlock(
                                 content = ui.reply,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .heightIn(max = 120.dp),
+                                    .heightIn(max = 60.dp),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             FilledTonalIconButton(onClick = { showFullReply = true }) {
                                 Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
+                            }
+                            FilledTonalIconButton(onClick = { replyDismissed = true }) {
+                                Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Dismiss")
                             }
                         }
                     }
@@ -449,6 +456,11 @@ private fun BrowserScreen(
                 }
             }
         }
+        AnimatedVisibility(
+            visible = !inputExpanded,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+        ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -479,6 +491,7 @@ private fun BrowserScreen(
                     Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Forward")
                 }
             }
+        }
         }
     }
 
