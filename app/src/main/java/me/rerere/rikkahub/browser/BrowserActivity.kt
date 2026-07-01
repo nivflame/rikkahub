@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -367,16 +368,17 @@ private fun BrowserScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .padding(10.dp),
                             verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = ui.reply,
-                                modifier = Modifier.weight(1f),
+                            MarkdownBlock(
+                                content = ui.reply,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(max = 40.dp)
+                                    .clipToBounds(),
                                 style = MaterialTheme.typography.bodySmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
                             )
                             FilledTonalIconButton(onClick = { showFullReply = true }) {
                                 Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
@@ -511,7 +513,7 @@ private fun BrowserScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.85f)
-                    .padding(16.dp),
+                    .padding(8.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = RoundedCornerShape(28.dp),
                 shadowElevation = 6.dp,
@@ -520,7 +522,7 @@ private fun BrowserScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
