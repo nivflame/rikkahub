@@ -52,6 +52,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -290,7 +291,10 @@ private fun BrowserScreen(
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                keyboardActions = KeyboardActions(onGo = { navigate() }),
+                    keyboardActions = KeyboardActions(onGo = {
+                        navigate()
+                        focusManager.clearFocus()
+                    }),
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -354,7 +358,7 @@ private fun BrowserScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 4.dp),
                         color = containerColor,
                         shape = RoundedCornerShape(16.dp),
                         shadowElevation = 3.dp,
@@ -367,12 +371,12 @@ private fun BrowserScreen(
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            MarkdownBlock(
-                                content = ui.reply,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(max = 60.dp),
+                            Text(
+                                text = ui.reply,
+                                modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             FilledTonalIconButton(onClick = { showFullReply = true }) {
                                 Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
@@ -520,10 +524,9 @@ private fun BrowserScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("AI response", style = MaterialTheme.typography.titleMedium)
                         FilledTonalIconButton(onClick = { showFullReply = false }) {
                             Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Close")
                         }
