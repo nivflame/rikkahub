@@ -52,6 +52,11 @@ const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 class RikkaHubApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Skip full initialization in GeckoView child processes (gpu, tab, crashhelper, etc.)
+        // These processes have a colon in their process name, e.g. ":tab_disable_art_image_39"
+        val processName = getProcessNameCompat()
+        if (processName.contains(":")) return
+
         startKoin {
             androidLogger()
             androidContext(this@RikkaHubApp)
@@ -100,6 +105,16 @@ class RikkaHubApp : Application() {
         incrementLaunchCount()
 
         // Composer.setDiagnosticStackTraceMode(ComposeStackTraceMode.Auto)
+    }
+
+    private fun getProcessNameCompat(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            getProcessName()
+        } else {
+            val pid = android.os.Process.myPid()
+            val am = getSystemService(android.content.Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            am?.runningAppProcesses?.find { it.pid == pid }?.processName ?: packageName
+        }
     }
 
     private fun incrementLaunchCount() {
