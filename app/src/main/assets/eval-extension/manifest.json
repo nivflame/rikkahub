@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "RikkaHub Eval Bridge",
+  "version": "1.0",
+  "description": "Evaluates JavaScript sent from the app and returns results.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "eval@rikkahub"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "nativeMessaging",
+    "nativeMessagingFromContent",
+    "geckoViewAddons"
+  ]
+}

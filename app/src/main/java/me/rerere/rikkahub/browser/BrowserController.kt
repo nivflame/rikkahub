@@ -14,9 +14,12 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
+import org.mozilla.geckoview.WebExtension
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
@@ -52,24 +55,19 @@ class BrowserController(
     private var canGoForwardValue: Boolean = false
 
     private var textZoomPercent: Int = 100
+    @Volatile
+    private var evalPort: WebExtension.Port? = null
+    private var evalDeferred: CompletableDeferred<String?>? = null
+    private var evalExtension: WebExtension? = null
 
     init {
         session.contentDelegate = object : GeckoSession.ContentDelegate {
-            override fun onTitleChanged(session: GeckoSession, title: String?) {}
             override fun onFirstComposite(session: GeckoSession) {
                 loadDeferred?.complete(Unit)
             }
         }
 
         session.navigationDelegate = object : GeckoSession.NavigationDelegate {
-            override fun onLocationChange(
-                session: GeckoSession,
-                url: String?,
-            ) {
-                currentUrlValue = url ?: ""
-                onUrlChanged?.invoke(currentUrlValue)
-            }
-
             override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) {
                 canGoBackValue = canGoBack
             }
@@ -81,7 +79,7 @@ class BrowserController(
             override fun onLoadRequest(
                 session: GeckoSession,
                 request: GeckoSession.NavigationDelegate.LoadRequest,
-            ): GeckoResult<GeckoSession.NavigationDelegate.AllowOrDeny>? {
+            ): GeckoResult<AllowOrDeny>? {
                 networkLogs.addLast("GET ${request.uri.take(500)}")
                 if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
                 return null
@@ -89,12 +87,6 @@ class BrowserController(
         }
 
         session.progressDelegate = object : GeckoSession.ProgressDelegate {
-            override fun onPageStart(session: GeckoSession, url: String?) {
-                readabilityInjected = false
-                turndownInjected = false
-                onUrlChanged?.invoke(url ?: "")
-            }
-
             override fun onPageStop(session: GeckoSession, success: Boolean) {
                 loadDeferred?.complete(Unit)
                 kotlinx.coroutines.MainScope().launch {
@@ -108,6 +100,42 @@ class BrowserController(
                 onUrlChanged?.invoke(currentUrlValue)
             }
         }
+
+        // Register eval bridge WebExtension
+        val runtime = GeckoRuntimeSingleton.getRuntime(context)
+        runtime.webExtensionController.ensureBuiltIn(
+            "resource://android/assets/eval-extension/",
+            "eval@rikkahub",
+        ).then({ extension ->
+            evalExtension = extension
+            session.getWebExtensionController().setMessageDelegate(
+                extension,
+                object : WebExtension.MessageDelegate {
+                    override fun onConnect(port: WebExtension.Port) {
+                        evalPort = port
+                        port.setDelegate(object : WebExtension.PortDelegate {
+                            override fun onPortMessage(message: Any, port: WebExtension.Port) {
+                                val json = message as? JSONObject ?: return
+                                when (json.optString("type")) {
+                                    "ready" -> {}
+                                    "result" -> {
+                                        evalDeferred?.complete(json.optString("result"))
+                                    }
+                                    "error" -> {
+                                        evalDeferred?.complete(null)
+                                    }
+                                }
+                            }
+                            override fun onDisconnect(port: WebExtension.Port) {
+                                if (evalPort == port) evalPort = null
+                            }
+                        })
+                    }
+                },
+                "browser",
+            )
+            GeckoResult.fromValue(null)
+        }, { _ -> GeckoResult.fromValue(null) })
     }
 
     fun loadUrl(url: String) {
@@ -393,16 +421,13 @@ class BrowserController(
     }
 
     private suspend fun evaluateJavascriptAsync(script: String): String? {
+        val port = evalPort ?: return null
         val deferred = CompletableDeferred<String?>()
-        val geckoResult = session.evaluateJavascript(script)
-        geckoResult.then { value ->
-            deferred.complete(value?.toString())
-            GeckoResult.fromValue(null)
-        }
-        geckoResult.exceptionally {
-            deferred.complete(null)
-            GeckoResult.fromValue(null)
-        }
+        evalDeferred = deferred
+        val message = JSONObject()
+        message.put("type", "eval")
+        message.put("code", script)
+        port.postMessage(message)
         return withTimeoutOrNull(perToolTimeoutMs) { deferred.await() }
     }
 
