@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,8 +28,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,6 +72,7 @@ import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
+import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
@@ -156,6 +160,10 @@ private fun BrowserScreen(
     var canGoBack by remember { mutableStateOf(false) }
     var canGoForward by remember { mutableStateOf(false) }
     var replyDismissed by remember { mutableStateOf(false) }
+    var showHamburgerMenu by remember { mutableStateOf(false) }
+    var desktopMode by remember { mutableStateOf(false) }
+    var zoomLevel by remember { mutableStateOf(100) }
+    var mobileUA by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -323,6 +331,7 @@ private fun BrowserScreen(
                             }
                         )
                         controller = c
+                        mobileUA = webView.settings.userAgentString
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -501,6 +510,53 @@ private fun BrowserScreen(
                     enabled = canGoForward,
                 ) {
                     Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Forward")
+                }
+                IconButton(onClick = { showHamburgerMenu = true }) {
+                    Icon(imageVector = HugeIcons.Menu03, contentDescription = "Menu")
+                    DropdownMenu(
+                        expanded = showHamburgerMenu,
+                        onDismissRequest = { showHamburgerMenu = false },
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .width(220.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                "Zoom: $zoomLevel%",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                            Slider(
+                                value = zoomLevel.toFloat(),
+                                onValueChange = {
+                                    zoomLevel = it.toInt()
+                                    controller?.webView?.settings?.textZoom = it.toInt()
+                                },
+                                valueRange = 50f..200f,
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Desktop Site")
+                                Switch(
+                                    checked = desktopMode,
+                                    onCheckedChange = {
+                                        desktopMode = it
+                                        val ua = if (it) {
+                                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                                        } else {
+                                            mobileUA
+                                        }
+                                        controller?.webView?.settings?.userAgentString = ua
+                                        controller?.webView?.reload()
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
