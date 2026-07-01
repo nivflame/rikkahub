@@ -106,34 +106,36 @@ class BrowserController(
         runtime.webExtensionController.ensureBuiltIn(
             "resource://android/assets/eval-extension/",
             "eval@rikkahub",
-        ).then({ extension ->
-            evalExtension = extension
-            session.getWebExtensionController().setMessageDelegate(
-                extension,
-                object : WebExtension.MessageDelegate {
-                    override fun onConnect(port: WebExtension.Port) {
-                        evalPort = port
-                        port.setDelegate(object : WebExtension.PortDelegate {
-                            override fun onPortMessage(message: Any, port: WebExtension.Port) {
-                                val json = message as? JSONObject ?: return
-                                when (json.optString("type")) {
-                                    "ready" -> {}
-                                    "result" -> {
-                                        evalDeferred?.complete(json.optString("result"))
-                                    }
-                                    "error" -> {
-                                        evalDeferred?.complete(null)
+        ).then({ ext ->
+            evalExtension = ext
+            ext?.let { extension ->
+                session.getWebExtensionController().setMessageDelegate(
+                    extension,
+                    object : WebExtension.MessageDelegate {
+                        override fun onConnect(port: WebExtension.Port) {
+                            evalPort = port
+                            port.setDelegate(object : WebExtension.PortDelegate {
+                                override fun onPortMessage(message: Any, port: WebExtension.Port) {
+                                    val json = message as? JSONObject ?: return
+                                    when (json.optString("type")) {
+                                        "ready" -> {}
+                                        "result" -> {
+                                            evalDeferred?.complete(json.optString("result"))
+                                        }
+                                        "error" -> {
+                                            evalDeferred?.complete(null)
+                                        }
                                     }
                                 }
-                            }
-                            override fun onDisconnect(port: WebExtension.Port) {
-                                if (evalPort == port) evalPort = null
-                            }
-                        })
-                    }
-                },
-                "browser",
-            )
+                                override fun onDisconnect(port: WebExtension.Port) {
+                                    if (evalPort == port) evalPort = null
+                                }
+                            })
+                        }
+                    },
+                    "browser",
+                )
+            }
             GeckoResult.fromValue(null)
         }, { _ -> GeckoResult.fromValue(null) })
     }
