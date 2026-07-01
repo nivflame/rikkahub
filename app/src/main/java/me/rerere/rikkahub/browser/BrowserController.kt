@@ -47,6 +47,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     @Volatile
     private var lastRequestAt = 0L
 
+    private val displayW: Int = webView.context.resources.displayMetrics.widthPixels.coerceAtLeast(1)
+    private val displayH: Int = webView.context.resources.displayMetrics.heightPixels.coerceAtLeast(1)
+
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -60,6 +63,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
+                layoutForCapture(displayW, displayH)
                 onUrlChanged?.invoke(url ?: "")
             }
 
@@ -275,6 +279,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
     }
 
     suspend fun executeScript(expression: String): String = withContext(Dispatchers.Main) {
+        if (webView.measuredWidth <= 0) layoutForCapture(displayW, displayH)
         val raw = evaluateJavascriptAsync(expression)
         raw?.let { unquoteJsString(it) } ?: "null"
     }
