@@ -278,13 +278,14 @@ private fun BrowserScreen(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                 keyboardActions = KeyboardActions(onGo = { navigate() }),
+                shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
                 textStyle = MaterialTheme.typography.bodySmall,
             )
@@ -327,7 +328,6 @@ private fun BrowserScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .imePadding()
-                    .navigationBarsPadding()
             ) {
                 ui.steps.lastOrNull()?.let { step ->
                     Row(
