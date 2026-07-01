@@ -96,8 +96,10 @@ class BrowserController(
                             "document.head.appendChild(s);})();",
                     )
                     applyTextZoom()
+                    val url = evaluateJavascriptAsync("window.location.href")
+                    if (!url.isNullOrBlank()) currentUrlValue = unquoteJsString(url)
+                    onUrlChanged?.invoke(currentUrlValue)
                 }
-                onUrlChanged?.invoke(currentUrlValue)
             }
         }
 
@@ -141,6 +143,7 @@ class BrowserController(
     }
 
     fun loadUrl(url: String) {
+        currentUrlValue = url
         session.loadUri(url)
     }
 
@@ -223,7 +226,14 @@ class BrowserController(
         val markdown = withContext(Dispatchers.Main) {
             val js = "(function(){ try { var doc = document.cloneNode(true);" +
                 " var aoEls = doc.querySelectorAll('[data-attrid*=\"overview\"], [aria-label*=\"AI Overview\" i], .Kevs9'); aoEls.forEach(function(el){el.remove();});" +
-                " var heads = doc.querySelectorAll('h1, h2, div.Fzsovc, div.YzCcne'); heads.forEach(function(h){if(h.textContent.trim()==='AI Overview'){var p=h.parentElement; if(p)p.remove();}});" +
+                " var allEls = doc.querySelectorAll('div, section, aside, article, span, h1, h2, h3');" +
+                " allEls.forEach(function(el){" +
+                "   for (var j=0;j<el.childNodes.length;j++){" +
+                "     if (el.childNodes[j].nodeType===3 && el.childNodes[j].textContent.trim()==='AI Overview'){" +
+                "       var p=el.parentElement; if(p)p.remove(); break;" +
+                "     }" +
+                "   }" +
+                " });" +
                 " var article = new Readability(doc).parse();" +
                 " var html = article ? (article.content || '') : (doc.body ? doc.body.outerHTML : '');" +
                 " if(!html) return '';" +
@@ -423,6 +433,12 @@ class BrowserController(
     }
 
     private suspend fun evaluateJavascriptAsync(script: String): String? {
+        // Wait for the eval port to be ready (content script connects after page load)
+        var waitCount = 0
+        while (evalPort == null && waitCount < 50) {
+            kotlinx.coroutines.delay(100)
+            waitCount++
+        }
         val port = evalPort ?: return null
         val deferred = CompletableDeferred<String?>()
         evalDeferred = deferred
