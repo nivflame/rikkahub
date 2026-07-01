@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -162,6 +163,7 @@ private fun BrowserScreen(
     var canGoForward by remember { mutableStateOf(false) }
     var replyDismissed by remember { mutableStateOf(false) }
     var showHamburgerMenu by remember { mutableStateOf(false) }
+    var showZoomDialog by remember { mutableStateOf(false) }
     var desktopMode by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf(100) }
     var mobileUA by remember { mutableStateOf("") }
@@ -524,18 +526,20 @@ private fun BrowserScreen(
                                 .width(220.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                "Zoom: $zoomLevel%",
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                            Slider(
-                                value = zoomLevel.toFloat(),
-                                onValueChange = {
-                                    zoomLevel = it.toInt()
-                                    controller?.webView?.settings?.textZoom = it.toInt()
-                                },
-                                valueRange = 50f..200f,
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showHamburgerMenu = false
+                                        showZoomDialog = true
+                                    }
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Zoom")
+                                Text("$zoomLevel%", style = MaterialTheme.typography.labelMedium)
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -561,6 +565,64 @@ private fun BrowserScreen(
                 }
             }
         }
+        }
+    }
+
+    if (showZoomDialog) {
+        Dialog(onDismissRequest = { showZoomDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                tonalElevation = 6.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .width(280.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("$zoomLevel%", style = MaterialTheme.typography.titleMedium)
+                        TextButton(onClick = {
+                            zoomLevel = 100
+                            controller?.webView?.settings?.textZoom = 100
+                        }) {
+                            Text("Reset")
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = {
+                            zoomLevel = (zoomLevel - 10).coerceIn(50, 200)
+                            controller?.webView?.settings?.textZoom = zoomLevel
+                        }) {
+                            Text("-", style = MaterialTheme.typography.headlineMedium)
+                        }
+                        Slider(
+                            value = zoomLevel.toFloat(),
+                            onValueChange = {
+                                zoomLevel = it.toInt()
+                                controller?.webView?.settings?.textZoom = it.toInt()
+                            },
+                            valueRange = 50f..200f,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = {
+                            zoomLevel = (zoomLevel + 10).coerceIn(50, 200)
+                            controller?.webView?.settings?.textZoom = zoomLevel
+                        }) {
+                            Text("+", style = MaterialTheme.typography.headlineMedium)
+                        }
+                    }
+                }
+            }
         }
     }
 
