@@ -299,6 +299,9 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))
 
+    // GeckoView
+    implementation("org.mozilla.geckoview:geckoview:152.0.20260629141727")
+
     // Leak Canary
     // debugImplementation(libs.leakcanary.android)
 
