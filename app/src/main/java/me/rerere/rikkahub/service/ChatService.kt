@@ -948,6 +948,19 @@ class ChatService(
 
     // ---- 压缩对话历史 ----
 
+    fun launchCompressConversation(
+        conversationId: Uuid,
+        conversation: Conversation,
+        additionalPrompt: String,
+        targetTokens: Int,
+        keepRecentMessages: Int = 32
+    ): Job = launchWithConversationReference(conversationId) {
+        compressConversation(conversationId, conversation, additionalPrompt, targetTokens, keepRecentMessages)
+            .onFailure {
+                addError(it, title = context.getString(R.string.error_title_compress_conversation))
+            }
+    }
+
     suspend fun compressConversation(
         conversationId: Uuid,
         conversation: Conversation,
