@@ -2,7 +2,6 @@ package me.rerere.rikkahub.browser
 
 import android.app.Activity
 import android.os.Bundle
-import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,12 +27,9 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoView
 
-/**
- * Mirrored viewer for the headless chat browser. Displays a second WebView that follows the
- * headless session's current URL (sharing the app-wide CookieManager), so you can watch the
- * agent navigate. It does not drive the agent, only mirrors it.
- */
 class BrowserViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,10 +44,10 @@ class BrowserViewerActivity : ComponentActivity() {
 private fun ViewerScreen() {
     val context = LocalContext.current
     val url by HeadlessBrowserSession.urlFlow.collectAsStateWithLifecycle()
-    var webView by remember { mutableStateOf<WebView?>(null) }
+    var session by remember { mutableStateOf<GeckoSession?>(null) }
 
     LaunchedEffect(url) {
-        if (url.isNotBlank()) webView?.loadUrl(url)
+        if (url.isNotBlank()) session?.loadUri(url)
     }
 
     Scaffold(
@@ -75,7 +71,14 @@ private fun ViewerScreen() {
         containerColor = CustomColors.topBarColors.containerColor,
     ) { padding ->
         AndroidView(
-            factory = { context -> WebView(context).also { webView = it } },
+            factory = { ctx ->
+                GeckoView(ctx).also { gv ->
+                    val s = GeckoSession()
+                    s.open(GeckoRuntimeSingleton.getRuntime(ctx))
+                    gv.setSession(s)
+                    session = s
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

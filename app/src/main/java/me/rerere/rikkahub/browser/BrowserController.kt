@@ -2,15 +2,7 @@ package me.rerere.rikkahub.browser
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.RectF
-import android.view.View
-import android.webkit.ConsoleMessage
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,17 +13,24 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoView
 import java.io.File
 import java.io.FileOutputStream
 
-/**
- * Wraps a single [WebView] and exposes the suspend operations backing the browser tools.
- * Every WebView call runs on the main thread (WebView is not thread-safe). Page loads are
- * awaited via [WebViewClient.onPageFinished] with a hard per-tool timeout so a hung page
- * cannot wedge the agent loop.
- */
-class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {
+class BrowserController(
+    val session: GeckoSession,
+    private val context: Context,
+    private val onUrlChanged: ((String) -> Unit)? = null,
+) {
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
+
+    var geckoView: GeckoView? = null
+        set(value) {
+            field = value
+            value?.setSession(session)
+        }
 
     private var loadDeferred: CompletableDeferred<Unit>? = null
 
@@ -45,102 +44,151 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     private val networkLogs = ArrayDeque<String>()
 
     @Volatile
-    private var lastRequestAt = 0L
+    private var currentUrlValue: String = ""
+    @Volatile
+    private var canGoBackValue: Boolean = false
+    @Volatile
+    private var canGoForwardValue: Boolean = false
 
-    private val displayW: Int = webView.context.resources.displayMetrics.widthPixels.coerceAtLeast(1)
-    private val displayH: Int = webView.context.resources.displayMetrics.heightPixels.coerceAtLeast(1)
+    private var textZoomPercent: Int = 100
 
     init {
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.userAgentString = webView.settings.userAgentString + " RikkaHubBrowser/1.0"
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        session.settings.javaScriptEnabled = true
+        session.settings.domStorageEnabled = true
+
+        session.contentDelegate = object : GeckoSession.ContentDelegate() {
+            override fun onConsoleMessage(
+                session: GeckoSession,
+                consoleMessage: GeckoSession.ContentDelegate.ConsoleMessage,
+            ): GeckoResult<GeckoSession.ContentDelegate.ConsoleMessage>? {
+                consoleLogs.addLast("[${consoleMessage.level}] ${consoleMessage.message}".take(500))
+                if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
+                return null
+            }
+        }
+
+        session.navigationDelegate = object : GeckoSession.NavigationDelegate() {
+            override fun onLocationChange(
+                session: GeckoSession,
+                url: String?,
+                navigatedToTop: Boolean,
+            ) {
+                currentUrlValue = url ?: ""
+                onUrlChanged?.invoke(currentUrlValue)
+            }
+
+            override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) {
+                canGoBackValue = canGoBack
+            }
+
+            override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) {
+                canGoForwardValue = canGoForward
+            }
+
+            override fun onLoadRequest(
+                session: GeckoSession,
+                request: GeckoSession.NavigationDelegate.LoadRequest,
+            ): GeckoResult<String>? {
+                networkLogs.addLast("${request.method} ${request.uri.take(500)}")
+                if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
+                return null
+            }
+        }
+
+        session.progressDelegate = object : GeckoSession.ProgressDelegate() {
+            override fun onPageStart(session: GeckoSession, url: String?) {
                 readabilityInjected = false
                 turndownInjected = false
                 onUrlChanged?.invoke(url ?: "")
             }
 
-            override fun onPageFinished(view: WebView?, url: String?) {
+            override fun onPageStop(session: GeckoSession, success: Boolean) {
                 loadDeferred?.complete(Unit)
-                layoutForCapture(displayW, displayH)
-                webView.evaluateJavascript(
+                evaluateJavascriptAsync(
                     "(function(){var s=document.createElement('style');" +
-                    "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
-                    "document.head.appendChild(s);})();", null)
-                onUrlChanged?.invoke(url ?: "")
+                        "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
+                        "document.head.appendChild(s);})();",
+                )
+                applyTextZoom()
+                onUrlChanged?.invoke(currentUrlValue)
             }
+        }
+    }
 
-            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                request?.url?.let {
-                    networkLogs.addLast("${request.method} ${it.toString().take(500)}")
-                    if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
-                    lastRequestAt = System.currentTimeMillis()
-                }
-                return null
-            }
-        }
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    consoleLogs.addLast("[${it.messageLevel()}] ${it.message()}".take(500))
-                    if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
-                }
-                return true
-            }
-        }
+    fun loadUrl(url: String) {
+        session.loadUri(url)
+    }
+
+    fun goBack() {
+        session.goBack()
+    }
+
+    fun goForward() {
+        session.goForward()
+    }
+
+    fun reload() {
+        session.reload()
+    }
+
+    fun canGoBack(): Boolean = canGoBackValue
+
+    fun canGoForward(): Boolean = canGoForwardValue
+
+    fun setUserAgent(ua: String) {
+        session.settings.userAgentOverride = ua
+    }
+
+    fun getUserAgent(): String {
+        return session.settings.userAgentOverride ?: ""
+    }
+
+    fun setTextZoom(percent: Int) {
+        textZoomPercent = percent
+        applyTextZoom()
+    }
+
+    private fun applyTextZoom() {
+        evaluateJavascriptAsync(
+            "document.documentElement.style.fontSize='${textZoomPercent}%';",
+        )
     }
 
     suspend fun navigate(
         url: String,
         type: String = "url",
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
-        withContext(Dispatchers.Main) {
-            lastRequestAt = System.currentTimeMillis()
-            when (type) {
-                "back" -> {
-                    if (!webView.canGoBack()) return@withContext "no history to go back to"
-                    loadDeferred = CompletableDeferred()
-                    webView.goBack()
-                    loadDeferred?.await()
-                }
-
-                "forward" -> {
-                    if (!webView.canGoForward()) return@withContext "no history to go forward to"
-                    loadDeferred = CompletableDeferred()
-                    webView.goForward()
-                    loadDeferred?.await()
-                }
-
-                "reload" -> {
-                    loadDeferred = CompletableDeferred()
-                    webView.reload()
-                    loadDeferred?.await()
-                }
-
-                else -> {
-                    loadDeferred = CompletableDeferred()
-                    webView.loadUrl(url.ifBlank { "about:blank" })
-                    loadDeferred?.await()
-                }
+        when (type) {
+            "back" -> {
+                if (!canGoBackValue) return@withTimeoutOrNull "no history to go back to"
+                loadDeferred = CompletableDeferred()
+                session.goBack()
+                loadDeferred?.await()
             }
-            awaitNetworkIdle()
-            webView.url ?: ""
+
+            "forward" -> {
+                if (!canGoForwardValue) return@withTimeoutOrNull "no history to go forward to"
+                loadDeferred = CompletableDeferred()
+                session.goForward()
+                loadDeferred?.await()
+            }
+
+            "reload" -> {
+                loadDeferred = CompletableDeferred()
+                session.reload()
+                loadDeferred?.await()
+            }
+
+            else -> {
+                loadDeferred = CompletableDeferred()
+                session.loadUri(url.ifBlank { "about:blank" })
+                loadDeferred?.await()
+            }
         }
+        currentUrlValue
     } ?: "timeout navigating"
 
-    suspend fun currentUrl(): String = withContext(Dispatchers.Main) {
-        webView.url ?: ""
-    }
-
-    private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            val now = System.currentTimeMillis()
-            if (lastRequestAt > 0 && now - lastRequestAt > quietMs) return
-            kotlinx.coroutines.delay(100)
-        }
-    }
+    suspend fun currentUrl(): String = currentUrlValue
 
     suspend fun getContent(maxChars: Int, startIndex: Int): String {
         ensureReadability()
@@ -189,7 +237,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         if (readabilityInjected) return
         val script = readabilityScript ?: withContext(Dispatchers.IO) {
             runCatching {
-                webView.context.assets.open("browser/readability.js").bufferedReader().use { it.readText() }
+                context.assets.open("browser/readability.js").bufferedReader().use { it.readText() }
             }.getOrNull()
         } ?: ""
         readabilityScript = script
@@ -203,7 +251,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         if (turndownInjected) return
         val script = turndownScript ?: withContext(Dispatchers.IO) {
             runCatching {
-                webView.context.assets.open("browser/turndown.js").bufferedReader().use { it.readText() }
+                context.assets.open("browser/turndown.js").bufferedReader().use { it.readText() }
             }.getOrNull()
         } ?: ""
         turndownScript = script
@@ -219,7 +267,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         value: String? = null,
         key: String? = null,
         text: String? = null,
-        doubleClick: Boolean = false
+        doubleClick: Boolean = false,
     ): String = withContext(Dispatchers.Main) {
         val params = buildJsonObject {
             put("action", action)
@@ -283,7 +331,6 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
     }
 
     suspend fun executeScript(expression: String): String = withContext(Dispatchers.Main) {
-        if (webView.measuredWidth <= 0) layoutForCapture(displayW, displayH)
         val raw = evaluateJavascriptAsync(expression)
         raw?.let { unquoteJsString(it) } ?: "null"
     }
@@ -296,43 +343,32 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
     fun close() {
         consoleLogs.clear()
         networkLogs.clear()
+        session.close()
     }
 
     suspend fun screenshot(
         maxHeightPx: Int,
         context: Context,
         selector: String? = null,
-        fullPage: Boolean = false
+        fullPage: Boolean = false,
     ): String? = withTimeoutOrNull(perToolTimeoutMs) {
+        val view = geckoView ?: return@withTimeoutOrNull null
         val bitmap = withContext(Dispatchers.Main) {
-            val metrics = context.resources.displayMetrics
-            val displayW = metrics.widthPixels.coerceAtLeast(1)
-            val displayH = metrics.heightPixels.coerceAtLeast(1)
-            // Use the WebView's current on-screen size when it is already laid out (what the user
-            // sees), otherwise fall back to the device display size for the headless WebView.
-            if (fullPage) {
-                val sh = evaluateJavascriptAsync("document.documentElement.scrollHeight")
-                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: displayH
-                val fw = webView.measuredWidth.takeIf { it > 0 } ?: displayW
-                layoutForCapture(fw, sh.coerceIn(1, maxHeightPx))
-            } else if (webView.measuredWidth <= 0 || webView.measuredHeight <= 0) {
-                layoutForCapture(displayW, displayH)
-            }
-            val w = webView.measuredWidth.coerceAtLeast(1)
-            val h = webView.measuredHeight.coerceAtLeast(1)
-            val full = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
+            val width = view.width.coerceAtLeast(1)
+            val height = view.height.coerceAtLeast(1)
+            val full = awaitGeckoResult(view.capturePixels()) ?: return@withContext null
             if (selector != null) {
                 val sel = Json.encodeToString(selector)
                 val rectRaw = evaluateJavascriptAsync(
                     "(function(){var e=document.querySelector($sel);if(!e)return null;" +
-                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height});})();"
+                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height});})();",
                 )
                 val rect = rectRaw?.let { parseRect(it) }
                 if (rect != null) {
-                    val cx = rect.left.toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
-                    val cy = rect.top.toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
-                    val cw = rect.width().toInt().coerceIn(1, w - cx)
-                    val ch = rect.height().toInt().coerceIn(1, h - cy)
+                    val cx = rect.left.toInt().coerceIn(0, (width - 1).coerceAtLeast(0))
+                    val cy = rect.top.toInt().coerceIn(0, (height - 1).coerceAtLeast(0))
+                    val cw = rect.width().toInt().coerceIn(1, width - cx)
+                    val ch = rect.height().toInt().coerceIn(1, height - cy)
                     Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
                 } else {
                     full
@@ -340,7 +376,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
             } else {
                 full
             }
-        }
+        } ?: return@withTimeoutOrNull null
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "browser-shots").apply { mkdirs() }
             val file = dir.resolve("shot-${System.currentTimeMillis()}.jpg")
@@ -362,17 +398,28 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         }.getOrNull()
     }
 
-    private fun layoutForCapture(width: Int = 1080, height: Int = 1920) {
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
-        webView.measure(widthSpec, heightSpec)
-        webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
-    }
-
     private suspend fun evaluateJavascriptAsync(script: String): String? {
         val deferred = CompletableDeferred<String?>()
-        webView.evaluateJavascript(script) { result -> deferred.complete(result) }
+        session.evaluateJavaScript(script).then { value ->
+            deferred.complete(value?.toString())
+            null
+        }.exceptionally {
+            deferred.complete(null)
+            null
+        }
         return withTimeoutOrNull(perToolTimeoutMs) { deferred.await() }
+    }
+
+    private suspend fun <T> awaitGeckoResult(result: GeckoResult<T>): T? {
+        val deferred = CompletableDeferred<T?>()
+        result.then { value ->
+            deferred.complete(value)
+            null
+        }.exceptionally {
+            deferred.complete(null)
+            null
+        }
+        return deferred.await()
     }
 
     private fun unquoteJsString(raw: String): String {

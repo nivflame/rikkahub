@@ -2,10 +2,11 @@ package me.rerere.rikkahub.browser
 
 import android.net.Uri
 import android.os.Bundle
-import android.webkit.WebView
 import androidx.navigation3.runtime.NavKey
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -194,7 +195,7 @@ private fun BrowserScreen(
 
     LaunchedEffect(settings.browserLastUrl, controller) {
         if (!initialLoaded && controller != null) {
-            controller?.webView?.loadUrl(settings.browserLastUrl ?: HOME_URL)
+            controller?.loadUrl(settings.browserLastUrl ?: HOME_URL)
             initialLoaded = true
         }
     }
@@ -245,7 +246,7 @@ private fun BrowserScreen(
             raw.contains('.') -> "https://$raw"
             else -> "https://www.google.com/search?q=" + Uri.encode(raw)
         }
-        controller?.webView?.loadUrl(url)
+        controller?.loadUrl(url)
     }
 
     fun cancelGeneration() {
@@ -326,18 +327,23 @@ private fun BrowserScreen(
         ) {
             AndroidView(
                 factory = { context ->
-                    WebView(context).also { webView ->
-                        val c = BrowserController(
-                            webView,
+                    GeckoView(context).also { geckoView ->
+                        val session = GeckoSession()
+                        session.open(GeckoRuntimeSingleton.getRuntime(context))
+                        var c: BrowserController? = null
+                        c = BrowserController(
+                            session,
+                            context,
                             onUrlChanged = { url ->
                                 addressBar = url
-                                canGoBack = webView.canGoBack()
-                                canGoForward = webView.canGoForward()
+                                canGoBack = c?.canGoBack() ?: false
+                                canGoForward = c?.canGoForward() ?: false
                                 scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
                             }
                         )
+                        c.geckoView = geckoView
                         controller = c
-                        mobileUA = webView.settings.userAgentString
+                        mobileUA = c.getUserAgent()
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -501,17 +507,17 @@ private fun BrowserScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
+                IconButton(onClick = { controller?.loadUrl(HOME_URL) }) {
                     Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
                 }
                 IconButton(
-                    onClick = { controller?.webView?.goBack() },
+                    onClick = { controller?.goBack() },
                     enabled = canGoBack,
                 ) {
                     Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
                 }
                 IconButton(
-                    onClick = { controller?.webView?.goForward() },
+                    onClick = { controller?.goForward() },
                     enabled = canGoForward,
                 ) {
                     Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Forward")
@@ -562,8 +568,8 @@ private fun BrowserScreen(
                                         } else {
                                             mobileUA
                                         }
-                                        controller?.webView?.settings?.userAgentString = ua
-                                        controller?.webView?.reload()
+                                        controller?.setUserAgent(ua)
+                                        controller?.reload()
                                     },
                                 )
                             }
@@ -596,7 +602,7 @@ private fun BrowserScreen(
                         Text("$zoomLevel%", style = MaterialTheme.typography.titleMedium)
                         TextButton(onClick = {
                             zoomLevel = 100
-                            controller?.webView?.settings?.textZoom = 100
+                            controller?.setTextZoom(100)
                         }) {
                             Text("Reset")
                         }
@@ -608,7 +614,7 @@ private fun BrowserScreen(
                     ) {
                         IconButton(onClick = {
                             zoomLevel = (zoomLevel - 10).coerceIn(50, 200)
-                            controller?.webView?.settings?.textZoom = zoomLevel
+                            controller?.setTextZoom(zoomLevel)
                         }) {
                             Text("-", style = MaterialTheme.typography.headlineMedium)
                         }
@@ -616,14 +622,14 @@ private fun BrowserScreen(
                             value = zoomLevel.toFloat(),
                             onValueChange = {
                                 zoomLevel = it.toInt()
-                                controller?.webView?.settings?.textZoom = it.toInt()
+                                controller?.setTextZoom(it.toInt())
                             },
                             valueRange = 50f..200f,
                             modifier = Modifier.weight(1f),
                         )
                         IconButton(onClick = {
                             zoomLevel = (zoomLevel + 10).coerceIn(50, 200)
-                            controller?.webView?.settings?.textZoom = zoomLevel
+                            controller?.setTextZoom(zoomLevel)
                         }) {
                             Text("+", style = MaterialTheme.typography.headlineMedium)
                         }
