@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,6 +61,8 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
+import me.rerere.hugeicons.stroke.ArrowLeft01
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
@@ -147,6 +150,8 @@ private fun BrowserScreen(
     var prompt by remember { mutableStateOf("") }
     var showFullReply by remember { mutableStateOf(false) }
     var inputExpanded by remember { mutableStateOf(false) }
+    var canGoBack by remember { mutableStateOf(false) }
+    var canGoForward by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -266,31 +271,23 @@ private fun BrowserScreen(
             color = topBarColor,
             tonalElevation = 2.dp,
         ) {
-            Row(
+            OutlinedTextField(
+                value = addressBar,
+                onValueChange = { addressBar = it },
+                placeholder = { Text("Enter URL", style = MaterialTheme.typography.bodySmall) },
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                OutlinedTextField(
-                    value = addressBar,
-                    onValueChange = { addressBar = it },
-                    placeholder = { Text("Enter URL") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                    keyboardActions = KeyboardActions(onGo = { navigate() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                    ),
-                )
-                FilledTonalIconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
-                    Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
-                }
-            }
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { navigate() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                ),
+                textStyle = MaterialTheme.typography.bodySmall,
+            )
         }
         Box(
             modifier = Modifier
@@ -304,6 +301,8 @@ private fun BrowserScreen(
                             webView,
                             onUrlChanged = { url ->
                                 addressBar = url
+                                canGoBack = webView.canGoBack()
+                                canGoForward = webView.canGoForward()
                                 scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
                             }
                         )
@@ -447,6 +446,37 @@ private fun BrowserScreen(
                             Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
                         }
                     }
+                }
+            }
+        }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+            color = topBarColor,
+            tonalElevation = 2.dp,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
+                    Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
+                }
+                IconButton(
+                    onClick = { controller?.webView?.goBack() },
+                    enabled = canGoBack,
+                ) {
+                    Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
+                }
+                IconButton(
+                    onClick = { controller?.webView?.goForward() },
+                    enabled = canGoForward,
+                ) {
+                    Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Forward")
                 }
             }
         }
