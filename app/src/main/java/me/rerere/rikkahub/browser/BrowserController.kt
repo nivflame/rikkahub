@@ -139,13 +139,15 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         ensureTurndown()
         val markdown = withContext(Dispatchers.Main) {
             val js = "(function(){ try { var doc = document.cloneNode(true);" +
+                " var aoEls = doc.querySelectorAll('[data-attrid*=\"overview\"], [aria-label*=\"AI Overview\" i], .Kevs9'); aoEls.forEach(function(el){el.remove();});" +
+                " var heads = doc.querySelectorAll('h1, h2, div.Fzsovc, div.YzCcne'); heads.forEach(function(h){if(h.textContent.trim()==='AI Overview'){var p=h.parentElement; if(p)p.remove();}});" +
                 " var article = new Readability(doc).parse();" +
-                " var html = article ? (article.content || '') : (document.body ? document.body.outerHTML : '');" +
+                " var html = article ? (article.content || '') : (doc.body ? doc.body.outerHTML : '');" +
                 " if(!html) return '';" +
                 " var td = new TurndownService({headingStyle:'atx', bulletListMarker:'-', codeBlockStyle:'fenced'});" +
                 " td.addRule('absoluteLinks', {filter:function(n){return n.nodeName==='A' && n.getAttribute('href');}, replacement:function(c, n){var h=n.getAttribute('href'); try{h=new URL(h, location.href).href;}catch(e){} return '['+(c||n.textContent||'')+']('+h+')';}});" +
                 " var md = td.turndown(html);" +
-                " if(md && md.replace(/\\s/g,'').length < 200 && document.body) return document.body.innerText;" +
+                " if(md && md.replace(/\\s/g,'').length < 200 && doc.body) return doc.body.textContent;" +
                 " return md;" +
                 " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
             val raw = evaluateJavascriptAsync(js)
