@@ -64,6 +64,10 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
                 layoutForCapture(displayW, displayH)
+                webView.evaluateJavascript(
+                    "(function(){var s=document.createElement('style');" +
+                    "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
+                    "document.head.appendChild(s);})();", null)
                 onUrlChanged?.invoke(url ?: "")
             }
 

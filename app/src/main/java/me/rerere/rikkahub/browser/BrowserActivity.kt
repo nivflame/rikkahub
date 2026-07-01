@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
@@ -75,6 +76,8 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
 import me.rerere.hugeicons.stroke.Menu03
+import me.rerere.hugeicons.stroke.Search01
+import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
@@ -486,15 +489,14 @@ private fun BrowserScreen(
             exit = slideOutVertically { it } + fadeOut(),
         ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding(),
+            modifier = Modifier.fillMaxWidth(),
             color = topBarColor,
             tonalElevation = 2.dp,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
@@ -519,12 +521,13 @@ private fun BrowserScreen(
                     DropdownMenu(
                         expanded = showHamburgerMenu,
                         onDismissRequest = { showHamburgerMenu = false },
+                        offset = DpOffset(0.dp, 0.dp),
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(16.dp)
-                                .width(220.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                .padding(vertical = 8.dp)
+                                .width(200.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -533,19 +536,23 @@ private fun BrowserScreen(
                                         showHamburgerMenu = false
                                         showZoomDialog = true
                                     }
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text("Zoom")
-                                Text("$zoomLevel%", style = MaterialTheme.typography.labelMedium)
+                                Icon(imageVector = HugeIcons.Search01, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Text("Zoom", modifier = Modifier.weight(1f))
+                                Text("$zoomLevel%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text("Desktop Site")
+                                Icon(imageVector = HugeIcons.SmartPhone01, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Text("Desktop Site", modifier = Modifier.weight(1f))
                                 Switch(
                                     checked = desktopMode,
                                     onCheckedChange = {
@@ -571,7 +578,7 @@ private fun BrowserScreen(
     if (showZoomDialog) {
         Dialog(onDismissRequest = { showZoomDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(28.dp),
                 tonalElevation = 6.dp,
             ) {
                 Column(
