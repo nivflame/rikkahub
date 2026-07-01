@@ -53,25 +53,22 @@ class BrowserController(
     private var textZoomPercent: Int = 100
 
     init {
-        session.settings.javaScriptEnabled = true
-        session.settings.domStorageEnabled = true
 
-        session.contentDelegate = object : GeckoSession.ContentDelegate() {
+        session.contentDelegate = object : GeckoSession.ContentDelegate {
             override fun onConsoleMessage(
                 session: GeckoSession,
                 consoleMessage: GeckoSession.ContentDelegate.ConsoleMessage,
             ): GeckoResult<GeckoSession.ContentDelegate.ConsoleMessage>? {
-                consoleLogs.addLast("[${consoleMessage.level}] ${consoleMessage.message}".take(500))
+                consoleLogs.addLast("[${consoleMessage.flags}] ${consoleMessage.message}".take(500))
                 if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
                 return null
             }
         }
 
-        session.navigationDelegate = object : GeckoSession.NavigationDelegate() {
+        session.navigationDelegate = object : GeckoSession.NavigationDelegate {
             override fun onLocationChange(
                 session: GeckoSession,
                 url: String?,
-                navigatedToTop: Boolean,
             ) {
                 currentUrlValue = url ?: ""
                 onUrlChanged?.invoke(currentUrlValue)
@@ -88,14 +85,18 @@ class BrowserController(
             override fun onLoadRequest(
                 session: GeckoSession,
                 request: GeckoSession.NavigationDelegate.LoadRequest,
-            ): GeckoResult<String>? {
-                networkLogs.addLast("${request.method} ${request.uri.take(500)}")
+            ): GeckoResult<GeckoSession.NavigationDelegate.AllowOrDeny>? {
+                networkLogs.addLast("GET ${request.uri.take(500)}")
                 if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
                 return null
             }
         }
 
-        session.progressDelegate = object : GeckoSession.ProgressDelegate() {
+        session.progressDelegate = object : GeckoSession.ProgressDelegate {
+            override fun onProgressChange(session: GeckoSession, progress: Int) {
+                // page loading
+            }
+
             override fun onPageStart(session: GeckoSession, url: String?) {
                 readabilityInjected = false
                 turndownInjected = false
@@ -104,7 +105,8 @@ class BrowserController(
 
             override fun onPageStop(session: GeckoSession, success: Boolean) {
                 loadDeferred?.complete(Unit)
-                evaluateJavascriptAsync(
+                kotlinx.coroutines.MainScope().launch {
+                    evaluateJavascriptAsync(
                     "(function(){var s=document.createElement('style');" +
                         "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
                         "document.head.appendChild(s);})();",
@@ -149,9 +151,11 @@ class BrowserController(
     }
 
     private fun applyTextZoom() {
-        evaluateJavascriptAsync(
-            "document.documentElement.style.fontSize='${textZoomPercent}%';",
-        )
+        kotlinx.coroutines.MainScope().launch {
+            evaluateJavascriptAsync(
+                "document.documentElement.style.fontSize='${textZoomPercent}%';",
+            )
+        }
     }
 
     suspend fun navigate(
@@ -400,12 +404,14 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
 
     private suspend fun evaluateJavascriptAsync(script: String): String? {
         val deferred = CompletableDeferred<String?>()
-        session.evaluateJavaScript(script).then { value ->
+        val geckoResult = session.evaluateJavascript(script)
+        geckoResult.then { value ->
             deferred.complete(value?.toString())
-            null
-        }.exceptionally {
+            GeckoResult.fromValue(null)
+        }
+        geckoResult.exceptionally {
             deferred.complete(null)
-            null
+            GeckoResult.fromValue(null)
         }
         return withTimeoutOrNull(perToolTimeoutMs) { deferred.await() }
     }
@@ -414,10 +420,11 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         val deferred = CompletableDeferred<T?>()
         result.then { value ->
             deferred.complete(value)
-            null
-        }.exceptionally {
+            GeckoResult.fromValue(null)
+        }
+        result.exceptionally {
             deferred.complete(null)
-            null
+            GeckoResult.fromValue(null)
         }
         return deferred.await()
     }
