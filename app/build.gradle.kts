@@ -30,14 +30,6 @@ android {
         versionName = "2.3.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        ndk {
-            abiFilters += if (gradle.startParameter.taskNames.any { it.lowercase().contains("debug") }) {
-                listOf("arm64-v8a")
-            } else {
-                listOf("arm64-v8a", "x86_64")
-            }
-        }
     }
 
     splits {
