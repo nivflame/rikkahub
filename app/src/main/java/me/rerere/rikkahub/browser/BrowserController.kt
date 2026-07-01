@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.RectF
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -53,15 +54,10 @@ class BrowserController(
     private var textZoomPercent: Int = 100
 
     init {
-
         session.contentDelegate = object : GeckoSession.ContentDelegate {
-            override fun onConsoleMessage(
-                session: GeckoSession,
-                consoleMessage: GeckoSession.ContentDelegate.ConsoleMessage,
-            ): GeckoResult<GeckoSession.ContentDelegate.ConsoleMessage>? {
-                consoleLogs.addLast("[${consoleMessage.flags}] ${consoleMessage.message}".take(500))
-                if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
-                return null
+            override fun onTitleChanged(session: GeckoSession, title: String?) {}
+            override fun onFirstComposite(session: GeckoSession) {
+                loadDeferred?.complete(Unit)
             }
         }
 
@@ -93,10 +89,6 @@ class BrowserController(
         }
 
         session.progressDelegate = object : GeckoSession.ProgressDelegate {
-            override fun onProgressChange(session: GeckoSession, progress: Int) {
-                // page loading
-            }
-
             override fun onPageStart(session: GeckoSession, url: String?) {
                 readabilityInjected = false
                 turndownInjected = false
@@ -107,11 +99,12 @@ class BrowserController(
                 loadDeferred?.complete(Unit)
                 kotlinx.coroutines.MainScope().launch {
                     evaluateJavascriptAsync(
-                    "(function(){var s=document.createElement('style');" +
-                        "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
-                        "document.head.appendChild(s);})();",
-                )
-                applyTextZoom()
+                        "(function(){var s=document.createElement('style');" +
+                            "s.textContent='a[href^=\"#main\"],[class*=\"skip\" i],[aria-label*=\"Skip to\" i]{display:none!important;}';" +
+                            "document.head.appendChild(s);})();",
+                    )
+                    applyTextZoom()
+                }
                 onUrlChanged?.invoke(currentUrlValue)
             }
         }
@@ -300,36 +293,34 @@ class BrowserController(
 
     suspend fun domSnapshot(selector: String?, maxNodes: Int): String = withContext(Dispatchers.Main) {
         val sel = Json.encodeToString(selector ?: "")
-        val js = """
-(function(){var sel=$sel,out=[],refCount=0,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];
-function roleOf(el){var r=el.getAttribute('role');if(r==='none'||r==='presentation')return null;if(r)return r;var tag=el.tagName.toLowerCase();
-if(tag==='a')return el.getAttribute('href')?'link':null;
-if(tag==='button')return 'button';
-if(tag==='input'){var ty=(el.getAttribute('type')||'text').toLowerCase();if(ty==='checkbox')return 'checkbox';if(ty==='radio')return 'radio';if(ty==='submit'||ty==='button'||ty==='reset')return 'button';if(ty==='search')return 'searchbox';return 'textbox';}
-if(tag==='textarea')return 'textbox';if(tag==='select')return 'combobox';if(tag==='img')return 'img';
-if(tag==='h1'||tag==='h2'||tag==='h3'||tag==='h4'||tag==='h5'||tag==='h6')return 'heading';
-if(tag==='nav')return 'navigation';if(tag==='main')return 'main';if(tag==='article')return 'article';
-if(tag==='section')return 'region';if(tag==='aside')return 'complementary';if(tag==='header')return 'banner';
-if(tag==='footer')return 'contentinfo';if(tag==='form')return 'form';if(tag==='ul'||tag==='ol')return 'list';
-if(tag==='li')return 'listitem';if(tag==='table')return 'table';return null;}
-function nameOf(el){return (el.getAttribute('aria-label')||el.getAttribute('alt')||el.getAttribute('title')||el.getAttribute('placeholder')||(el.innerText||'').trim()||'').slice(0,120);}
-function directText(el){var s='';for(var i=0;i<el.childNodes.length;i++){var n=el.childNodes[i];if(n.nodeType===3)s+=n.textContent;}return s.trim();}
-function ind(d){return Array(d+1).join('  ');}
-var leafRoles=['link','button','img','heading','listitem'];
-function walk(el,depth){if(out.length>$maxNodes)return;
-if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(ind(depth)+'text: '+t.slice(0,120));return;}
-if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;
-var role=roleOf(el);if(role==='alert')return;
-if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
-var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' "'+name+'"';
-var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}
-if(role==='heading'){var lvl=el.getAttribute('aria-level');if(!lvl&&tag.length===2&&tag.charAt(0)==='h')lvl=tag.charAt(1);if(lvl)line+=' [level='+lvl+']';}
-if((tag==='input'||tag==='textarea')&&el.value)line+=' [value='+String(el.value).slice(0,80)+']';
-if(['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'].indexOf(role)>=0){refCount++;var ref='e'+refCount;el.setAttribute('data-rkref',ref);line+=' [ref='+ref+']';}
-out.push(line);
-if(!name||leafRoles.indexOf(role)<0){for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}}
-var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';walk(root,0);return out.join('\n');})();
-        """.trimIndent()
+        val js = "(function(){var sel=$sel,out=[],refCount=0,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];" +
+            "function roleOf(el){var r=el.getAttribute('role');if(r==='none'||r==='presentation')return null;if(r)return r;var tag=el.tagName.toLowerCase();" +
+            "if(tag==='a')return el.getAttribute('href')?'link':null;" +
+            "if(tag==='button')return 'button';" +
+            "if(tag==='input'){var ty=(el.getAttribute('type')||'text').toLowerCase();if(ty==='checkbox')return 'checkbox';if(ty==='radio')return 'radio';if(ty==='submit'||ty==='button'||ty==='reset')return 'button';if(ty==='search')return 'searchbox';return 'textbox';}" +
+            "if(tag==='textarea')return 'textbox';if(tag==='select')return 'combobox';if(tag==='img')return 'img';" +
+            "if(tag==='h1'||tag==='h2'||tag==='h3'||tag==='h4'||tag==='h5'||tag==='h6')return 'heading';" +
+            "if(tag==='nav')return 'navigation';if(tag==='main')return 'main';if(tag==='article')return 'article';" +
+            "if(tag==='section')return 'region';if(tag==='aside')return 'complementary';if(tag==='header')return 'banner';" +
+            "if(tag==='footer')return 'contentinfo';if(tag==='form')return 'form';if(tag==='ul'||tag==='ol')return 'list';" +
+            "if(tag==='li')return 'listitem';if(tag==='table')return 'table';return null;}" +
+            "function nameOf(el){return (el.getAttribute('aria-label')||el.getAttribute('alt')||el.getAttribute('title')||el.getAttribute('placeholder')||(el.innerText||'').trim()||'').slice(0,120);}" +
+            "function directText(el){var s='';for(var i=0;i<el.childNodes.length;i++){var n=el.childNodes[i];if(n.nodeType===3)s+=n.textContent;}return s.trim();}" +
+            "function ind(d){return Array(d+1).join('  ');}" +
+            "var leafRoles=['link','button','img','heading','listitem'];" +
+            "function walk(el,depth){if(out.length>$maxNodes)return;" +
+            "if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(ind(depth)+'text: '+t.slice(0,120));return;}" +
+            "if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;" +
+            "var role=roleOf(el);if(role==='alert')return;" +
+            "if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}" +
+            "var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' \"'+name+'\"';" +
+            "var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}" +
+            "if(role==='heading'){var lvl=el.getAttribute('aria-level');if(!lvl&&tag.length===2&&tag.charAt(0)==='h')lvl=tag.charAt(1);if(lvl)line+=' [level='+lvl+']';}" +
+            "if((tag==='input'||tag==='textarea')&&el.value)line+=' [value='+String(el.value).slice(0,80)+']';" +
+            "if(['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'].indexOf(role)>=0){refCount++;var ref='e'+refCount;el.setAttribute('data-rkref',ref);line+=' [ref='+ref+']';}" +
+            "out.push(line);" +
+            "if(!name||leafRoles.indexOf(role)<0){for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}}" +
+            "var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';walk(root,0);return out.join('\\n');})();"
         val raw = evaluateJavascriptAsync(js)
         raw?.let { unquoteJsString(it) } ?: "no snapshot"
     }
@@ -359,7 +350,6 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         val view = geckoView ?: return@withTimeoutOrNull null
         val bitmap = withContext(Dispatchers.Main) {
             val width = view.width.coerceAtLeast(1)
-            val height = view.height.coerceAtLeast(1)
             val full = awaitGeckoResult(view.capturePixels()) ?: return@withContext null
             if (selector != null) {
                 val sel = Json.encodeToString(selector)
@@ -370,9 +360,9 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
                 val rect = rectRaw?.let { parseRect(it) }
                 if (rect != null) {
                     val cx = rect.left.toInt().coerceIn(0, (width - 1).coerceAtLeast(0))
-                    val cy = rect.top.toInt().coerceIn(0, (height - 1).coerceAtLeast(0))
+                    val cy = rect.top.toInt().coerceIn(0, (full.height - 1).coerceAtLeast(0))
                     val cw = rect.width().toInt().coerceIn(1, width - cx)
-                    val ch = rect.height().toInt().coerceIn(1, height - cy)
+                    val ch = rect.height().toInt().coerceIn(1, full.height - cy)
                     Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
                 } else {
                     full
