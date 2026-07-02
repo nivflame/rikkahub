@@ -129,7 +129,7 @@ class OpenAIProvider(
         return if (providerSetting.autoRetry) {
             var retryCount = 0
             flow.retry { e ->
-                val isRateLimit = e.message?.contains("429") == true
+                val isRateLimit = isRateLimitError(e)
                 if (isRateLimit && retryCount < 5) {
                     retryCount++
                     Log.w(TAG, "streamText: rate limited, retry $retryCount/5 in 5s")
@@ -160,7 +160,7 @@ class OpenAIProvider(
                 }
             } catch (e: Exception) {
                 lastError = e
-                val isRateLimit = e.message?.contains("429") == true
+                val isRateLimit = isRateLimitError(e)
                 if (!isRateLimit || attempt >= maxRetries) throw e
                 Log.w(TAG, "generateText: rate limited, retry ${attempt + 1}/$maxRetries in 5s")
                 delay(5000)
@@ -394,4 +394,12 @@ class OpenAIProvider(
     companion object {
         private val SUPPORTED_EDIT_IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp")
     }
+}
+
+private fun isRateLimitError(e: Throwable): Boolean {
+    val message = e.message?.lowercase() ?: return false
+    return message.contains("429") ||
+        message.contains("rate limit") ||
+        message.contains("rate_limit") ||
+        message.contains("ratelimit")
 }
