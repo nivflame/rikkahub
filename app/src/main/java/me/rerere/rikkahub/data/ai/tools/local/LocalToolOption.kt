@@ -6,16 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed class LocalToolOption {
     @Serializable
-    @SerialName("javascript_engine")
-    data object JavascriptEngine : LocalToolOption()
-
-    @Serializable
     @SerialName("time_info")
     data object TimeInfo : LocalToolOption()
-
-    @Serializable
-    @SerialName("clipboard")
-    data object Clipboard : LocalToolOption()
 
     @Serializable
     @SerialName("tts")
@@ -23,9 +15,21 @@ sealed class LocalToolOption {
 
     @Serializable
     @SerialName("ask_user")
-    data object AskUser : LocalToolOption()
+    data object AskQuestion : LocalToolOption()
 
     @Serializable
-    @SerialName("screen_time")
-    data object ScreenTime : LocalToolOption()
+    @SerialName("browser")
+    data object Browser : LocalToolOption()
+
+    @Serializable
+    @SerialName("subagent")
+    data object Subagent : LocalToolOption()
+
+    @Serializable
+    @SerialName("skill")
+    data object Skill : LocalToolOption()
+
+    @Serializable
+    @SerialName("tool_search")
+    data object ToolSearch : LocalToolOption()
 }

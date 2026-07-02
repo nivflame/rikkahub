@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -50,6 +51,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.R
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -61,6 +65,8 @@ import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillMetadata
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.ai.tools.buildSkillToolForDisplay
+import me.rerere.rikkahub.ui.pages.setting.ToolSchemaCard
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -68,12 +74,16 @@ import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun SkillsPage() {
     val navController = LocalNavController.current
     val vm = koinViewModel<SkillsVM>()
     val skills by vm.skills.collectAsStateWithLifecycle()
+    val settingsStore = koinInject<SettingsStore>()
+    val scope = rememberCoroutineScope()
+    val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -121,6 +131,20 @@ fun SkillsPage() {
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                    val useSkillTool = buildSkillToolForDisplay()
+                    ToolSchemaCard(
+                        tool = useSkillTool.copy(description = settings.toolDescriptions["Skill"] ?: useSkillTool.description),
+                        modifier = Modifier.padding(12.dp),
+                        onEditDescription = { desc ->
+                            scope.launch {
+                                settingsStore.update(settings.copy(toolDescriptions = settings.toolDescriptions + ("Skill" to desc)))
+                            }
+                        },
+                    )
+                }
+            }
             if (skills.isEmpty()) {
                 item {
                     Column(

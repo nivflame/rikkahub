@@ -43,6 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Earth
+import me.rerere.hugeicons.stroke.AiBrain01
+import me.rerere.hugeicons.stroke.Tools
 import me.rerere.hugeicons.stroke.AiMagic
 import me.rerere.hugeicons.stroke.Alert01
 import me.rerere.hugeicons.stroke.Book01
@@ -198,6 +201,12 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         leadingContent = { Icon(HugeIcons.Package, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_extensions_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_extensions)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingTools) },
+                        leadingContent = { Icon(HugeIcons.Tools, null) },
+                        supportingContent = { Text("Browser, Subagent, and AskQuestion tools") },
+                        headlineContent = { Text("Tools") },
                     )
                 }
             }

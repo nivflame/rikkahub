@@ -44,7 +44,7 @@ fun AssistantExtensionsPage(id: String) {
     val navController = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState { 4 }
+    val pagerState = rememberPagerState { 3 }
 
     Scaffold(
         topBar = {
@@ -81,11 +81,6 @@ fun AssistantExtensionsPage(id: String) {
                     selected = pagerState.currentPage == 2,
                     onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
                     text = { Text(stringResource(R.string.assistant_extensions_page_tab_lorebooks)) }
-                )
-                Tab(
-                    selected = pagerState.currentPage == 3,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
-                    text = { Text(stringResource(R.string.assistant_extensions_page_tab_skills)) }
                 )
             }
 
@@ -183,34 +178,6 @@ fun AssistantExtensionsPage(id: String) {
                         }
                     }
 
-                    3 -> {
-                        if (skills.isEmpty()) {
-                            ExtensionEmptyState(
-                                message = stringResource(R.string.assistant_extensions_page_empty_skills),
-                                buttonText = stringResource(R.string.assistant_extensions_page_goto_extensions),
-                                onAction = { navController.navigate(Screen.Skills) },
-                            )
-                        } else {
-                            Column {
-                                SkillsContent(
-                                    modifier = Modifier.weight(1f),
-                                    skills = skills,
-                                    enabledSkills = assistant.enabledSkills,
-                                    onToggle = { name, checked ->
-                                        val newSkills = if (checked) assistant.enabledSkills + name
-                                        else assistant.enabledSkills - name
-                                        vm.update(assistant.copy(enabledSkills = newSkills))
-                                    },
-                                )
-                                TextButton(
-                                    onClick = { navController.navigate(Screen.Skills) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(stringResource(R.string.assistant_extensions_page_goto_extensions))
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
