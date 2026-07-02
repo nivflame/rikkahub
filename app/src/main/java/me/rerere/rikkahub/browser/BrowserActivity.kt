@@ -105,18 +105,14 @@ import me.rerere.rikkahub.ui.theme.RikkahubTheme
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -311,7 +307,6 @@ private fun BrowserScreen(
         }
     }
 
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     val topBarColor = MaterialTheme.colorScheme.surfaceContainer
 
     CompositionLocalProvider(
@@ -389,90 +384,71 @@ private fun BrowserScreen(
                     .fillMaxWidth()
                     .imePadding()
             ) {
-                if (generating) {
-                    ui.steps.lastOrNull()?.let { step ->
-                        Row(
+                if (!inputExpanded) {
+                    if (ui.reply.isNotBlank() && !replyDismissed) {
+                        val step = ui.steps.lastOrNull()
+                        val stepLabel = when (step) {
+                            is BrowserStep.Tool -> "Calling ${step.name}"
+                            BrowserStep.Thinking -> "Thinking"
+                            BrowserStep.Done -> "Done"
+                            null -> ""
+                        }
+                        val dotColor = when (step) {
+                            is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiary
+                            BrowserStep.Thinking -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.outline
+                        }
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = RoundedCornerShape(16.dp),
+                            shadowElevation = 3.dp,
                         ) {
-                            TrackerPill(step, generating, containerColor)
-                        }
-                    }
-                }
-                if (!inputExpanded) {
-                    val fabInteractionSource = remember { MutableInteractionSource() }
-                    val fabPressed by fabInteractionSource.collectIsPressedAsState()
-                    val fabScale by animateFloatAsState(
-                        targetValue = if (fabPressed) 0.92f else 1f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMediumLow,
-                        ),
-                        label = "fabScale",
-                    )
-
-                    val infiniteTransition = rememberInfiniteTransition(label = "fabHalo")
-                    val haloAlpha by infiniteTransition.animateFloat(
-                        initialValue = 0.1f,
-                        targetValue = 0.25f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1000, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "haloAlpha",
-                    )
-
-                    val fabContent: @Composable () -> Unit = {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .scale(if (generating) 1f else 0.9f)
-                                    .clip(CircleShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(
-                                            alpha = if (generating) haloAlpha else 0.12f,
-                                        ),
-                                    ),
-                            )
-                            FloatingActionButton(
-                                onClick = { inputExpanded = true },
-                                shape = CircleShape,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                interactionSource = fabInteractionSource,
-                                modifier = Modifier.scale(fabScale),
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
-                            }
-                        }
-                    }
-
-                    if (ui.reply.isNotBlank() && !replyDismissed) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Surface(
-                                modifier = Modifier.weight(1f),
-                                color = MaterialTheme.colorScheme.surfaceContainer,
-                                shape = RoundedCornerShape(16.dp),
-                                shadowElevation = 3.dp,
-                            ) {
+                                if (generating) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(dotColor),
+                                            )
+                                            Text(
+                                                text = stepLabel,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { cancelGeneration() },
+                                            modifier = Modifier.size(20.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = HugeIcons.Cancel01,
+                                                contentDescription = "Cancel",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                    }
+                                }
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     MarkdownBlock(
                                         content = ui.reply,
@@ -491,16 +467,104 @@ private fun BrowserScreen(
                                     }
                                 }
                             }
-                            fabContent()
                         }
-                    } else {
+                    }
+
+                    val showStatusPill = generating && (ui.reply.isBlank() || replyDismissed)
+                    AnimatedContent(
+                        targetState = showStatusPill,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(200)) togetherWith
+                                fadeOut(animationSpec = tween(200))
+                        },
+                        label = "fabState",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                    ) { isStatusPill ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.End
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            fabContent()
+                            if (isStatusPill) {
+                                ui.steps.lastOrNull()?.let { step ->
+                                    val (label, icon) = when (step) {
+                                        is BrowserStep.Tool -> "Calling ${step.name}" to HugeIcons.Tools
+                                        BrowserStep.Thinking -> "Thinking" to HugeIcons.AiBrain01
+                                        BrowserStep.Done -> "Done" to HugeIcons.Tick01
+                                    }
+                                    val (container, content) = when (step) {
+                                        is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+                                        BrowserStep.Thinking -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                                        BrowserStep.Done -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                    Surface(
+                                        color = container,
+                                        contentColor = content,
+                                        shape = RoundedCornerShape(20.dp),
+                                        shadowElevation = 3.dp,
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .clickable { inputExpanded = true }
+                                                .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            if (generating && step !is BrowserStep.Done) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(16.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = content,
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = icon,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            }
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium,
+                                            )
+                                            IconButton(
+                                                onClick = { cancelGeneration() },
+                                                modifier = Modifier.size(28.dp),
+                                            ) {
+                                                Icon(
+                                                    imageVector = HugeIcons.Cancel01,
+                                                    contentDescription = "Cancel",
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                val fabInteractionSource = remember { MutableInteractionSource() }
+                                val fabPressed by fabInteractionSource.collectIsPressedAsState()
+                                val fabScale by animateFloatAsState(
+                                    targetValue = if (fabPressed) 0.92f else 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow,
+                                    ),
+                                    label = "fabScale",
+                                )
+                                FloatingActionButton(
+                                    onClick = { inputExpanded = true },
+                                    shape = CircleShape,
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    interactionSource = fabInteractionSource,
+                                    modifier = Modifier.scale(fabScale),
+                                ) {
+                                    Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
+                                }
+                            }
                         }
                     }
                 }
@@ -916,79 +980,5 @@ private fun BrowserScreen(
             }
         }
     }
-    }
-}
-
-@Composable
-private fun TrackerPill(
-    step: BrowserStep,
-    generating: Boolean,
-    containerColor: Color,
-) {
-    val (label, icon, active) = when (step) {
-        is BrowserStep.Tool -> Triple("Agent calling ${step.name}", HugeIcons.Tools, generating)
-        BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, generating)
-        BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
-    }
-
-    val (targetContainer, targetContent) = when (step) {
-        is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        BrowserStep.Thinking -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        BrowserStep.Done -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val animatedContainer by animateColorAsState(
-        targetValue = targetContainer,
-        animationSpec = tween(300),
-        label = "pillContainer",
-    )
-    val animatedContent by animateColorAsState(
-        targetValue = targetContent,
-        animationSpec = tween(300),
-        label = "pillContent",
-    )
-
-    val infiniteTransition = rememberInfiniteTransition(label = "pillPulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pillPulseAlpha",
-    )
-
-    Surface(
-        color = animatedContainer.copy(alpha = if (active) pulseAlpha else 1f),
-        shape = CircleShape,
-        shadowElevation = 3.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (active) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = animatedContent,
-                )
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = animatedContent,
-                )
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = animatedContent,
-            )
-        }
     }
 }
