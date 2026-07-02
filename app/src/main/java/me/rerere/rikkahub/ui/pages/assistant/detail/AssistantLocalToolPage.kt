@@ -88,34 +88,6 @@ private fun AssistantLocalToolContent(
         CardGroup {
             item(
                 headlineContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_time_info_title))
-                },
-                supportingContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_time_info_desc))
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_tts_title))
-                },
-                supportingContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_tts_desc))
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.Tts),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
                     Text(stringResource(R.string.assistant_page_local_tools_ask_user_title))
                 },
                 supportingContent = {

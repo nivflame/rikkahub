@@ -229,8 +229,6 @@ private fun CountChip(count: Int) {
 }
 
 private fun localToolOptions(): List<LocalToolOption> = listOf(
-    LocalToolOption.TimeInfo,
-    LocalToolOption.Tts,
     LocalToolOption.AskQuestion,
     LocalToolOption.Browser,
     LocalToolOption.Subagent,
@@ -239,8 +237,6 @@ private fun localToolOptions(): List<LocalToolOption> = listOf(
 )
 
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
-    LocalToolOption.TimeInfo -> "Time"
-    LocalToolOption.Tts -> "TTS"
     LocalToolOption.AskQuestion -> "AskQuestion"
     LocalToolOption.Browser -> "Browser"
     LocalToolOption.Subagent -> "Subagent"

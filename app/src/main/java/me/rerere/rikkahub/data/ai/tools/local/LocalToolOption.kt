@@ -6,14 +6,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed class LocalToolOption {
     @Serializable
-    @SerialName("time_info")
-    data object TimeInfo : LocalToolOption()
-
-    @Serializable
-    @SerialName("tts")
-    data object Tts : LocalToolOption()
-
-    @Serializable
     @SerialName("ask_user")
     data object AskQuestion : LocalToolOption()
 

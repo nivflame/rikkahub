@@ -5,10 +5,6 @@ import me.rerere.ai.core.Tool
 import me.rerere.rikkahub.data.event.AppEventBus
 
 class LocalTools(private val context: Context, private val eventBus: AppEventBus) {
-    val timeTool by lazy { buildTimeInfoTool() }
-
-    val ttsTool by lazy { buildTextToSpeechTool(eventBus) }
-
     val browserTools by lazy { buildBrowserTools(context) }
 
     fun getTools(
@@ -18,12 +14,6 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
         askQuestionDescription: String = ""
     ): List<Tool> {
         val tools = mutableListOf<Tool>()
-        if (options.contains(LocalToolOption.TimeInfo)) {
-            tools.add(timeTool)
-        }
-        if (options.contains(LocalToolOption.Tts)) {
-            tools.add(ttsTool)
-        }
         if (options.contains(LocalToolOption.AskQuestion)) {
             tools.add(buildAskQuestionTool(askQuestionDescription))
         }

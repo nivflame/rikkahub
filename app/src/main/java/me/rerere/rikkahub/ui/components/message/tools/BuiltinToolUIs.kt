@@ -251,19 +251,6 @@ object ScrapeWebToolUI : ToolUIRenderer {
 }
 
 /**
- * 获取时间信息
- */
-object GetTimeInfoToolUI : ToolUIRenderer {
-    override val toolName: String = "get_time_info"
-
-    override fun icon(context: ToolUIContext): ImageVector = HugeIcons.Time02
-
-    @Composable
-    override fun title(context: ToolUIContext): String =
-        stringResource(R.string.chat_message_tool_get_time)
-}
-
-/**
  * 剪贴板: 按 action 区分读/写标题
  */
 object ClipboardToolUI : ToolUIRenderer {
@@ -281,57 +268,6 @@ object ClipboardToolUI : ToolUIRenderer {
             ACTION_WRITE -> stringResource(R.string.chat_message_tool_clipboard_write)
             else -> stringResource(R.string.chat_message_tool_call_generic, toolName)
         }
-}
-
-/**
- * 文本转语音: 摘要显示朗读文本与重播按钮
- */
-object TextToSpeechToolUI : ToolUIRenderer {
-    override val toolName: String = "text_to_speech"
-
-    override fun icon(context: ToolUIContext): ImageVector = HugeIcons.VolumeHigh
-
-    @Composable
-    override fun title(context: ToolUIContext): String {
-        val preview = context.arguments.getStringContent("text")?.let { text ->
-            if (text.length > 24) text.take(24) + "…" else text
-        } ?: ""
-        return stringResource(R.string.tool_ui_speaking, preview)
-    }
-
-    override fun hasSummary(context: ToolUIContext): Boolean =
-        context.arguments.getStringContent("text") != null
-
-    @Composable
-    override fun Summary(context: ToolUIContext) {
-        val eventBus: AppEventBus = koinInject()
-        val scope = rememberCoroutineScope()
-        val text = context.arguments.getStringContent("text") ?: ""
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            FilledTonalIconButton(
-                onClick = { scope.launch { eventBus.emit(AppEvent.Speak(text)) } },
-                modifier = Modifier.size(28.dp),
-            ) {
-                Icon(
-                    imageVector = HugeIcons.Refresh01,
-                    contentDescription = stringResource(R.string.tool_ui_replay),
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-        }
-    }
 }
 
 /**

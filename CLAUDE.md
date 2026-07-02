@@ -72,7 +72,7 @@ This is a fork of `rikkahub/rikkahub`. Upstream remote is `origin`, fork remote 
 When syncing with upstream:
 1. `git fetch origin` to get latest upstream
 2. `git merge origin/master --no-edit` to bring in new commits
-3. Resolve conflicts: keep fork tools (browser, subagent, ToolSearch), exclude ScreenTimeTool and CalendarTool (intentionally deleted)
+3. Resolve conflicts: keep fork tools (browser, subagent, ToolSearch), exclude ScreenTimeTool, CalendarTool, TimeInfoTool, and TextToSpeechTool (intentionally deleted)
 4. If squashing: `git reset --soft origin/master` (NEVER reset to old merge-base, causes "commits behind" on GitHub)
 5. Create backup branch before squash: `git branch -f backup-before-squash-N HEAD`
 6. Force push is acceptable for this personal fork
