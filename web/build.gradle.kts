@@ -10,7 +10,7 @@ val buildWebUi = tasks.register<Exec>("buildWebUi") {
     description = "Build web-ui and copy its static output into the web module resources."
 
     workingDir = webUiDir.asFile
-    commandLine("zsh", "-ic", "pnpm run build")
+    commandLine("pnpm", "run", "build")
 
     inputs.files(
         webUiDir.file("package.json"),
@@ -30,7 +30,9 @@ val buildWebUi = tasks.register<Exec>("buildWebUi") {
 android {
     namespace = "me.rerere.rikkahub.web"
     compileSdk {
-        version = release(37)
+        version = release(37) {
+            minorApiLevel = 0
+        }
     }
 
     defaultConfig {
