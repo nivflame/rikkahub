@@ -176,8 +176,7 @@ class RootfsPatcher {
         )
         private val DEFAULT_DNS_SERVERS = listOf(
             "1.1.1.1",
-            "8.8.8.8",
-            "223.5.5.5",
+            "1.0.0.1",
         )
     }
 }

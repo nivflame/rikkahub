@@ -96,6 +96,7 @@ class ProotShellRunner(
             "TERM=xterm-256color",
             "LANG=C.UTF-8",
             "LC_ALL=C.UTF-8",
+            "DEBIAN_FRONTEND=noninteractive",
             "/bin/bash",
             "-l",
             "-c",
