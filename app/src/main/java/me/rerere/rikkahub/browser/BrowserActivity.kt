@@ -156,6 +156,7 @@ class BrowserActivity : ComponentActivity() {
                     BrowserScreen(
                         chatService = chatService,
                         settingsStore = settingsStore,
+                        highlighter = highlighter,
                         initialConversationId = conversationId
                     )
                 }
@@ -169,6 +170,7 @@ class BrowserActivity : ComponentActivity() {
 private fun BrowserScreen(
     chatService: ChatService,
     settingsStore: SettingsStore,
+    highlighter: Highlighter,
     initialConversationId: Uuid? = null
 ) {
     val scope = rememberCoroutineScope()
