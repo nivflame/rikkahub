@@ -89,6 +89,9 @@ import me.rerere.rikkahub.ui.context.Navigator
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
+import me.rerere.highlight.Highlighter
+import me.rerere.highlight.LocalHighlighter
+import org.koin.androidx.compose.koinInject
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
 import androidx.compose.animation.AnimatedVisibility
@@ -134,7 +137,11 @@ class BrowserActivity : ComponentActivity() {
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
             RikkahubTheme {
-                CompositionLocalProvider(LocalNavController provides Navigator(remember { mutableListOf<NavKey>() })) {
+                val highlighter: Highlighter = koinInject()
+                CompositionLocalProvider(
+                    LocalNavController provides Navigator(remember { mutableListOf<NavKey>() }),
+                    LocalHighlighter provides highlighter,
+                ) {
                     BrowserScreen(
                         chatService = chatService,
                         settingsStore = settingsStore,
