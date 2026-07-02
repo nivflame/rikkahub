@@ -203,6 +203,7 @@ class ChatVM(
             keepRecentMessages
         )
         _compressJob.value = job
+        job.invokeOnCompletion { _compressJob.value = null }
         return job
     }
 
