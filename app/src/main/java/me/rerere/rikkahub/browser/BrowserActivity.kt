@@ -591,12 +591,14 @@ private fun BrowserScreen(
                     DropdownMenu(
                         expanded = showHamburgerMenu,
                         onDismissRequest = { showHamburgerMenu = false },
+                        shape = RoundedCornerShape(20.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(20.dp)
-                                .width(260.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                .padding(16.dp)
+                                .width(210.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Row(
                                 modifier = Modifier
