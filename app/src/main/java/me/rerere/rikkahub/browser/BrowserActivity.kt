@@ -95,7 +95,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.WindowInsets
@@ -471,18 +479,48 @@ private fun BrowserScreen(
                         val fabInteractionSource = remember { MutableInteractionSource() }
                         val fabPressed by fabInteractionSource.collectIsPressedAsState()
                         val fabScale by animateFloatAsState(
-                            targetValue = if (fabPressed) 0.9f else 1f,
+                            targetValue = if (fabPressed) 0.92f else 1f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
                             label = "fabScale",
                         )
-                        FloatingActionButton(
-                            onClick = { inputExpanded = true },
-                            shape = CircleShape,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            interactionSource = fabInteractionSource,
-                            modifier = Modifier.scale(fabScale),
+
+                        val infiniteTransition = rememberInfiniteTransition(label = "fabHalo")
+                        val haloAlpha by infiniteTransition.animateFloat(
+                            initialValue = 0.1f,
+                            targetValue = 0.25f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1000, easing = FastOutSlowInEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "haloAlpha",
+                        )
+
+                        Box(
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
+                            Surface(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .scale(if (generating) 1f else 0.9f),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = if (generating) haloAlpha else 0.12f,
+                                ),
+                            ) {}
+                            FloatingActionButton(
+                                onClick = { inputExpanded = true },
+                                shape = CircleShape,
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                interactionSource = fabInteractionSource,
+                                modifier = Modifier.scale(fabScale),
+                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                            ) {
+                                Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
+                            }
                         }
                     }
                 }
