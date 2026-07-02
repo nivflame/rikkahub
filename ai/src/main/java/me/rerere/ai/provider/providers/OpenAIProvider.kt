@@ -3,8 +3,10 @@ package me.rerere.ai.provider.providers
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -118,36 +120,53 @@ class OpenAIProvider(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams
-    ): Flow<MessageChunk> = if (providerSetting.useResponseApi) {
-        responseAPI.streamText(
-            providerSetting = providerSetting,
-            messages = messages,
-            params = params
-        )
-    } else {
-        chatCompletionsAPI.streamText(
-            providerSetting = providerSetting,
-            messages = messages,
-            params = params
-        )
+    ): Flow<MessageChunk> {
+        val flow = if (providerSetting.useResponseApi) {
+            responseAPI.streamText(providerSetting, messages, params)
+        } else {
+            chatCompletionsAPI.streamText(providerSetting, messages, params)
+        }
+        return if (providerSetting.autoRetry) {
+            var retryCount = 0
+            flow.retry { e ->
+                val isRateLimit = e.message?.contains("429") == true
+                if (isRateLimit && retryCount < 5) {
+                    retryCount++
+                    Log.w(TAG, "streamText: rate limited, retry $retryCount/5 in 5s")
+                    delay(5000)
+                    true
+                } else {
+                    false
+                }
+            }
+        } else {
+            flow
+        }
     }
 
     override suspend fun generateText(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams
-    ): MessageChunk = if (providerSetting.useResponseApi) {
-        responseAPI.generateText(
-            providerSetting = providerSetting,
-            messages = messages,
-            params = params
-        )
-    } else {
-        chatCompletionsAPI.generateText(
-            providerSetting = providerSetting,
-            messages = messages,
-            params = params
-        )
+    ): MessageChunk {
+        val maxRetries = if (providerSetting.autoRetry) 5 else 0
+        var lastError: Throwable? = null
+        repeat(maxRetries + 1) { attempt ->
+            try {
+                return if (providerSetting.useResponseApi) {
+                    responseAPI.generateText(providerSetting, messages, params)
+                } else {
+                    chatCompletionsAPI.generateText(providerSetting, messages, params)
+                }
+            } catch (e: Exception) {
+                lastError = e
+                val isRateLimit = e.message?.contains("429") == true
+                if (!isRateLimit || attempt >= maxRetries) throw e
+                Log.w(TAG, "generateText: rate limited, retry ${attempt + 1}/$maxRetries in 5s")
+                delay(5000)
+            }
+        }
+        throw lastError!!
     }
 
     override suspend fun generateEmbedding(

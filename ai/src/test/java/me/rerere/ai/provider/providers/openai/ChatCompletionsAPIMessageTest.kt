@@ -125,7 +125,7 @@ class ChatCompletionsAPIMessageTest {
             role = MessageRole.ASSISTANT,
             parts = listOf(
                 UIMessagePart.Text("Let me search multiple sources"),
-                createExecutedTool("call_1", "search_web", """{"query": "test1"}""", "Result 1"),
+                createExecutedTool("call_1", "WebSearch", """{"query": "test1"}""", "Result 1"),
                 createExecutedTool("call_2", "search_docs", """{"query": "test2"}""", "Result 2"),
                 createExecutedTool("call_3", "search_wiki", """{"query": "test3"}""", "Result 3"),
                 UIMessagePart.Text("Combined results show...")
@@ -151,7 +151,7 @@ class ChatCompletionsAPIMessageTest {
                     val toolNames = toolCalls.map {
                         it.jsonObject["function"]?.jsonObject?.get("name")?.jsonPrimitive?.content
                     }
-                    assertTrue(toolNames.contains("search_web"))
+                    assertTrue(toolNames.contains("WebSearch"))
                     assertTrue(toolNames.contains("search_docs"))
                     assertTrue(toolNames.contains("search_wiki"))
                     break
