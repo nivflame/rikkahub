@@ -374,132 +374,43 @@ private fun BrowserScreen(
                     .fillMaxWidth()
                     .imePadding()
             ) {
-                ui.steps.lastOrNull()?.let { step ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TrackerPill(step, generating, containerColor)
-                    }
-                }
-                if (ui.reply.isNotBlank() && !replyDismissed) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(16.dp),
-                        shadowElevation = 3.dp,
-                    ) {
+                if (generating) {
+                    ui.steps.lastOrNull()?.let { step ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MarkdownBlock(
-                                content = ui.reply,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(max = 40.dp)
-                                    .clipToBounds()
-                                    .padding(end = 4.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            FilledTonalIconButton(onClick = { showFullReply = true }) {
-                                Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
-                            }
-                            IconButton(onClick = { replyDismissed = true }) {
-                                Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Dismiss")
-                            }
-                        }
-                    }
-                }
-                AnimatedVisibility(
-                    visible = inputExpanded,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        color = containerColor,
-                        shape = RoundedCornerShape(28.dp),
-                        shadowElevation = 3.dp,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = prompt,
-                                onValueChange = { prompt = it },
-                                placeholder = { Text("Ask the AI about this page") },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(focusRequester),
-                                maxLines = 5,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                                keyboardActions = KeyboardActions(onSend = {
-                                    sendPrompt()
-                                    inputExpanded = false
-                                }),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    disabledContainerColor = Color.Transparent,
-                                ),
-                            )
-                            FilledTonalIconButton(onClick = { cancelGeneration() }) {
-                                Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Cancel")
-                            }
-                            FilledTonalIconButton(onClick = {
-                                sendPrompt()
-                                inputExpanded = false
-                            }) {
-                                Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
-                            }
+                            TrackerPill(step, generating, containerColor)
                         }
                     }
                 }
                 if (!inputExpanded) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        val fabInteractionSource = remember { MutableInteractionSource() }
-                        val fabPressed by fabInteractionSource.collectIsPressedAsState()
-                        val fabScale by animateFloatAsState(
-                            targetValue = if (fabPressed) 0.92f else 1f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow,
-                            ),
-                            label = "fabScale",
-                        )
+                    val fabInteractionSource = remember { MutableInteractionSource() }
+                    val fabPressed by fabInteractionSource.collectIsPressedAsState()
+                    val fabScale by animateFloatAsState(
+                        targetValue = if (fabPressed) 0.92f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                        label = "fabScale",
+                    )
 
-                        val infiniteTransition = rememberInfiniteTransition(label = "fabHalo")
-                        val haloAlpha by infiniteTransition.animateFloat(
-                            initialValue = 0.1f,
-                            targetValue = 0.25f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1000, easing = FastOutSlowInEasing),
-                                repeatMode = RepeatMode.Reverse,
-                            ),
-                            label = "haloAlpha",
-                        )
+                    val infiniteTransition = rememberInfiniteTransition(label = "fabHalo")
+                    val haloAlpha by infiniteTransition.animateFloat(
+                        initialValue = 0.1f,
+                        targetValue = 0.25f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "haloAlpha",
+                    )
 
+                    val fabContent: @Composable () -> Unit = {
                         Box(
                             contentAlignment = Alignment.Center,
                         ) {
@@ -523,6 +434,108 @@ private fun BrowserScreen(
                                 modifier = Modifier.scale(fabScale),
                             ) {
                                 Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
+                            }
+                        }
+                    }
+
+                    if (ui.reply.isNotBlank() && !replyDismissed) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = RoundedCornerShape(16.dp),
+                                shadowElevation = 3.dp,
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    MarkdownBlock(
+                                        content = ui.reply,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(max = 40.dp)
+                                            .clipToBounds()
+                                            .padding(end = 4.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                    FilledTonalIconButton(onClick = { showFullReply = true }) {
+                                        Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
+                                    }
+                                    IconButton(onClick = { replyDismissed = true }) {
+                                        Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Dismiss")
+                                    }
+                                }
+                            }
+                            fabContent()
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            fabContent()
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = inputExpanded,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(28.dp),
+                        shadowElevation = 3.dp,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = prompt,
+                                onValueChange = { prompt = it },
+                                placeholder = { Text("Ask the AI about this page") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(focusRequester),
+                                maxLines = 5,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(onSend = {
+                                    sendPrompt()
+                                    inputExpanded = false
+                                }),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                ),
+                            )
+                            IconButton(onClick = { cancelGeneration() }) {
+                                Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Cancel")
+                            }
+                            FilledTonalIconButton(onClick = {
+                                sendPrompt()
+                                inputExpanded = false
+                            }) {
+                                Icon(imageVector = HugeIcons.ArrowUp02, contentDescription = "Send")
                             }
                         }
                     }
