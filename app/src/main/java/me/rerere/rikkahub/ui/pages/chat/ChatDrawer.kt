@@ -671,14 +671,16 @@ fun ChatDrawerContent(
                             .filterIsInstance<ConversationListItem.Item>()
                             .filter { it.conversation.id in selectedIds }
                             .map { it.conversation }
-                        vm.deleteConversations(toDelete)
                         val deletedCurrent = current.id in selectedIds
                         isSelectionMode = false
                         selectedIds = emptySet()
                         showBatchDeleteDialog = false
-                        conversations.refresh()
-                        if (deletedCurrent) {
-                            navigateToChatPage(navController)
+                        scope.launch {
+                            vm.deleteConversations(toDelete)
+                            conversations.refresh()
+                            if (deletedCurrent) {
+                                navigateToChatPage(navController)
+                            }
                         }
                     }
                 ) { Text(stringResource(R.string.chat_page_delete)) }

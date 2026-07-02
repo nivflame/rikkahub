@@ -275,10 +275,8 @@ class ChatVM(
         }
     }
 
-    fun deleteConversations(conversations: List<Conversation>) {
-        viewModelScope.launch {
-            conversationRepo.deleteConversations(conversations)
-        }
+    suspend fun deleteConversations(conversations: List<Conversation>) {
+        conversationRepo.deleteConversations(conversations)
     }
 
     fun updatePinnedStatus(conversation: Conversation) {
