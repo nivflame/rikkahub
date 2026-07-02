@@ -129,6 +129,35 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.url ?: ""
     }
 
+    suspend fun search(query: String, news: Boolean): String {
+        val url = if (news) {
+            "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8") + "&tbm=nws"
+        } else {
+            "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8")
+        }
+        navigate(url)
+        val js = """
+(function(){
+var results=[];
+var links=document.querySelectorAll('a[href]');
+for(var i=0;i<links.length;i++){
+var link=links[i];
+var href=link.href;
+if(!href) continue;
+if(href.indexOf('google.com')>=0||href.indexOf('googleapis.com')>=0||href.indexOf('gstatic.com')>=0) continue;
+if(href.indexOf('google.')>=0) continue;
+var text=(link.innerText||'').trim().replace(/\n/g,' ');
+if(!text||text.length<10) continue;
+if(link.closest('nav,footer,header,[role="navigation"],[role="banner"],[role="contentinfo"]')) continue;
+results.push(text.slice(0,200)+' ['+href+']');
+}
+return results.slice(0,20).join('\n');
+})();
+        """.trimIndent()
+        val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(js) }
+        return raw?.let { unquoteJsString(it) }?.takeIf { it.isNotBlank() } ?: "no results found"
+    }
+
     private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {

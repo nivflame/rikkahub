@@ -102,6 +102,7 @@ object ToolUIRegistry {
         ReadFileToolUI,
         WriteFileToolUI,
         ShellToolUI,
+        BrowserToolUI("browser_search"),
         BrowserToolUI("browser_navigate"),
         BrowserToolUI("browser_get_content"),
         BrowserToolUI("browser_screenshot"),
