@@ -14,8 +14,6 @@ data class SubagentPrompt(
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
-    "time_info",
-    "tts",
     "AskQuestion",
 )
 
