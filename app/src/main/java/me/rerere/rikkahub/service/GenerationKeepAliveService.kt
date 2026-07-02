@@ -6,29 +6,23 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import me.rerere.rikkahub.CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID
 import me.rerere.rikkahub.R
-import me.rerere.rikkahub.utils.sendNotification
 
 class GenerationKeepAliveService : Service() {
-
-    override fun onCreate() {
-        super.onCreate()
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val senderName = intent?.getStringExtra(EXTRA_SENDER_NAME)
             ?: getString(R.string.chat_live_update_title)
 
-        sendNotification(
-            channelId = CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID,
-            notificationId = NOTIFICATION_ID
-        ) {
-            title = senderName
-            content = getString(R.string.chat_live_update_generating)
-            ongoing = true
-            onlyAlertOnce = true
-            category = NotificationCompat.CATEGORY_PROGRESS
-            requestPromotedOngoing = true
-        }
+        val notification = NotificationCompat.Builder(this, CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(senderName)
+            .setContentText(getString(R.string.chat_live_update_generating))
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .build()
+
+        startForeground(NOTIFICATION_ID, notification)
 
         return START_NOT_STICKY
     }
