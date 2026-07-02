@@ -288,6 +288,18 @@ private fun ProviderConfigureOpenAI(
             onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) }
         )
     }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("Auto Retry (rate limit)")
+        Switch(
+            checked = provider.autoRetry,
+            onCheckedChange = { onEdit(provider.copy(autoRetry = it)) }
+        )
+    }
 }
 
 @Composable
