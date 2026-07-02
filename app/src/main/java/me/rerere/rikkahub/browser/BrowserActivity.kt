@@ -501,15 +501,17 @@ private fun BrowserScreen(
                         Box(
                             contentAlignment = Alignment.Center,
                         ) {
-                            Surface(
+                            Box(
                                 modifier = Modifier
                                     .size(64.dp)
-                                    .scale(if (generating) 1f else 0.9f),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(
-                                    alpha = if (generating) haloAlpha else 0.12f,
-                                ),
-                            ) {}
+                                    .scale(if (generating) 1f else 0.9f)
+                                    .clip(CircleShape)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(
+                                            alpha = if (generating) haloAlpha else 0.12f,
+                                        ),
+                                    ),
+                            )
                             FloatingActionButton(
                                 onClick = { inputExpanded = true },
                                 shape = CircleShape,
@@ -517,7 +519,6 @@ private fun BrowserScreen(
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 interactionSource = fabInteractionSource,
                                 modifier = Modifier.scale(fabScale),
-                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                             ) {
                                 Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
                             }
