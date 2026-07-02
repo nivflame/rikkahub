@@ -392,28 +392,23 @@ private fun BrowserScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.Top,
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = HugeIcons.AiBrain01,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
                             MarkdownBlock(
                                 content = ui.reply,
                                 modifier = Modifier
                                     .weight(1f)
                                     .heightIn(max = 40.dp)
-                                    .clipToBounds(),
+                                    .clipToBounds()
+                                    .padding(end = 4.dp),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             FilledTonalIconButton(onClick = { showFullReply = true }) {
                                 Icon(imageVector = HugeIcons.FullScreen, contentDescription = "Expand")
                             }
-                            FilledTonalIconButton(onClick = { replyDismissed = true }) {
+                            IconButton(onClick = { replyDismissed = true }) {
                                 Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Dismiss")
                             }
                         }
