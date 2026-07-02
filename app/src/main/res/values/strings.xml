@@ -438,6 +438,10 @@
   <string name="no_text_content_to_copy">No text content available to copy</string>
   <string name="notification_channel_chat_completed">Chat Completed</string>
   <string name="notification_channel_chat_live_update">Chat Generation Progress</string>
+  <string name="chat_live_update_title">AI Assistant</string>
+  <string name="chat_live_update_generating">Generating response...</string>
+  <string name="error_connection_interrupted_background">Connection was interrupted while the app was in the background. Please try again.</string>
+  <string name="error_connection_interrupted">Connection was interrupted. Please try again.</string>
   <string name="notification_channel_web_server">Web Server</string>
   <string name="notification_live_update_chip_thinking">Thinking</string>
   <string name="notification_live_update_chip_tool">Tool</string>

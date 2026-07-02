@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
@@ -37,6 +38,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.io.IOException
+import java.net.SocketException
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.Tool
@@ -570,6 +573,7 @@ class ChatService(
 
             // start generating
             val session = getOrCreateSession(conversationId)
+            startGenerationKeepAlive(senderName)
             generationHandler.generateText(
                 settings = settings,
                 model = model,
@@ -706,6 +710,7 @@ class ChatService(
             ).onCompletion {
                 // 取消 Live Update 通知
                 cancelLiveUpdateNotification(conversationId)
+                stopGenerationKeepAlive()
 
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = getConversationFlow(conversationId).value.copy(
@@ -737,9 +742,25 @@ class ChatService(
         }.onFailure {
             // 取消 Live Update 通知
             cancelLiveUpdateNotification(conversationId)
+            stopGenerationKeepAlive()
 
-            it.printStackTrace()
-            addError(it, conversationId, title = context.getString(R.string.error_title_generation))
+            val isNetworkError = it is SocketException ||
+                (it is IOException && it.message?.contains("connection", ignoreCase = true) == true)
+            if (isNetworkError) {
+                val friendlyMessage = if (!isForeground.value) {
+                    context.getString(R.string.error_connection_interrupted_background)
+                } else {
+                    context.getString(R.string.error_connection_interrupted)
+                }
+                addError(
+                    IOException(friendlyMessage, it),
+                    conversationId,
+                    title = context.getString(R.string.error_title_generation),
+                )
+            } else {
+                it.printStackTrace()
+                addError(it, conversationId, title = context.getString(R.string.error_title_generation))
+            }
             Logging.log(TAG, "handleMessageComplete: $it")
             Logging.log(TAG, it.stackTraceToString())
         }.onSuccess {
@@ -1048,6 +1069,21 @@ class ChatService(
     }
 
     // ---- 通知 ----
+
+    private fun startGenerationKeepAlive(senderName: String) {
+        runCatching {
+            val intent = Intent(context, GenerationKeepAliveService::class.java).apply {
+                putExtra(GenerationKeepAliveService.EXTRA_SENDER_NAME, senderName)
+            }
+            context.startForegroundService(intent)
+        }
+    }
+
+    private fun stopGenerationKeepAlive() {
+        runCatching {
+            context.stopService(Intent(context, GenerationKeepAliveService::class.java))
+        }
+    }
 
     private fun sendGenerationDoneNotification(conversationId: Uuid, senderName: String) {
         // 先取消 Live Update 通知
