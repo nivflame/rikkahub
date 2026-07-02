@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.rerere.ai.core.MessageRole
@@ -97,6 +98,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -670,12 +672,14 @@ private fun BrowserScreen(
     }
 
     if (showFullReply) {
-        Dialog(onDismissRequest = { showFullReply = false }) {
+        Dialog(
+            onDismissRequest = { showFullReply = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.85f)
-                    .padding(1.dp),
+                    .fillMaxHeight(0.85f),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(28.dp),
                 shadowElevation = 6.dp,
@@ -722,32 +726,64 @@ private fun TrackerPill(
         BrowserStep.Thinking -> Triple("Agent thinking", HugeIcons.AiBrain01, generating)
         BrowserStep.Done -> Triple("Agent finish", HugeIcons.Tick01, false)
     }
+
+    val (targetContainer, targetContent) = when (step) {
+        is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        BrowserStep.Thinking -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        BrowserStep.Done -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    val animatedContainer by animateColorAsState(
+        targetValue = targetContainer,
+        animationSpec = tween(300),
+        label = "pillContainer",
+    )
+    val animatedContent by animateColorAsState(
+        targetValue = targetContent,
+        animationSpec = tween(300),
+        label = "pillContent",
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pillPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pillPulseAlpha",
+    )
+
     Surface(
-        color = containerColor,
+        color = animatedContainer.copy(alpha = if (active) pulseAlpha else 1f),
         shape = CircleShape,
         shadowElevation = 3.dp,
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (active) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(14.dp),
-                    strokeWidth = 2.dp
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = animatedContent,
                 )
             } else {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(16.dp),
+                    tint = animatedContent,
                 )
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.labelMedium,
+                color = animatedContent,
             )
         }
     }
