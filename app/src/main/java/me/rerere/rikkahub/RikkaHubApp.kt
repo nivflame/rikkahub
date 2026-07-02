@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import android.webkit.WebView
 import androidx.compose.foundation.ComposeFoundationFlags
 import androidx.compose.runtime.Composer
 import androidx.compose.runtime.tooling.ComposeStackTraceMode
@@ -51,6 +52,9 @@ const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 
 class RikkaHubApp : Application() {
     override fun onCreate() {
+        // Must be called before any WebView is created so full-page screenshots can draw the
+        // whole document instead of only the viewport.
+        WebView.enableSlowWholeDocumentDraw()
         super.onCreate()
         startKoin {
             androidLogger()

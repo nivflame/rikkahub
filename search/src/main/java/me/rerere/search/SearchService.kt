@@ -77,8 +77,12 @@ interface SearchService<T : SearchServiceOptions> {
         @Volatile
         internal var keyRoulette: KeyRoulette = KeyRoulette.default()
 
+        @Volatile
+        internal var appContext: Context? = null
+
         fun init(client: OkHttpClient, context: Context? = null) {
             httpClient = client
+            appContext = context
             keyRoulette = if (context != null) KeyRoulette.lru(context) else KeyRoulette.default()
         }
 

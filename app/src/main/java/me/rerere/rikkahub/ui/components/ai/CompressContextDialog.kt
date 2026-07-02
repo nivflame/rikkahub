@@ -32,6 +32,7 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 
 @Composable
 fun CompressContextDialog(
+    isCompressing: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job
 ) {
@@ -41,15 +42,28 @@ fun CompressContextDialog(
     val tokenOptions = listOf(500, 1000, 2000, 4000)
     val keepRecentOptions = listOf(0, 16, 32, 64)
     var currentJob by remember { mutableStateOf<Job?>(null) }
-    val isLoading = currentJob?.isActive == true
+    val isLoading = isCompressing || currentJob?.isActive == true
 
-    // Monitor job completion
+    // Monitor job completion (only for locally started jobs)
     LaunchedEffect(currentJob) {
-        currentJob?.join()
-        if (currentJob?.isCompleted == true && currentJob?.isCancelled == false) {
+        if (currentJob != null) {
+            currentJob?.join()
+            if (currentJob?.isCompleted == true && currentJob?.isCancelled == false) {
+                onDismiss()
+            }
+            currentJob = null
+        }
+    }
+
+    // Monitor external compressing state (survives activity recreation)
+    var wasCompressing by remember { mutableStateOf(false) }
+    LaunchedEffect(isCompressing) {
+        if (isCompressing) {
+            wasCompressing = true
+        } else if (wasCompressing) {
+            wasCompressing = false
             onDismiss()
         }
-        currentJob = null
     }
 
     AlertDialog(
@@ -153,6 +167,7 @@ fun CompressContextDialog(
                 TextButton(onClick = {
                     currentJob?.cancel()
                     currentJob = null
+                    onDismiss()
                 }) {
                     Text(stringResource(R.string.cancel))
                 }

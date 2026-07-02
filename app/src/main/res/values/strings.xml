@@ -438,6 +438,10 @@
   <string name="no_text_content_to_copy">No text content available to copy</string>
   <string name="notification_channel_chat_completed">Chat Completed</string>
   <string name="notification_channel_chat_live_update">Chat Generation Progress</string>
+  <string name="chat_live_update_title">AI Assistant</string>
+  <string name="chat_live_update_generating">Generating response...</string>
+  <string name="error_connection_interrupted_background">Connection was interrupted while the app was in the background. Please try again.</string>
+  <string name="error_connection_interrupted">Connection was interrupted. Please try again.</string>
   <string name="notification_channel_web_server">Web Server</string>
   <string name="notification_live_update_chip_thinking">Thinking</string>
   <string name="notification_live_update_chip_tool">Tool</string>
@@ -587,6 +591,7 @@
   <string name="search_detail_summary">Summary</string>
   <string name="search_detail_summary_desc">Enable summary generation</string>
   <string name="search_detail_system_prompt">System Prompt</string>
+  <string name="search_detail_timeout_seconds">Timeout (seconds)</string>
   <string name="search_detail_unknown_error">Unknown error</string>
   <string name="search_detail_username">Username</string>
   <string name="search_page_hint">Enter keywords and press Search to find messages</string>
@@ -1255,6 +1260,8 @@
   <string name="assistant_page_local_tools_screen_time_title">Screen Time</string>
   <string name="assistant_page_local_tools_screen_time_desc">Let the AI read your app screen usage time</string>
   <string name="assistant_page_local_tools_screen_time_permission_required">Please grant the Usage access permission in settings to use screen time</string>
+  <string name="assistant_page_local_tools_browser_title">Browser</string>
+  <string name="assistant_page_local_tools_browser_desc">Let the AI navigate web pages and read them in a headless browser</string>
   <string name="chat_message_tool_screen_time">Read screen time</string>
   <string name="tool_ui_screen_time_total">Total screen time</string>
   <string name="assistant_page_local_tools_calendar_title">Calendar</string>
