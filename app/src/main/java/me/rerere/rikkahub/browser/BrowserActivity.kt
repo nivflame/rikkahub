@@ -91,7 +91,6 @@ import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
 import me.rerere.highlight.Highlighter
 import me.rerere.highlight.LocalHighlighter
-import org.koin.androidx.compose.koinInject
 import org.koin.android.ext.android.inject
 import kotlin.uuid.Uuid
 import androidx.compose.animation.AnimatedVisibility
@@ -130,6 +129,7 @@ private data class BrowserUiState(
 class BrowserActivity : ComponentActivity() {
     private val chatService: ChatService by inject()
     private val settingsStore: SettingsStore by inject()
+    private val highlighter: Highlighter by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,7 +137,6 @@ class BrowserActivity : ComponentActivity() {
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
             RikkahubTheme {
-                val highlighter: Highlighter = koinInject()
                 CompositionLocalProvider(
                     LocalNavController provides Navigator(remember { mutableListOf<NavKey>() }),
                     LocalHighlighter provides highlighter,
