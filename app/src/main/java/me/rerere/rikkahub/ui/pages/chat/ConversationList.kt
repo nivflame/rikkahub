@@ -7,6 +7,7 @@ import me.rerere.hugeicons.stroke.Pin
 import me.rerere.hugeicons.stroke.PinOff
 import me.rerere.hugeicons.stroke.Refresh01
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.Tick02
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -57,9 +59,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.uuid.Uuid
 
-/**
- * Represents different types of items in the conversation list
- */
 sealed class ConversationListItem {
     data class DateHeader(
         val date: LocalDate,
@@ -78,12 +77,16 @@ fun ColumnScope.ConversationList(
     conversationJobs: Collection<Uuid>,
     listState: LazyListState,
     modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    selectedIds: Set<Uuid> = emptySet(),
     onClick: (Conversation) -> Unit = {},
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {},
-    onMoveToFolder: (Conversation) -> Unit = {}
+    onMoveToFolder: (Conversation) -> Unit = {},
+    onSelectionToggle: (Uuid) -> Unit = {},
+    onEnterSelection: (Conversation) -> Unit = {},
 ) {
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
@@ -160,12 +163,15 @@ fun ColumnScope.ConversationList(
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
                         onMoveToFolder = onMoveToFolder,
+                        isSelectionMode = isSelectionMode,
+                        isSelected = item.conversation.id in selectedIds,
+                        onSelectionToggle = onSelectionToggle,
+                        onEnterSelection = onEnterSelection,
                         modifier = Modifier.animateItem()
                     )
                 }
 
                 null -> {
-                    // Placeholder for loading state
                 }
             }
         }
@@ -231,26 +237,38 @@ private fun ConversationItem(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {},
     onMoveToFolder: (Conversation) -> Unit = {},
-    onClick: (Conversation) -> Unit
+    onClick: (Conversation) -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionToggle: (Uuid) -> Unit = {},
+    onEnterSelection: (Conversation) -> Unit = {},
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
-    } else {
-        Color.Transparent
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        selected -> MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
+        else -> Color.Transparent
     }
-    var showDropdownMenu by remember {
-        mutableStateOf(false)
-    }
+    var showDropdownMenu by remember { mutableStateOf(false) }
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(50f))
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
-                onClick = { onClick(conversation) },
+                onClick = {
+                    if (isSelectionMode) {
+                        onSelectionToggle(conversation.id)
+                    } else {
+                        onClick(conversation)
+                    }
+                },
                 onLongClick = {
-                    showDropdownMenu = true
+                    if (isSelectionMode) {
+                        onSelectionToggle(conversation.id)
+                    } else {
+                        showDropdownMenu = true
+                    }
                 }
             )
             .background(backgroundColor),
@@ -261,20 +279,28 @@ private fun ConversationItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onSelectionToggle(conversation.id) },
+                    modifier = Modifier.size(24.dp),
+                )
+                Spacer(Modifier.size(8.dp))
+            }
             Text(
                 text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
             )
             Spacer(Modifier.weight(1f))
 
-            // 置顶图标
             AnimatedVisibility(conversation.isPinned) {
                 Icon(
                     imageVector = HugeIcons.Pin,
                     contentDescription = "Pinned",
                     modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
                 )
             }
             AnimatedVisibility(loading) {
@@ -288,79 +314,74 @@ private fun ConversationItem(
                         }
                 )
             }
-            DropdownMenu(
-                expanded = showDropdownMenu,
-                onDismissRequest = { showDropdownMenu = false },
-            ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            if (conversation.isPinned) stringResource(R.string.unpin_chat) else stringResource(R.string.pin_chat)
-                        )
-                    },
-                    onClick = {
-                        onPin(conversation)
-                        showDropdownMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(
-                            if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin,
-                            null
-                        )
-                    }
-                )
+            if (!isSelectionMode) {
+                DropdownMenu(
+                    expanded = showDropdownMenu,
+                    onDismissRequest = { showDropdownMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_page_select)) },
+                        onClick = {
+                            onEnterSelection(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.Tick02, null) }
+                    )
 
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(id = R.string.chat_page_regenerate_title))
-                    },
-                    onClick = {
-                        onRegenerateTitle(conversation)
-                        showDropdownMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(HugeIcons.Refresh01, null)
-                    }
-                )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                if (conversation.isPinned) stringResource(R.string.unpin_chat) else stringResource(R.string.pin_chat)
+                            )
+                        },
+                        onClick = {
+                            onPin(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin,
+                                null
+                            )
+                        }
+                    )
 
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(R.string.chat_page_move_to_assistant))
-                    },
-                    onClick = {
-                        onMoveToAssistant(conversation)
-                        showDropdownMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(HugeIcons.Forward02, null)
-                    }
-                )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(id = R.string.chat_page_regenerate_title)) },
+                        onClick = {
+                            onRegenerateTitle(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.Refresh01, null) }
+                    )
 
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(R.string.chat_page_move_to_folder))
-                    },
-                    onClick = {
-                        onMoveToFolder(conversation)
-                        showDropdownMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(HugeIcons.Folder01, null)
-                    }
-                )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_page_move_to_assistant)) },
+                        onClick = {
+                            onMoveToAssistant(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.Forward02, null) }
+                    )
 
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(id = R.string.chat_page_delete))
-                    },
-                    onClick = {
-                        onDelete(conversation)
-                        showDropdownMenu = false
-                    },
-                    leadingIcon = {
-                        Icon(HugeIcons.Delete01, null)
-                    }
-                )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.chat_page_move_to_folder)) },
+                        onClick = {
+                            onMoveToFolder(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.Folder01, null) }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text(stringResource(id = R.string.chat_page_delete)) },
+                        onClick = {
+                            onDelete(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.Delete01, null) }
+                    )
+                }
             }
         }
     }

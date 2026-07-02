@@ -272,6 +272,10 @@ class ConversationRepository(
         filesManager.deleteChatFiles(fullConversation.files)
     }
 
+    suspend fun deleteConversations(conversations: List<Conversation>) {
+        conversations.forEach { deleteConversation(it) }
+    }
+
     suspend fun searchMessages(
         keyword: String,
         sort: MessageSearchSort = MessageSearchSort.RELEVANCE,

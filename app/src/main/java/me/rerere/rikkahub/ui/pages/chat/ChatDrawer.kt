@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.widthimport androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,6 +21,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.ChartColumn
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Folder01
@@ -74,6 +75,7 @@ import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.model.Folder
 import me.rerere.rikkahub.data.repository.ConversationRepository
+import me.rerere.rikkahub.ui.pages.chat.ConversationListItem
 import me.rerere.rikkahub.ui.components.ai.AssistantPicker
 import me.rerere.rikkahub.ui.components.ui.BackupReminderCard
 import me.rerere.rikkahub.ui.components.ui.Greeting
@@ -161,6 +163,11 @@ fun ChatDrawerContent(
     // Menu popup 状态
     var showMenuPopup by remember { mutableStateOf(false) }
 
+    // Multi-select state
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf<Set<Uuid>>(emptySet()) }
+    var showBatchDeleteDialog by remember { mutableStateOf(false) }
+
     ModalDrawerSheet(
         modifier = Modifier.width(300.dp)
     ) {
@@ -236,14 +243,27 @@ fun ChatDrawerContent(
 
             DrawerActions(navController = navController)
 
-            FolderBar(
-                folders = folders,
-                selectedFolderId = selectedFolderId,
-                onSelect = { drawerVm.selectFolder(it) },
-                onCreate = { showCreateFolderDialog = true },
-                onRename = { folderToRename = it },
-                onDelete = { folderToDelete = it },
-            )
+            if (isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = selectedIds.size,
+                    onClose = {
+                        isSelectionMode = false
+                        selectedIds = emptySet()
+                    },
+                    onDelete = {
+                        showBatchDeleteDialog = true
+                    },
+                )
+            } else {
+                FolderBar(
+                    folders = folders,
+                    selectedFolderId = selectedFolderId,
+                    onSelect = { drawerVm.selectFolder(it) },
+                    onCreate = { showCreateFolderDialog = true },
+                    onRename = { folderToRename = it },
+                    onDelete = { folderToDelete = it },
+                )
+            }
 
             ConversationList(
                 current = current,
@@ -253,6 +273,8 @@ fun ChatDrawerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                isSelectionMode = isSelectionMode,
+                selectedIds = selectedIds,
                 onClick = {
                     navigateToChatPage(navController, it.id)
                 },
@@ -261,9 +283,6 @@ fun ChatDrawerContent(
                 },
                 onDelete = {
                     vm.deleteConversation(it)
-                    // Refresh the conversation list to immediately remove the deleted item
-                    // This fixes the issue where deleted conversations sometimes remain visible
-                    // until manually clicked (issue #747)
                     conversations.refresh()
                     if (it.id == current.id) {
                         navigateToChatPage(navController)
@@ -279,7 +298,18 @@ fun ChatDrawerContent(
                 onMoveToFolder = {
                     conversationToMoveFolder = it
                     showMoveToFolderSheet = true
-                }
+                },
+                onSelectionToggle = { id ->
+                    selectedIds = if (id in selectedIds) {
+                        selectedIds - id
+                    } else {
+                        selectedIds + id
+                    }
+                },
+                onEnterSelection = { conversation ->
+                    isSelectionMode = true
+                    selectedIds = setOf(conversation.id)
+                },
             )
 
             // 助手选择器
@@ -627,6 +657,39 @@ fun ChatDrawerContent(
         )
     }
 
+    // Batch delete confirmation
+    if (showBatchDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteDialog = false },
+            title = { Text(stringResource(R.string.chat_page_delete)) },
+            text = { Text(stringResource(R.string.chat_page_batch_delete_confirm, selectedIds.size)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val toDelete = conversations.itemSnapshotList.items
+                            .filterIsInstance<ConversationListItem.Item>()
+                            .filter { it.conversation.id in selectedIds }
+                            .map { it.conversation }
+                        vm.deleteConversations(toDelete)
+                        val deletedCurrent = current.id in selectedIds
+                        isSelectionMode = false
+                        selectedIds = emptySet()
+                        showBatchDeleteDialog = false
+                        conversations.refresh()
+                        if (deletedCurrent) {
+                            navigateToChatPage(navController)
+                        }
+                    }
+                ) { Text(stringResource(R.string.chat_page_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatchDeleteDialog = false }) {
+                    Text(stringResource(R.string.chat_page_cancel))
+                }
+            }
+        )
+    }
+
     // 移动到助手 Bottom Sheet
     if (showMoveToAssistantSheet) {
         ModalBottomSheet(
@@ -925,6 +988,41 @@ private fun AssistantItem(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SelectionTopBar(
+    selectedCount: Int,
+    onClose: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(
+                imageVector = HugeIcons.Cancel01,
+                contentDescription = "Close",
+            )
+        }
+        Text(
+            text = stringResource(R.string.chat_page_selected_count, selectedCount),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onDelete, enabled = selectedCount > 0) {
+            Icon(
+                imageVector = HugeIcons.Delete01,
+                contentDescription = "Delete",
+                tint = if (selectedCount > 0) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            )
         }
     }
 }
