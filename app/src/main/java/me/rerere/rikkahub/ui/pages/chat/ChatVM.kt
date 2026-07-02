@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.analytics.FirebaseAnalytics
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,11 @@ class ChatVM(
 ) : ViewModel() {
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
+
+    private val _compressJob = MutableStateFlow<Job?>(null)
+    val isCompressing: StateFlow<Boolean> = _compressJob
+        .map { it?.isActive == true }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     var chatListInitialized by mutableStateOf(false) // 聊天列表是否已经滚动到底部
 
     // 聊天输入状态 - 保存在 ViewModel 中避免 TransactionTooLargeException
@@ -189,13 +195,15 @@ class ChatVM(
     }
 
     fun handleCompressContext(additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int): Job {
-        return chatService.launchCompressConversation(
+        val job = chatService.launchCompressConversation(
             _conversationId,
             conversation.value,
             additionalPrompt,
             targetTokens,
             keepRecentMessages
         )
+        _compressJob.value = job
+        return job
     }
 
     suspend fun forkMessage(message: UIMessage): Conversation {

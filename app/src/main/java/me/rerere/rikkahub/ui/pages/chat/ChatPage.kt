@@ -515,7 +515,14 @@ private fun ChatFilesPickerSheet(
     val toaster = LocalToaster.current
     val filesManager: FilesManager = koinInject()
     var showInjectionSheet by remember { mutableStateOf(false) }
-    var showCompressDialog by remember { mutableStateOf(false) }
+    var showCompressDialog by rememberSaveable { mutableStateOf(false) }
+    val isCompressing by vm.isCompressing.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isCompressing) {
+        if (isCompressing) {
+            showCompressDialog = true
+        }
+    }
 
     fun dismissAll() {
         showInjectionSheet = false
@@ -691,6 +698,7 @@ private fun ChatFilesPickerSheet(
             onShowInjectionSheetChange = { showInjectionSheet = it },
             showCompressDialog = showCompressDialog,
             onShowCompressDialogChange = { showCompressDialog = it },
+            isCompressing = isCompressing,
             onDismiss = { dismissAll() },
             onTakePic = onLaunchCamera,
             onPickImage = { imagePickerLauncher.launch("image/*") },
