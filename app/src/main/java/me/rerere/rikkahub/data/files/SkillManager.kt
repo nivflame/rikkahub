@@ -85,9 +85,6 @@ class SkillManager(
         skills
     }
 
-        skills
-    }
-
     fun getSkillDir(skillName: String): File? = resolveSkillDir(skillName)
 
     fun saveSkillFile(skillName: String, relativePath: String, content: String): Boolean {
