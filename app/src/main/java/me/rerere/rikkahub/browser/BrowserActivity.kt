@@ -41,6 +41,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -82,6 +83,8 @@ import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
+import me.rerere.hugeicons.stroke.Search01
+import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
@@ -311,7 +314,7 @@ private fun BrowserScreen(
             OutlinedTextField(
                 value = addressBar,
                 onValueChange = { addressBar = it },
-                placeholder = { Text("Enter URL", style = MaterialTheme.typography.bodySmall) },
+                placeholder = { Text("Search or enter address", style = MaterialTheme.typography.bodySmall) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -540,8 +543,8 @@ private fun BrowserScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
@@ -551,13 +554,23 @@ private fun BrowserScreen(
                     onClick = { controller?.webView?.goBack() },
                     enabled = canGoBack,
                 ) {
-                    Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = "Back")
+                    Icon(
+                        imageVector = HugeIcons.ArrowLeft01,
+                        contentDescription = "Back",
+                        tint = if (canGoBack) LocalContentColor.current
+                            else LocalContentColor.current.copy(alpha = 0.38f),
+                    )
                 }
                 IconButton(
                     onClick = { controller?.webView?.goForward() },
                     enabled = canGoForward,
                 ) {
-                    Icon(imageVector = HugeIcons.ArrowRight01, contentDescription = "Forward")
+                    Icon(
+                        imageVector = HugeIcons.ArrowRight01,
+                        contentDescription = "Forward",
+                        tint = if (canGoForward) LocalContentColor.current
+                            else LocalContentColor.current.copy(alpha = 0.38f),
+                    )
                 }
                 IconButton(onClick = { showHamburgerMenu = true }) {
                     Icon(imageVector = HugeIcons.Menu03, contentDescription = "Menu")
@@ -567,30 +580,58 @@ private fun BrowserScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(16.dp)
-                                .width(220.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                .padding(20.dp)
+                                .width(260.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
                                     .clickable {
                                         showHamburgerMenu = false
                                         showZoomDialog = true
                                     }
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Zoom")
-                                Text("$zoomLevel%", style = MaterialTheme.typography.labelMedium)
+                                Icon(
+                                    imageVector = HugeIcons.Search01,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "Zoom",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = "$zoomLevel%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Desktop Site")
+                                Icon(
+                                    imageVector = HugeIcons.SmartPhone01,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "Desktop Site",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.weight(1f),
+                                )
                                 Switch(
                                     checked = desktopMode,
                                     onCheckedChange = {
