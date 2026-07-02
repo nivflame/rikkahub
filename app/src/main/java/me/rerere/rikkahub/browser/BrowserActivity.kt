@@ -631,7 +631,7 @@ private fun BrowserScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.85f)
-                    .padding(13.dp),
+                    .padding(3.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = RoundedCornerShape(28.dp),
                 shadowElevation = 6.dp,
