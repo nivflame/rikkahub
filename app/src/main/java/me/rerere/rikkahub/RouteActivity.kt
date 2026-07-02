@@ -119,6 +119,11 @@ import me.rerere.rikkahub.ui.pages.setting.SettingProviderDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingProviderPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchPage
+import me.rerere.rikkahub.ui.pages.setting.SettingAskQuestionPage
+import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
+import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
+import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
+import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSpeechPage
 import me.rerere.rikkahub.ui.pages.setting.SettingWebPage
 import me.rerere.rikkahub.ui.pages.share.handler.ShareHandlerPage
@@ -455,6 +460,26 @@ class RouteActivity : ComponentActivity() {
                                 SettingMcpPage()
                             }
 
+                            entry<Screen.SettingBrowser> {
+                                SettingBrowserPage()
+                            }
+
+                            entry<Screen.SettingSubagent> {
+                                SettingSubagentPage()
+                            }
+
+                            entry<Screen.SettingToolSearch> {
+                                SettingToolSearchPage()
+                            }
+
+                            entry<Screen.SettingTools> {
+                                SettingToolsPage()
+                            }
+
+                            entry<Screen.SettingAskQuestion> {
+                                SettingAskQuestionPage()
+                            }
+
                             entry<Screen.SettingDonate> {
                                 SettingDonatePage()
                             }
@@ -710,4 +735,19 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Stats : Screen
+
+    @Serializable
+    data object SettingTools : Screen
+
+    @Serializable
+    data object SettingBrowser : Screen
+
+    @Serializable
+    data object SettingSubagent : Screen
+
+    @Serializable
+    data object SettingToolSearch : Screen
+
+    @Serializable
+    data object SettingAskQuestion : Screen
 }
