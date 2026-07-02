@@ -2,7 +2,9 @@ package me.rerere.rikkahub.browser
 
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.CookieManager
 import android.webkit.WebView
+import android.webkit.WebStorage
 import androidx.navigation3.runtime.NavKey
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +35,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -82,6 +86,7 @@ import me.rerere.hugeicons.stroke.ArrowLeft01
 import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Home01
 import me.rerere.hugeicons.stroke.Menu03
@@ -188,6 +193,7 @@ private fun BrowserScreen(
     var replyDismissed by remember { mutableStateOf(false) }
     var showHamburgerMenu by remember { mutableStateOf(false) }
     var showZoomDialog by remember { mutableStateOf(false) }
+    var showDeleteDataDialog by remember { mutableStateOf(false) }
     var desktopMode by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf(100) }
     var mobileUA by remember { mutableStateOf("") }
@@ -670,6 +676,30 @@ private fun BrowserScreen(
                                     },
                                 )
                             }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        showHamburgerMenu = false
+                                        showDeleteDataDialog = true
+                                    }
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = HugeIcons.Delete01,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "Delete Browsing Data",
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
                         }
                     }
                 }
@@ -732,6 +762,113 @@ private fun BrowserScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Reset")
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteDataDialog) {
+        var clearHistory by remember { mutableStateOf(false) }
+        var clearCookies by remember { mutableStateOf(false) }
+        var clearCache by remember { mutableStateOf(false) }
+
+        Dialog(onDismissRequest = { showDeleteDataDialog = false }) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(28.dp),
+                shadowElevation = 6.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .width(320.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "Delete Browsing Data",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Browsing history",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Switch(checked = clearHistory, onCheckedChange = { clearHistory = it })
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Cookies",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Switch(checked = clearCookies, onCheckedChange = { clearCookies = it })
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Cached images and files",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Switch(checked = clearCache, onCheckedChange = { clearCache = it })
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        TextButton(onClick = { showDeleteDataDialog = false }) {
+                            Text("Cancel")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (clearHistory) {
+                                    controller?.webView?.clearHistory()
+                                    WebStorage.getInstance().deleteAllData()
+                                }
+                                if (clearCookies) {
+                                    CookieManager.getInstance().removeAllCookies { }
+                                    CookieManager.getInstance().flush()
+                                }
+                                if (clearCache) {
+                                    controller?.webView?.clearCache(true)
+                                }
+                                if (clearHistory || clearCookies || clearCache) {
+                                    controller?.webView?.reload()
+                                }
+                                showDeleteDataDialog = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                        ) {
+                            Text("Delete")
+                        }
                     }
                 }
             }
