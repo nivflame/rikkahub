@@ -180,13 +180,23 @@ return results.slice(0,20).join('\n');
                 " var td = new TurndownService({headingStyle:'atx', bulletListMarker:'-', codeBlockStyle:'fenced'});" +
                 " td.addRule('absoluteLinks', {filter:function(n){return n.nodeName==='A' && n.getAttribute('href');}, replacement:function(c, n){var h=n.getAttribute('href'); try{h=new URL(h, location.href).href;}catch(e){} return '['+(c||n.textContent||'')+']('+h+')';}});" +
                 " var md = td.turndown(html);" +
-                " if(md && md.replace(/\\s/g,'').length < 200 && doc.body) return doc.body.textContent;" +
+                " if(md && md.replace(/\\s/g,'').length < 200) {" +
+                "   var mainEl = document.querySelector('article, main, [role=\"main\"]');" +
+                "   if(mainEl) { var mainMd = td.turndown(mainEl.outerHTML); if(mainMd && mainMd.replace(/\\s/g,'').length > 200) return mainMd; }" +
+                "   if(doc.body) return doc.body.textContent;" +
+                "   return '';" +
+                " }" +
                 " return md;" +
                 " } catch(e) { return document.body ? document.body.innerText : ''; } })();"
             val raw = evaluateJavascriptAsync(js)
             raw?.let { unquoteJsString(it) } ?: ""
         }
         return paginateMarkdown(markdown, startIndex, maxChars)
+    }
+
+    suspend fun fetch(url: String, maxChars: Int, startIndex: Int): String {
+        navigate(url)
+        return getContent(maxChars, startIndex)
     }
 
     private fun paginateMarkdown(markdown: String, startIndex: Int, maxChars: Int): String {
@@ -204,7 +214,7 @@ return results.slice(0,20).join('\n');
         }
         val slice = lines.subList(startIndex, end).joinToString("\n")
         return if (end < total) {
-            slice + "\n\n[Content truncated. Total lines: $total. Showing lines $startIndex to ${end - 1}. Call browser_get_content again with start_index=$end to continue. Read all chunks before responding.]"
+            slice + "\n\n[Content truncated. Total lines: $total. Showing lines $startIndex to ${end - 1}. Call again with start_index=$end to continue. Read all chunks before responding.]"
         } else {
             slice
         }

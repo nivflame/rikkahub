@@ -15,11 +15,12 @@ import me.rerere.rikkahub.browser.BrowserController
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 private val BROWSER_SYSTEM_PROMPT = """
-You have browser tools to navigate and automate the in-app WebView. Use browser_search to search Google (web or news) and get a list of result titles with URLs. Use browser_navigate to open a URL or go back, forward, and reload. Use browser_get_content to read article pages as markdown (main content extracted by Readability.js with links resolved to absolute URLs), and browser_dom_snapshot to get an accessibility tree of the page (roles, names, links, and interactive elements with refs). Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with the [data-rkref="eN"] selector from the snapshot. Use browser_execute_script to run JavaScript, browser_logs to read console or network logs, and browser_screenshot to capture the page. For search results or structured list pages, prefer browser_dom_snapshot over browser_get_content. If browser_get_content returns a truncation notice, call it again with the start_index shown in that notice until you have read the whole page before responding. After reading an article, use browser_navigate with type "back" to return to search results instead of constructing a new search URL.
+You have browser tools to navigate and automate the in-app WebView. Use browser_search to search Google (web or news) and get a list of result titles with URLs. Use browser_fetch to navigate to a URL and read its content as markdown in one step (main content extracted by Readability.js with links resolved to absolute URLs). Use browser_navigate only when you need to go back, forward, or reload, or when you plan to interact with the page before reading it. Use browser_get_content to read the current page after you have used browser_interact on it. Use browser_dom_snapshot to get an accessibility tree of the page (roles, names, links, and interactive elements with refs). Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with the [data-rkref="eN"] selector from the snapshot. Use browser_execute_script to run JavaScript in the browser page context (it cannot create files or interact with the device file system), browser_logs to read console or network logs, and browser_screenshot to capture the page. For search results or structured list pages, prefer browser_dom_snapshot over browser_fetch. If browser_fetch or browser_get_content returns a truncation notice, call it again with the start_index shown in that notice until you have read the whole page before responding. After reading an article, use browser_navigate with type "back" to return to search results instead of constructing a new search URL. If you need to create files (HTML, text, code), use the write_file or shell tools, not browser tools.
 """.trimIndent().replace("\n", " ")
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_search",
+    "browser_fetch",
     "browser_navigate",
     "browser_get_content",
     "browser_screenshot",
@@ -40,7 +41,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
             Usage notes:
             - Set news to true for Google News search, false for regular web search
             - Returns up to 20 results as "title - source - date [URL]" lines
-            - Use browser_navigate to open any result URL, then browser_get_content to read it
+            - Use browser_fetch to read any result URL in one step
             - This is more efficient than navigating to Google and using browser_dom_snapshot
         """.trimIndent(),
         systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
@@ -66,6 +67,42 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                 controller.search(query, news)
             }
             listOf(UIMessagePart.Text(result))
+        }
+    ),
+    Tool(
+        name = "browser_fetch",
+        description = """
+            Navigate to a URL and read its content as markdown in one step. Main content is extracted by Readability.js with links resolved to absolute URLs, paginated.
+
+            Usage notes:
+            - This is the primary tool for reading a web page. It combines navigation and content extraction
+            - For search results or structured list pages, use browser_dom_snapshot instead
+            - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
+            - If this returns "no content", try browser_dom_snapshot with a selector targeting the main content area
+        """.trimIndent(),
+        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("url", buildJsonObject {
+                        put("type", "string")
+                        put("description", "The URL to navigate to and read")
+                    })
+                    put("start_index", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Line number to start reading from. Defaults to 0. Use the start_index from a truncation notice to continue reading")
+                    })
+                },
+                required = listOf("url")
+            )
+        },
+        execute = {
+            val url = it.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: ""
+            val startIndex = it.jsonObject["start_index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0
+            val content = HeadlessBrowserSession.withController(context) {
+                it.fetch(url, BrowserController.MAX_CONTENT_CHARS, startIndex)
+            }
+            listOf(UIMessagePart.Text(content))
         }
     ),
     Tool(
@@ -110,8 +147,9 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
             Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.
 
             Usage notes:
-            - Use this for article pages. For search results or structured list pages, use browser_dom_snapshot instead
-            - This is the primary tool for reading page content
+            - Use this to read content from a page you have already navigated to and possibly interacted with
+            - For reading a new URL, use browser_fetch instead (it combines navigation and content extraction in one call)
+            - For search results or structured list pages, use browser_dom_snapshot instead
             - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
         """.trimIndent(),
         parameters = {
@@ -261,6 +299,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
 
             Usage notes:
             - Use this for custom extraction or actions not covered by the other browser tools
+            - Runs JavaScript in the browser page context only. Cannot create files or interact with the device file system
         """.trimIndent(),
         parameters = {
             InputSchema.Obj(
