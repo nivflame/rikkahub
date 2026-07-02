@@ -11,6 +11,7 @@ data class McpCommonOptions(
     val name: String = "",
     val headers: List<Pair<String, String>> = emptyList(),
     val tools: List<McpTool> = emptyList(),
+    val bareNames: Boolean = false,
     val oauth: McpOAuthState? = null,
 )
 

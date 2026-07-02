@@ -553,6 +553,37 @@ private fun McpCommonOptionsConfigure(
             )
         }
 
+        FormItem(
+            label = { Text("Bare tool names") },
+            description = {
+                Text("Expose tools with their bare name (e.g. Bash) instead of mcp__server__Bash. Collisions fall back to the prefixed name.")
+            }
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(Modifier.weight(1f))
+                Switch(
+                    checked = config.commonOptions.bareNames,
+                    onCheckedChange = { bare ->
+                        update(
+                            when (config) {
+                                is McpServerConfig.SseTransportServer -> config.copy(
+                                    commonOptions = config.commonOptions.copy(bareNames = bare)
+                                )
+
+                                is McpServerConfig.StreamableHTTPServer -> config.copy(
+                                    commonOptions = config.commonOptions.copy(bareNames = bare)
+                                )
+                            }
+                        )
+                    }
+                )
+            }
+        }
+
         HorizontalDivider()
 
         // 传输类型选择

@@ -136,7 +136,7 @@ class McpManager(
         return clients.entries.find { it.key.id == config.id }?.value
     }
 
-    fun getAllAvailableTools(): List<Triple<Uuid, String, McpTool>> {
+    fun getAllAvailableTools(includeDisabledTools: Boolean = false): List<Triple<Uuid, String, McpTool>> {
         val settings = settingsStore.settingsFlow.value
         val assistant = settings.getCurrentAssistant()
         return settings.mcpServers
@@ -145,7 +145,7 @@ class McpManager(
             }
             .flatMap { server ->
                 server.commonOptions.tools
-                    .filter { tool -> tool.enable }
+                    .filter { tool -> includeDisabledTools || tool.enable }
                     .map { tool -> Triple(server.id, server.commonOptions.name, tool) }
             }
     }

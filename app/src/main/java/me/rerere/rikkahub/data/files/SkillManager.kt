@@ -57,21 +57,32 @@ class SkillManager(
 
     suspend fun deleteSkill(name: String): Boolean = withContext(Dispatchers.IO) {
         val skillDir = resolveSkillDir(name) ?: return@withContext false
-        val deleted = skillDir.deleteRecursively()
-        if (deleted) {
-            settingsStore.update { settings ->
-                settings.copy(
-                    assistants = settings.assistants.map { assistant ->
-                        if (assistant.enabledSkills.contains(name)) {
-                            assistant.copy(enabledSkills = assistant.enabledSkills - name)
-                        } else {
-                            assistant
-                        }
-                    }
-                )
+        skillDir.deleteRecursively()
+    }
+
+    /**
+     * 清理所有助手 enabledSkills 中已不存在于磁盘的技能名。
+     *
+     * 当用户在 App 外直接删除 /skills/ 目录下的技能时，不会走 [deleteSkill] 的清理逻辑，
+     * 导致 enabledSkills 残留"幽灵"技能名，使扩展入口角标计数偏大。
+     */
+    suspend fun pruneOrphanedEnabledSkills(): List<SkillMetadata> = withContext(Dispatchers.IO) {
+        val skills = listSkills()
+        val existing = skills.mapTo(HashSet()) { it.name }
+        settingsStore.update { settings ->
+            var changed = false
+            val newAssistants = settings.assistants.map { assistant ->
+                val pruned = assistant.enabledSkills.filterTo(LinkedHashSet()) { it in existing }
+                if (pruned.size != assistant.enabledSkills.size) {
+                    changed = true
+                    assistant.copy(enabledSkills = pruned)
+                } else {
+                    assistant
+                }
             }
+            if (changed) settings.copy(assistants = newAssistants) else settings
         }
-        deleted
+        skills
     }
 
     /**
@@ -197,6 +208,7 @@ class SkillManager(
                 description = description,
                 compatibility = frontmatter["compatibility"],
                 allowedTools = frontmatter["allowed-tools"]?.split(" ")?.filter { it.isNotBlank() } ?: emptyList(),
+                disableModelInvocation = frontmatter["disable-model-invocation"]?.trim()?.equals("true", ignoreCase = true) == true,
                 skillDir = skillDir,
             )
         }.getOrElse {
@@ -211,6 +223,7 @@ data class SkillMetadata(
     val description: String,
     val compatibility: String? = null,
     val allowedTools: List<String> = emptyList(),
+    val disableModelInvocation: Boolean = false,
     val skillDir: File,
 ) {
     val skillFile: File get() = skillDir.resolve("SKILL.md")

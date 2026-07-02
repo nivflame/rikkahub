@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -32,9 +33,16 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import java.io.IOException
+import java.net.SocketException
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.Tool
+import me.rerere.ai.core.InputSchema
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.ProviderManager
@@ -57,6 +65,10 @@ import me.rerere.rikkahub.data.ai.GenerationHandler
 import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.ai.tools.createConversationTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
+import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
+import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
+import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
+import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
 import me.rerere.rikkahub.data.ai.tools.createWorkspaceTools
@@ -159,6 +171,8 @@ class ChatService(
 ) {
     // workspace 系统提示注入 (依赖 workspaceRepository, 故在类内构造)
     private val workspaceReminderTransformer = WorkspaceReminderTransformer(workspaceRepository)
+
+    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore) }
 
     // 统一会话管理
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
@@ -342,12 +356,20 @@ class ChatService(
                     ?: settings.getCurrentAssistant()
                 val processedContent = preprocessUserInputParts(content, assistant)
 
+                // Slash command interception for disable-model-invocation skills.
+                val firstText = processedContent.firstNotNullOfOrNull { it as? UIMessagePart.Text }
+                val interception = firstText?.text?.let { interceptSkillSlashCommand(it, assistant) }
+                val userContent = interception?.second ?: processedContent
+                val skillSystemMessage = interception?.first
+
                 // 添加消息到列表
                 val newConversation = currentConversation.copy(
-                    messageNodes = currentConversation.messageNodes + UIMessage(
-                        role = MessageRole.USER,
-                        parts = processedContent,
-                    ).toMessageNode(),
+                    messageNodes = currentConversation.messageNodes + buildList {
+                        if (skillSystemMessage != null) {
+                            add(UIMessage.system(skillSystemMessage).toMessageNode())
+                        }
+                        add(UIMessage(role = MessageRole.USER, parts = userContent).toMessageNode())
+                    },
                 )
                 saveConversation(conversationId, newConversation)
 
@@ -381,6 +403,28 @@ class ChatService(
                 else -> part
             }
         }
+    }
+
+    private suspend fun interceptSkillSlashCommand(
+        text: String,
+        assistant: Assistant,
+    ): Pair<String, List<UIMessagePart>>? = withContext(Dispatchers.IO) {
+        val match = Regex("^/(\\S+)").find(text.trim()) ?: return@withContext null
+        val skillName = match.groupValues[1]
+        if (LocalToolOption.Skill !in assistant.localTools) return@withContext null
+        val skill = skillManager.listSkills().firstOrNull {
+            it.name == skillName
+        } ?: return@withContext null
+        if (!skill.disableModelInvocation) return@withContext null
+        val body = skillManager.readSkillBody(skillName) ?: return@withContext null
+        val task = text.trim().substring(match.range.last + 1).trim()
+        val userContent = if (task.isBlank()) {
+            listOf(UIMessagePart.Text("Begin."))
+        } else {
+            listOf(UIMessagePart.Text(task))
+        }
+        val systemContent = "Skill `$skillName` invoked by the user. Follow its instructions:\n\n$body"
+        systemContent to userContent
     }
 
     // ---- 重新生成消息 ----
@@ -528,6 +572,7 @@ class ChatService(
 
             // start generating
             val session = getOrCreateSession(conversationId)
+            startGenerationKeepAlive(senderName)
             generationHandler.generateText(
                 settings = settings,
                 model = model,
@@ -555,45 +600,56 @@ class ChatService(
                     add(workspaceReminderTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = buildList {
+                tools = run {
+                    val allTools = buildList {
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
-                    addAll(localTools.getTools(assistant.localTools))
+                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription))
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
                     addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd))
-                    if (assistant.enabledSkills.isNotEmpty()) {
+                    if (LocalToolOption.Skill in assistant.localTools) {
                         addAll(
                             createSkillTools(
-                                enabledSkills = assistant.enabledSkills,
                                 allSkills = skillManager.listSkills(),
                                 skillManager = skillManager,
-                            )
+                            ).map { it.copy(description = settings.toolDescriptions[it.name] ?: it.description) }
                         )
                     }
-                    mcpManager.getAllAvailableTools().also { allTools ->
-                        val invalidNames = allTools
-                            .map { it.second }
-                            .distinct()
-                            .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
-                        if (invalidNames.isNotEmpty()) {
-                            addError(
-                                error = IllegalStateException(
-                                    context.getString(
-                                        R.string.error_mcp_invalid_server_name,
-                                        invalidNames.joinToString(", ")
-                                    )
-                                ),
-                                conversationId = conversationId,
-                            )
-                            return
+                    val allMcpTools = mcpManager.getAllAvailableTools()
+                    val invalidNames = allMcpTools
+                        .map { it.second }
+                        .distinct()
+                        .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
+                    if (invalidNames.isNotEmpty()) {
+                        addError(
+                            error = IllegalStateException(
+                                context.getString(
+                                    R.string.error_mcp_invalid_server_name,
+                                    invalidNames.joinToString(", ")
+                                )
+                            ),
+                            conversationId = conversationId,
+                        )
+                        return
+                    }
+                    val bareCollisions = allMcpTools
+                        .filter { server ->
+                            settings.mcpServers.firstOrNull { it.id == server.first }
+                                ?.commonOptions?.bareNames == true
                         }
-                    }.forEach { (serverId, serverName, tool) ->
+                        .groupingBy { it.third.name }
+                        .eachCount()
+                        .filter { it.value > 1 }
+                        .keys
+                    allMcpTools.forEach { (serverId, serverName, tool) ->
+                        val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                            ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
                         add(
                             Tool(
-                                name = "mcp__${serverName}__${tool.name}",
+                                name = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}",
                                 description = tool.description ?: "",
                                 parameters = { tool.inputSchema },
                                 needsApproval = { tool.needsApproval },
@@ -603,10 +659,57 @@ class ChatService(
                             )
                         )
                     }
+                    if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
+                        val parentTools = this.toList()
+                        val existingToolNames = parentTools.map { it.name }.toSet()
+                        val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
+                        val subagentParentTools = parentTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
+                            val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                                ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
+                            val toolName = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}"
+                            if (toolName in existingToolNames) return@mapNotNull null
+                            Tool(
+                                name = toolName,
+                                description = tool.description ?: "",
+                                parameters = { tool.inputSchema },
+                                needsApproval = { tool.needsApproval },
+                                execute = {
+                                    mcpManager.callTool(serverId, tool.name, it.jsonObject)
+                                },
+                            )
+                        }
+                        val subagentTool = buildSubagentTool(settings)
+                        add(
+                            subagentTool.copy(
+                                description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
+                                execute = {
+                                    val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
+                                        ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
+                                    val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task)))
+                                }
+                            )
+                        )
+                    }
+                    }
+                    if (LocalToolOption.ToolSearch in assistant.localTools && settings.deferredTools.isNotEmpty()) {
+                        val active = mutableListOf<Tool>()
+                        val deferred = mutableListOf<Tool>()
+                        allTools.forEach { tool ->
+                            if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
+                        }
+                        if (deferred.isNotEmpty()) {
+                            active.add(buildToolSearchTool(deferred, active))
+                        }
+                        active
+                    } else {
+                        allTools
+                    }
                 },
             ).onCompletion {
                 // 取消 Live Update 通知
                 cancelLiveUpdateNotification(conversationId)
+                stopGenerationKeepAlive()
 
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = getConversationFlow(conversationId).value.copy(
@@ -638,9 +741,25 @@ class ChatService(
         }.onFailure {
             // 取消 Live Update 通知
             cancelLiveUpdateNotification(conversationId)
+            stopGenerationKeepAlive()
 
-            it.printStackTrace()
-            addError(it, conversationId, title = context.getString(R.string.error_title_generation))
+            val isNetworkError = it is SocketException ||
+                (it is IOException && it.message?.contains("connection", ignoreCase = true) == true)
+            if (isNetworkError) {
+                val friendlyMessage = if (!isForeground.value) {
+                    context.getString(R.string.error_connection_interrupted_background)
+                } else {
+                    context.getString(R.string.error_connection_interrupted)
+                }
+                addError(
+                    IOException(friendlyMessage, it),
+                    conversationId,
+                    title = context.getString(R.string.error_title_generation),
+                )
+            } else {
+                it.printStackTrace()
+                addError(it, conversationId, title = context.getString(R.string.error_title_generation))
+            }
             Logging.log(TAG, "handleMessageComplete: $it")
             Logging.log(TAG, it.stackTraceToString())
         }.onSuccess {
@@ -851,6 +970,19 @@ class ChatService(
 
     // ---- 压缩对话历史 ----
 
+    fun launchCompressConversation(
+        conversationId: Uuid,
+        conversation: Conversation,
+        additionalPrompt: String,
+        targetTokens: Int,
+        keepRecentMessages: Int = 32
+    ): Job = launchWithConversationReference(conversationId) {
+        compressConversation(conversationId, conversation, additionalPrompt, targetTokens, keepRecentMessages)
+            .onFailure {
+                addError(it, title = context.getString(R.string.error_title_compress_conversation))
+            }
+    }
+
     suspend fun compressConversation(
         conversationId: Uuid,
         conversation: Conversation,
@@ -936,6 +1068,21 @@ class ChatService(
     }
 
     // ---- 通知 ----
+
+    private fun startGenerationKeepAlive(senderName: String) {
+        runCatching {
+            val intent = Intent(context, GenerationKeepAliveService::class.java).apply {
+                putExtra(GenerationKeepAliveService.EXTRA_SENDER_NAME, senderName)
+            }
+            context.startForegroundService(intent)
+        }
+    }
+
+    private fun stopGenerationKeepAlive() {
+        runCatching {
+            context.stopService(Intent(context, GenerationKeepAliveService::class.java))
+        }
+    }
 
     private fun sendGenerationDoneNotification(conversationId: Uuid, senderName: String) {
         // 先取消 Live Update 通知
