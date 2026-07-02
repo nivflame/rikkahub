@@ -63,6 +63,9 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
+import me.rerere.hugeicons.stroke.Earth
+import android.content.Intent
+import me.rerere.rikkahub.browser.BrowserActivity
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
@@ -72,10 +75,13 @@ import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
+import me.rerere.rikkahub.data.files.SkillManager
+import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.service.ChatError
 import me.rerere.rikkahub.ui.components.ai.ChatInput
 import me.rerere.rikkahub.ui.components.ai.FilesPicker
 import me.rerere.rikkahub.ui.components.ai.completion.WorkspaceCompletionProvider
+import me.rerere.rikkahub.ui.components.ai.completion.SkillCompletionProvider
 import me.rerere.rikkahub.ui.components.ai.useCropLauncher
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionCamera
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
@@ -282,17 +288,26 @@ private fun ChatPageContent(
     val hazeState = rememberHazeState()
     val assistant = setting.getCurrentAssistant()
     var showFilesSheet by remember { mutableStateOf(false) }
+    val skillManager: SkillManager = koinInject()
 
-    val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository) {
-        assistant.workspaceId?.let { workspaceId ->
-            listOf(
-                WorkspaceCompletionProvider(
-                    workspaceId = workspaceId.toString(),
-                    repository = workspaceRepository,
-                    currentCwd = conversation.workspaceCwd,
+    val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository, assistant.localTools) {
+        buildList {
+            if (assistant.workspaceId != null) {
+                add(
+                    WorkspaceCompletionProvider(
+                        workspaceId = assistant.workspaceId.toString(),
+                        repository = workspaceRepository,
+                        currentCwd = conversation.workspaceCwd,
+                    )
                 )
-            )
-        }.orEmpty()
+            }
+            if (LocalToolOption.Skill in assistant.localTools) {
+                val skills = runCatching { skillManager.listSkills() }.getOrDefault(emptyList())
+                if (skills.isNotEmpty()) {
+                    add(SkillCompletionProvider(skills))
+                }
+            }
+        }
     }
 
     TTSAutoPlay(vm = vm, setting = setting, conversation = conversation)
@@ -699,6 +714,7 @@ private fun TopBar(
 ) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    val context = LocalContext.current
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
@@ -767,6 +783,16 @@ private fun TopBar(
                 }
             ) {
                 Icon(HugeIcons.MessageAdd01, "New Message")
+            }
+            IconButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(context, BrowserActivity::class.java)
+                            .putExtra("conversationId", conversation.id.toString())
+                    )
+                }
+            ) {
+                Icon(HugeIcons.Earth, "Browser")
             }
         },
     )

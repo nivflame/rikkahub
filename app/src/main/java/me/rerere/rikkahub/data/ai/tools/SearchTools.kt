@@ -3,9 +3,12 @@ package me.rerere.rikkahub.data.ai.tools
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
+import me.rerere.ai.core.InputSchema
 import me.rerere.ai.core.Tool
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.datastore.Settings
@@ -22,10 +25,13 @@ fun createSearchTools(settings: Settings): Set<Tool> {
             Tool(
                 name = "search_web",
                 description = """
-                    Search the web for up-to-date or specific information.
-                    Use this when the user asks for the latest news, current facts, or needs verification.
-                    Generate focused keywords and run multiple searches if needed.
-                    Today is ${LocalDate.now().toLocalString(true)}.
+                    Allows you to search the web
+
+                    Usage notes:
+                    - Use the correct year in search queries:
+                      - Today is ${LocalDate.now().toLocalString(true)}.
+                      - Example: If the user asks for "latest React docs", search for "React documentation" with the current year, NOT last year
+                    - Set news to true to search news results (recency-focused) instead of general web search
 
                     Response format:
                     - items[].id (short id), title, url, text
@@ -44,13 +50,21 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                     Example:
                     The capital of France is Paris. [citation,example.com](abc123)
                     The population is about 2.1 million. [citation,example.com](abc123) [citation,example2.com](def456)
-                    """.trimIndent(),
+                """.trimIndent(),
                 parameters = {
-                    val options = settings.searchServices.getOrElse(
-                        index = settings.searchServiceSelected,
-                        defaultValue = { SearchServiceOptions.DEFAULT })
-                    val service = SearchService.getService(options)
-                    service.parameters(options)
+                    InputSchema.Obj(
+                        properties = buildJsonObject {
+                            put("query", buildJsonObject {
+                                put("description", "The search query to use")
+                                put("type", "string")
+                            })
+                            put("news", buildJsonObject {
+                                put("description", "Set to true to search news results instead of general web search")
+                                put("type", "boolean")
+                            })
+                        },
+                        required = listOf("query")
+                    )
                 },
                 execute = {
                     val options = settings.searchServices.getOrElse(
@@ -66,10 +80,9 @@ fun createSearchTools(settings: Settings): Set<Tool> {
                         JsonInstantPretty.encodeToJsonElement(result.getOrThrow()).jsonObject.let { json ->
                             val map = json.toMutableMap()
                             map["items"] =
-                                JsonArray(map["items"]!!.jsonArray.mapIndexed { index, item ->
+                                JsonArray(map["items"]!!.jsonArray.map { item ->
                                     JsonObject(item.jsonObject.toMutableMap().apply {
                                         put("id", JsonPrimitive(Uuid.random().toString().take(6)))
-                                        put("index", JsonPrimitive(index + 1))
                                     })
                                 })
                             JsonObject(map)

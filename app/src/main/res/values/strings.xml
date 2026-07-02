@@ -461,6 +461,10 @@
   <string name="permission_microphone_desc">Microphone permission is required for speech recognition</string>
   <string name="permission_notification">Notification</string>
   <string name="permission_notification_desc">Send notifications</string>
+  <string name="permission_calendar_read">Read Calendar</string>
+  <string name="permission_calendar_read_desc">Read calendar events to answer your schedule-related questions</string>
+  <string name="permission_calendar_write">Write Calendar</string>
+  <string name="permission_calendar_write_desc">Create calendar events on your behalf</string>
   <string name="permission_permanently_denied">Permanently Denied</string>
   <string name="permission_required">Required</string>
   <string name="photo">Photo</string>
@@ -583,6 +587,7 @@
   <string name="search_detail_summary">Summary</string>
   <string name="search_detail_summary_desc">Enable summary generation</string>
   <string name="search_detail_system_prompt">System Prompt</string>
+  <string name="search_detail_timeout_seconds">Timeout (seconds)</string>
   <string name="search_detail_unknown_error">Unknown error</string>
   <string name="search_detail_username">Username</string>
   <string name="search_page_hint">Enter keywords and press Search to find messages</string>
@@ -1251,7 +1256,24 @@
   <string name="assistant_page_local_tools_screen_time_title">Screen Time</string>
   <string name="assistant_page_local_tools_screen_time_desc">Let the AI read your app screen usage time</string>
   <string name="assistant_page_local_tools_screen_time_permission_required">Please grant the Usage access permission in settings to use screen time</string>
+  <string name="assistant_page_local_tools_browser_title">Browser</string>
+  <string name="assistant_page_local_tools_browser_desc">Let the AI navigate web pages and read them in a headless browser</string>
   <string name="chat_message_tool_screen_time">Read screen time</string>
   <string name="tool_ui_screen_time_total">Total screen time</string>
+  <string name="assistant_page_local_tools_calendar_title">Calendar</string>
+  <string name="assistant_page_local_tools_calendar_desc">Let the AI query and create calendar events</string>
+  <string name="chat_message_tool_calendar_query">Query calendar events</string>
+  <string name="chat_message_tool_calendar_create">Create event: %1$s</string>
+  <string name="chat_page_move_to_folder">Move to Folder</string>
+  <string name="chat_page_remove_from_folder">Remove from Folder</string>
+  <string name="chat_page_create_folder">New Folder</string>
+  <string name="chat_page_folder_name">Folder name</string>
+  <string name="chat_page_rename_folder">Rename Folder</string>
+  <string name="chat_page_delete_folder">Delete Folder</string>
+  <string name="chat_page_rename">Rename</string>
+  <string name="chat_page_folder_default">Chat</string>
+  <string name="chat_page_folder_add">New</string>
+  <string name="chat_page_delete_folder_confirm">Delete folder "%1$s"? Conversations inside will not be deleted, only removed from the folder.</string>
+  <string name="chat_page_delete_folder_generating">Some conversations in this folder are still generating. Please stop them before deleting.</string>
 </resources>
 

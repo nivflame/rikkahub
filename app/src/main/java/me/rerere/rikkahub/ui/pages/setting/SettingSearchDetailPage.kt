@@ -198,7 +198,6 @@ private fun SearchServiceOptionsEditor(
         is SearchServiceOptions.PerplexityOptions -> {
             PerplexityOptions(options) { onUpdateOptions(it) }
         }
-        is SearchServiceOptions.BingLocalOptions -> {}
         is SearchServiceOptions.FirecrawlOptions -> {
             FirecrawlOptions(options) { onUpdateOptions(it) }
         }
@@ -222,6 +221,9 @@ private fun SearchServiceOptionsEditor(
         }
         is SearchServiceOptions.CustomJsOptions -> {
             CustomJsOptions(options) { onUpdateOptions(it) }
+        }
+        is SearchServiceOptions.BingLocalOptions -> {
+            // Bing is crawler-based, no configuration needed
         }
     }
 }
