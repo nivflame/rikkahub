@@ -1,4 +1,4 @@
-name: Release Build
+name: Build Release APK (arm64, debug-signed)
 
 on:
   workflow_dispatch:
@@ -10,7 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           submodules: true
 
       - name: Set up JDK
@@ -44,22 +43,23 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: web-ui
 
-      - name: Prepare signing and Google Services
+      - name: Write google-services.json
         run: |
-          chmod +x gradlew
-          echo "${{ secrets.KEY_BASE64 }}" | base64 -d > app/app.key
-          echo "${{ secrets.SIGNING_CONFIG }}" > local.properties
           printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
           if [ ! -s app/google-services.json ]; then
             printf '%s' '{"project_info":{"project_number":"000000000000","project_id":"dummy"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"me.rerere.rikkahub"}},"api_key":[{"current_key":"AIzaSyZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]},{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000001","android_client_info":{"package_name":"me.rerere.rikkahub.debug"}},"api_key":[{"current_key":"AIzaSyZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]},{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000002","android_client_info":{"package_name":"me.rerere.rikkahub.fork"}},"api_key":[{"current_key":"AIzaSyZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]}],"configuration_version":"1"}' > app/google-services.json
           fi
 
-      - name: Gradle Build
+      - name: Generate debug signing key
+        run: |
+          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          printf 'storeFile=debug.keystore\nstorePassword=android\nkeyAlias=androiddebugkey\nkeyPassword=android\n' > local.properties
+
+      - name: Build release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: rikkahub-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: rikkahub-arm64-release
+          path: app/build/outputs/apk/release/app-arm64-v8a-release*.apk
