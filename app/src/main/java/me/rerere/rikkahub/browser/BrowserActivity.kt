@@ -74,6 +74,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
+import me.rerere.highlight.Highlighter
+import me.rerere.highlight.LocalHighlighter
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.ArrowLeft01
@@ -142,6 +144,7 @@ private data class BrowserUiState(
 class BrowserActivity : ComponentActivity() {
     private val chatService: ChatService by inject()
     private val settingsStore: SettingsStore by inject()
+    private val highlighter: Highlighter by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -303,7 +306,10 @@ private fun BrowserScreen(
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     val topBarColor = MaterialTheme.colorScheme.surfaceContainer
 
-    CompositionLocalProvider(LocalSettings provides settings) {
+    CompositionLocalProvider(
+        LocalSettings provides settings,
+        LocalHighlighter provides highlighter,
+    ) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
