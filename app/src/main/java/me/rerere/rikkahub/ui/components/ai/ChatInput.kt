@@ -102,7 +102,6 @@ import me.rerere.rikkahub.ui.components.ai.completion.ChatCompletionContext
 import me.rerere.rikkahub.ui.components.ai.completion.ChatCompletionItem
 import me.rerere.rikkahub.ui.components.ai.completion.ChatCompletionList
 import me.rerere.rikkahub.ui.components.ai.completion.ChatCompletionProvider
-import me.rerere.rikkahub.ui.components.ai.completion.rememberSlashCommandTransformation
 import me.rerere.rikkahub.ui.components.ui.KeepScreenOn
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionManager
 import me.rerere.rikkahub.ui.components.ui.permission.PermissionRecordAudio
@@ -549,8 +548,6 @@ private fun TextInputRow(
             )
         }
 
-        val slashCommandTransformation = rememberSlashCommandTransformation()
-
         TextField(
             state = state.textContent,
             modifier = Modifier
@@ -564,7 +561,6 @@ private fun TextInputRow(
             placeholder = {
                 Text(stringResource(R.string.chat_input_placeholder))
             },
-            outputTransformation = slashCommandTransformation,
             lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
             keyboardOptions = KeyboardOptions(
                 imeAction = if (settings.displaySetting.sendOnEnter) ImeAction.Send else ImeAction.Default
@@ -774,7 +770,6 @@ private fun FullScreenEditor(
                             Text(stringResource(R.string.chat_page_save))
                         }
                     }
-                    val slashCommandTransformation2 = rememberSlashCommandTransformation()
                     TextField(
                         state = state.textContent,
                         modifier = Modifier
@@ -784,7 +779,6 @@ private fun FullScreenEditor(
                         placeholder = {
                             Text(stringResource(R.string.chat_input_placeholder))
                         },
-                        outputTransformation = slashCommandTransformation2,
                         colors = TextFieldDefaults.colors().copy(
                             unfocusedIndicatorColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
