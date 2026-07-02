@@ -36,6 +36,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.FloatingActionButton
@@ -670,35 +671,28 @@ private fun BrowserScreen(
     if (showZoomDialog) {
         Dialog(onDismissRequest = { showZoomDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                tonalElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(28.dp),
+                shadowElevation = 6.dp,
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(20.dp)
-                        .width(280.dp),
+                        .padding(24.dp)
+                        .width(320.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
+                    Text(
+                        text = "$zoomLevel%",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("$zoomLevel%", style = MaterialTheme.typography.titleMedium)
-                        TextButton(onClick = {
-                            zoomLevel = 100
-                            controller?.webView?.settings?.textZoom = 100
-                        }) {
-                            Text("Reset")
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        IconButton(onClick = {
+                        FilledTonalIconButton(onClick = {
                             zoomLevel = (zoomLevel - 10).coerceIn(50, 200)
                             controller?.webView?.settings?.textZoom = zoomLevel
                         }) {
@@ -713,12 +707,21 @@ private fun BrowserScreen(
                             valueRange = 50f..200f,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(onClick = {
+                        FilledTonalIconButton(onClick = {
                             zoomLevel = (zoomLevel + 10).coerceIn(50, 200)
                             controller?.webView?.settings?.textZoom = zoomLevel
                         }) {
                             Text("+", style = MaterialTheme.typography.headlineMedium)
                         }
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            zoomLevel = 100
+                            controller?.webView?.settings?.textZoom = 100
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Reset")
                     }
                 }
             }
