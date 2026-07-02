@@ -65,6 +65,20 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
   Output transformers support `visualTransform()` for UI display during streaming and `onGenerationFinish()` for final processing after generation completes.
   (app/src/main/java/me/rerere/rikkahub/data/ai/transformers/Transformer.kt)
 
+## Fork Maintenance
+
+This is a fork of `rikkahub/rikkahub`. Upstream remote is `origin`, fork remote is `fork`.
+
+When syncing with upstream:
+1. `git fetch origin` to get latest upstream
+2. `git merge origin/master --no-edit` to bring in new commits
+3. Resolve conflicts: keep fork tools (browser, subagent, ToolSearch), exclude ScreenTimeTool and CalendarTool (intentionally deleted)
+4. If squashing: `git reset --soft origin/master` (NEVER reset to old merge-base, causes "commits behind" on GitHub)
+5. Create backup branch before squash: `git branch -f backup-before-squash-N HEAD`
+6. Force push is acceptable for this personal fork
+
+NEVER add fork-specific Room database migrations. Fork features use DataStore to preserve upstream database compatibility.
+
 ## Development Guidelines
 
 ### UI Development
