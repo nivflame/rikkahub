@@ -185,7 +185,8 @@ class SettingsStore(
                     JsonInstant.decodeFromString<Map<String, String>>(it)
                 } ?: emptyMap(),
                 subagentPrompts = preferences[SUBAGENT_PROMPTS]?.let {
-                    JsonInstant.decodeFromString<List<SubagentPrompt>>(it)
+                    val parsed = JsonInstant.decodeFromString<List<SubagentPrompt>>(it)
+                    if (parsed.isEmpty()) loadDefaultSubagentPrompts(context.assets) else parsed
                 } ?: loadDefaultSubagentPrompts(context.assets),
                 subagentConcurrency = preferences[SUBAGENT_CONCURRENCY] ?: 3,
                 subagentModelId = preferences[SUBAGENT_MODEL]?.takeIf { it.isNotBlank() }?.let { Uuid.parse(it) },
