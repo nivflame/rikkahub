@@ -3,7 +3,9 @@ package me.rerere.rikkahub.data.datastore.migration
 import android.util.Log
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import me.rerere.rikkahub.utils.JsonInstant
 
 private const val TAG = "SettingsJsonMigrator"
@@ -16,6 +18,8 @@ private const val TAG = "SettingsJsonMigrator"
  * 此工具类负责在反序列化前对旧格式的 JSON 执行等价的迁移操作。
  */
 object SettingsJsonMigrator {
+
+    private val DELETED_TOOL_TYPES = setOf("time_info", "tts", "screen_time", "calendar")
 
     /**
      * 对 settings JSON 字符串依次应用所有版本的迁移。
@@ -59,6 +63,29 @@ object SettingsJsonMigrator {
                     )
                     root["quickMessages"] = merged
                 }
+            }
+
+            // V4: Remove deleted LocalToolOption entries from localTools arrays
+            root["assistants"]?.let { element ->
+                val assistantsArray = element as? JsonArray ?: return@let
+                val migrated = JsonArray(
+                    assistantsArray.map { assistant ->
+                        val assistantObj = assistant as? JsonObject ?: return@map assistant
+                        val localTools = assistantObj["localTools"] as? JsonArray
+                            ?: return@map assistant
+                        val filteredTools = JsonArray(
+                            localTools.filter { tool ->
+                                val toolObj = tool as? JsonObject ?: return@filter true
+                                val type = toolObj["type"]?.jsonPrimitive?.contentOrNull
+                                type !in DELETED_TOOL_TYPES
+                            }
+                        )
+                        JsonObject(assistantObj.toMutableMap().apply {
+                            this["localTools"] = filteredTools
+                        })
+                    }
+                )
+                root["assistants"] = migrated
             }
 
             JsonInstant.encodeToString(JsonObject(root))
