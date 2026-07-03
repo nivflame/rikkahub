@@ -266,7 +266,7 @@ private fun createShellTool(
                 append("cd ").append(state.cwd.shellQuote()).append(" 2>/dev/null; ")
             }
             append(command)
-            append("; __exit=$?; echo \"___PWD___$(pwd)___ENDPWD___\"; exit $__exit")
+            append("; __exit=\$?; echo \"___PWD___\$(pwd)___ENDPWD___\"; exit \$__exit")
         }
 
         val result = workspaceRepository.executeCommand(workspaceId, wrappedCommand, "", timeoutMs)
