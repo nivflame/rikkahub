@@ -19,6 +19,8 @@ import me.rerere.rikkahub.data.files.FileFolders
 import me.rerere.workspace.RootfsPatchOptions
 import me.rerere.workspace.RootfsPatcher
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
 
 internal fun createWorkspaceTerminalSession(
     context: Context,
@@ -54,6 +56,7 @@ internal fun createWorkspaceTerminalSession(
             args += path
         }
     }
+    val shell = if (Files.exists(File(linuxDir, "bin/bash").toPath(), LinkOption.NOFOLLOW_LINKS)) "/bin/bash" else "/bin/sh"
     args += listOf(
         "/usr/bin/env",
         "-i",
@@ -63,8 +66,8 @@ internal fun createWorkspaceTerminalSession(
         "LANG=C.UTF-8",
         "LC_ALL=C.UTF-8",
         "USER=root",
-        "SHELL=/bin/bash",
-        "/bin/bash",
+        "SHELL=$shell",
+        shell,
     )
 
     val env = arrayOf(
