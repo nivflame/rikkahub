@@ -36,11 +36,12 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_search",
         description = """
-            Search Google and return a list of results with titles, sources, dates, and URLs.
+            Search Google and return up to 20 results in "title | snippet | url" format.
 
             Usage notes:
             - Set news to true for Google News search, false for regular web search
-            - Returns up to 20 results as "title - source - date [URL]" lines
+            - Automatically paginates Google results to collect up to 20 results
+            - Each result is formatted as: title | snippet | url
             - Use browser_fetch to read any result URL in one step
             - This is more efficient than navigating to Google and using browser_dom_snapshot
         """.trimIndent(),

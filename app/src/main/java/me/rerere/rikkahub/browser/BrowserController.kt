@@ -130,32 +130,85 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     }
 
     suspend fun search(query: String, news: Boolean): String {
-        val url = if (news) {
+        val baseUrl = if (news) {
             "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8") + "&tbm=nws"
         } else {
             "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8")
         }
-        navigate(url)
-        val js = """
+
+        val allResults = mutableListOf<String>()
+        val seenUrls = mutableSetOf<String>()
+        var currentUrl = baseUrl
+        var pagesRemaining = 3
+
+        while (allResults.size < 20 && pagesRemaining > 0 && currentUrl.isNotEmpty()) {
+            navigate(currentUrl)
+
+            val extractJs = """
 (function(){
+var containers=document.querySelectorAll('[class*="Ww4FFb"]');
 var results=[];
+var seen=new Set();
+for(var i=0;i<containers.length;i++){
+var links=containers[i].querySelectorAll('a[href]');
+for(var j=0;j<links.length;j++){
+var link=links[j];
+var href=link.href;
+if(!href||href.indexOf('google.')>=0) continue;
+if(seen.has(href)) continue;
+var text=(link.innerText||'').trim();
+if(!text||text.length<10) continue;
+var lines=text.split('\n').filter(function(s){return s.trim();});
+if(lines.length<2) continue;
+var title='';
+var maxLen=0;
+var snippetParts=[];
+for(var k=0;k<lines.length;k++){
+if(lines[k].indexOf('http')===0||lines[k].indexOf('www.')===0) continue;
+if(lines[k].length>maxLen){if(title)snippetParts.push(title);maxLen=lines[k].length;title=lines[k];}
+else{snippetParts.push(lines[k]);}
+}
+if(!title) continue;
+seen.add(href);
+results.push(title.slice(0,150)+' | '+snippetParts.join(' - ').slice(0,100)+' | '+href);
+}
+}
+return results.join('\n');
+})();
+            """.trimIndent()
+
+            val extractRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
+            val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
+
+            if (extractText.isNotBlank()) {
+                for (line in extractText.split('\n')) {
+                    if (line.isBlank()) continue
+                    val url = line.substringAfterLast(" | ").trim()
+                    if (url.isNotEmpty() && url !in seenUrls) {
+                        seenUrls.add(url)
+                        allResults.add(line)
+                    }
+                }
+            }
+
+            if (allResults.size >= 20) break
+
+            val nextJs = """
+(function(){
 var links=document.querySelectorAll('a[href]');
 for(var i=0;i<links.length;i++){
-var link=links[i];
-var href=link.href;
-if(!href) continue;
-if(href.indexOf('google.com')>=0||href.indexOf('googleapis.com')>=0||href.indexOf('gstatic.com')>=0) continue;
-if(href.indexOf('google.')>=0) continue;
-var text=(link.innerText||'').trim().replace(/\n/g,' ');
-if(!text||text.length<10) continue;
-if(link.closest('nav,footer,header,[role="navigation"],[role="banner"],[role="contentinfo"]')) continue;
-results.push(text.slice(0,200)+' ['+href+']');
+if(links[i].href.indexOf('google.com/search')>=0&&links[i].href.indexOf('start=')>=0) return links[i].href;
 }
-return results.slice(0,20).join('\n');
+return '';
 })();
-        """.trimIndent()
-        val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(js) }
-        return raw?.let { unquoteJsString(it) }?.takeIf { it.isNotBlank() } ?: "no results found"
+            """.trimIndent()
+
+            val nextRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(nextJs) }
+            currentUrl = nextRaw?.let { unquoteJsString(it) } ?: ""
+            pagesRemaining--
+        }
+
+        return allResults.take(20).joinToString("\n").ifBlank { "no results found" }
     }
 
     private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
