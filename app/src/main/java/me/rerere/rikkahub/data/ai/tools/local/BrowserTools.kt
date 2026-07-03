@@ -13,10 +13,8 @@ import me.rerere.ai.core.Tool
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.browser.BrowserController
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
-
-private val BROWSER_SYSTEM_PROMPT = """
-You have browser tools to navigate and automate the in-app WebView. Use browser_search to search Google (web or news) and get a list of result titles with URLs. Use browser_fetch to navigate to a URL and read its content as markdown in one step (main content extracted by Readability.js with links resolved to absolute URLs). Use browser_navigate only when you need to go back, forward, or reload, or when you plan to interact with the page before reading it. Use browser_get_content to read the current page after you have used browser_interact on it. Use browser_dom_snapshot to get an accessibility tree of the page (roles, names, links, and interactive elements with refs). Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with the [data-rkref="eN"] selector from the snapshot. Use browser_waitfor to wait for an element to appear on the page (useful for Cloudflare challenges, dynamic content, or popups). If browser_fetch returns "no content" or the page shows a security verification, use browser_waitfor with a CSS selector like "article" or "main" and a longer timeout (e.g. 15000) to wait for the challenge to complete, then use browser_get_content to read the page. Use browser_execute_script to run JavaScript in the browser page context (it cannot create files or interact with the device file system), browser_logs to read console or network logs, and browser_screenshot to capture the page. For search results or structured list pages, prefer browser_dom_snapshot over browser_fetch. If browser_fetch or browser_get_content returns a truncation notice, call it again with the start_index shown in that notice until you have read the whole page before responding. After reading an article, use browser_navigate with type "back" to return to search results instead of constructing a new search URL. If you need to create files (HTML, text, code), use the write_file or shell tools, not browser tools.
-""".trimIndent().replace("\n", " ")
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_search",
@@ -36,17 +34,7 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_search",
-        description = """
-            Search Google and return up to 20 results in "title | snippet | url" format.
-
-            Usage notes:
-            - Set news to true for Google News search, false for regular web search
-            - Automatically paginates Google results to collect up to 20 results
-            - Each result is formatted as: title | snippet | url
-            - Use browser_fetch to read any result URL in one step
-            - This is more efficient than navigating to Google and using browser_dom_snapshot
-        """.trimIndent(),
-        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        description = "Allows you to search the web using Google Search\n\nUsage notes:\n- Set news to true for News search, false for regular web search\n- Keep queries short and specific (1-6 words). Start broad, then narrow\n- Make each query distinct. Repeating phrases yields the same results\n- Use the correct year in search queries:\n  - The current month is ${LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. You MUST use this year when searching for recent information, documentation, or current events\n  - Example: If the user asks for \"latest React docs\", search for \"React documentation\" with the current year ${LocalDate.now().year}, NOT last year\n- Use browser_fetch to read full articles. browser_search snippets are too brief to cite\n- Prioritize browser_fetch on primary sources (company blogs, official announcements, peer-reviewed papers, first-hand reports) over aggregator roundups. When search results contain both official source URLs and aggregator URLs covering the same topic, ALWAYS fetch the official source first\n- If a source is not found, inform the user\n- Use the user's provided location for location-dependent queries\n- NEVER mention your knowledge cutoff or justify using search tools. Just search\n- Provide a substantive answer first. Do not reply with only a search offer or disclaimer\n- Trust search results even if surprising. Be skeptical of SEO-heavy results and conspiracy-prone topics\n- If results conflict or are incomplete, run more searches to clarify\n- This is more efficient than navigating to Google and using browser_dom_snapshot",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -73,22 +61,13 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_fetch",
-        description = """
-            Navigate to a URL and read its content as markdown in one step. Main content is extracted by Readability.js with links resolved to absolute URLs, paginated.
-
-            Usage notes:
-            - This is the primary tool for reading a web page. It combines navigation and content extraction
-            - For search results or structured list pages, use browser_dom_snapshot instead
-            - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
-            - If this returns "no content", try browser_dom_snapshot with a selector targeting the main content area
-        """.trimIndent(),
-        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        description = "Fetches content from a specified URL\n\nUsage notes:\n- When a URL redirects to a different host, the tool will inform you and provide the redirect URL in a special format. You should then make a new WebFetch request with the redirect URL to fetch the content\n- For GitHub URLs, prefer using the gh CLI via Bash instead (e.g., gh pr view, gh issue view, gh api)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until you read full content\n- If it returns \"no content\", use browser_dom_snapshot with a selector targeting the main content area",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
                     put("url", buildJsonObject {
                         put("type", "string")
-                        put("description", "The URL to navigate to and read")
+                        put("description", "The URL to fetch content")
                     })
                     put("start_index", buildJsonObject {
                         put("type", "number")
@@ -109,14 +88,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_navigate",
-        description = """
-            Navigate the in-app browser to a URL, or go back, forward, or reload.
-
-            Usage notes:
-            - The page is fully loaded and ready when this tool returns
-            - Set type to "back", "forward", or "reload" to navigate history instead of opening a URL
-        """.trimIndent(),
-        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -145,15 +117,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_get_content",
-        description = """
-            Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.
-
-            Usage notes:
-            - Use this to read content from a page you have already navigated to and possibly interacted with
-            - For reading a new URL, use browser_fetch instead (it combines navigation and content extraction in one call)
-            - For search results or structured list pages, use browser_dom_snapshot instead
-            - If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read
-        """.trimIndent(),
+        description = "Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.\n\nUsage notes:\n- Use this to read content from a page you have already navigated to and possibly interacted with\n- For reading a new URL, use browser_fetch instead (it combines navigation and content extraction in one call)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -174,13 +138,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_screenshot",
-        description = """
-            Capture the current page as a JPEG image.
-
-            Usage notes:
-            - Use this to see the visual layout, not for reading text (use browser_get_content for text)
-            - Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page
-        """.trimIndent(),
+        description = "Capture the current page as a JPEG image.\n\nUsage notes:\n- Use this to see the visual layout, not for reading text (use browser_get_content for text)\n- Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -210,14 +168,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_interact",
-        description = """
-            Interact with a DOM element on the current page.
-
-            Usage notes:
-            - Actions: click, fill, scroll, hover, press_key, type_text
-            - A selector is required for all actions except press_key. Use a [data-rkref="eN"] selector from browser_dom_snapshot for reliable targeting
-            - Use value for fill (text to type) and scroll (pixels to scroll by)
-        """.trimIndent(),
+        description = "Interact with a DOM element on the current page.\n\nUsage notes:\n- Actions: click, fill, scroll, hover, press_key, type_text\n- A selector is required for all actions except press_key. Use a [data-rkref=\"eN\"] selector from browser_dom_snapshot for reliable targeting\n- Use value for fill (text to type) and scroll (pixels to scroll by)",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -267,15 +218,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_dom_snapshot",
-        description = """
-            Return an accessibility tree of the current page: semantic roles, names, links, and interactive elements, capped to ${BrowserController.MAX_DOM_NODES} nodes.
-
-            Usage notes:
-            - Use this to inspect page structure and find elements to interact with
-            - Interactive elements are tagged with a ref, e.g. [ref=e1]. Pass that as the selector [data-rkref="e1"] to browser_interact
-            - For reading article text, prefer browser_get_content. For search results or structured list pages, prefer this tool
-            - Scope the snapshot to a subtree by providing a selector
-        """.trimIndent(),
+        description = "Return an accessibility tree of the current page: semantic roles, names, links, and interactive elements, capped to ${BrowserController.MAX_DOM_NODES} nodes.\n\nUsage notes:\n- Use this to inspect page structure and find elements to interact with\n- Interactive elements are tagged with a ref, e.g. [ref=e1]. Pass that as the selector [data-rkref=\"e1\"] to browser_interact\n- For reading article text, prefer browser_get_content. For search results or structured list pages, prefer this tool\n- Scope the snapshot to a subtree by providing a selector",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -296,13 +239,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_execute_script",
-        description = """
-            Execute a JavaScript expression in the current page and return the result as a string.
-
-            Usage notes:
-            - Use this for custom extraction or actions not covered by the other browser tools
-            - Runs JavaScript in the browser page context only. Cannot create files or interact with the device file system
-        """.trimIndent(),
+        description = "Execute a JavaScript expression in the current page and return the result.\n\nUsage notes:\n- Requires an active page. Call browser_navigate first\n- Use for extracting data, triggering events, inspecting page state or actions not covered by the other browser tools\n- This tool is read-only and does not modify any files",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -324,12 +261,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_logs",
-        description = """
-            Return captured browser logs.
-
-            Usage notes:
-            - Use type "console" for console output, or "network" for network request URLs (no response bodies)
-        """.trimIndent(),
+        description = "Return captured browser logs.\n\nUsage notes:\n- Use type \"console\" for console output, or \"network\" for network request URLs (no response bodies)",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -353,16 +285,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_waitfor",
-        description = """
-            Wait for an element to appear on the current page. Supports both CSS selectors and text search.
-
-            - If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector
-            - Otherwise it is treated as a text search (e.g., "Login" finds a button with that text)
-            - Returns whether the element was found within the timeout
-            - Requires an active page (call browser_navigate or browser_fetch first)
-            - Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear
-        """.trimIndent(),
-        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        description = "Wait for an element to appear on the current page. Supports both CSS selectors and text search.\n\n- If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector\n- Otherwise it is treated as a text search (e.g., \"Login\" finds a button with that text)\n- Returns whether the element was found within the timeout\n- Requires an active page (call browser_navigate or browser_fetch first)\n- Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
