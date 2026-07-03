@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -179,6 +180,10 @@ private fun WorkspaceTerminalContent(
     val session = currentState.session
     val sessionClient = root?.let { WorkspaceTerminalSessionHolder.getClient(it) }
 
+    LaunchedEffect(session) {
+        finished = root?.let { WorkspaceTerminalSessionHolder.isFinished(it) } ?: false
+    }
+
     DisposableEffect(session) {
         sessionClient?.onFinished = { finished = true }
         onDispose {
@@ -256,13 +261,15 @@ private fun WorkspaceTerminalContent(
                     )
                 }
             }
-            TerminalExtraKeysBar(
-                controlDown = controlDown,
-                altDown = altDown,
-                onControlToggle = { controlDown = !controlDown },
-                onAltToggle = { altDown = !altDown },
-                onSendText = { session.writeText(it) },
-            )
+                if (!finished) {
+                    TerminalExtraKeysBar(
+                        controlDown = controlDown,
+                        altDown = altDown,
+                        onControlToggle = { controlDown = !controlDown },
+                        onAltToggle = { altDown = !altDown },
+                        onSendText = { session.writeText(it) },
+                    )
+                }
         }
     }
 }

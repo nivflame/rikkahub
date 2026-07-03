@@ -21,6 +21,7 @@ import me.rerere.workspace.RootfsPatcher
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.LinkOption
+import java.util.concurrent.ConcurrentHashMap
 
 internal fun createWorkspaceTerminalSession(
     context: Context,
@@ -113,8 +114,8 @@ internal object WorkspaceTerminalSessionHolder {
         val client: WorkspaceTerminalSessionClient,
     )
 
-    private val sessions = mutableMapOf<String, SessionEntry>()
-    private val finishedFlags = mutableMapOf<String, Boolean>()
+    private val sessions = ConcurrentHashMap<String, SessionEntry>()
+    private val finishedFlags = ConcurrentHashMap<String, Boolean>()
 
     fun get(root: String): TerminalSession? = sessions[root]?.session
 
