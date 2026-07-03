@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Refresh01
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,7 +81,7 @@ fun WorkspaceTerminalPage(id: String) {
                             restartTrigger++
                         }) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
+                                imageVector = HugeIcons.Refresh01,
                                 contentDescription = "Restart terminal",
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
