@@ -261,15 +261,13 @@ private fun WorkspaceTerminalContent(
                     )
                 }
             }
-                if (!finished) {
-                    TerminalExtraKeysBar(
-                        controlDown = controlDown,
-                        altDown = altDown,
-                        onControlToggle = { controlDown = !controlDown },
-                        onAltToggle = { altDown = !altDown },
-                        onSendText = { session.writeText(it) },
-                    )
-                }
+                TerminalExtraKeysBar(
+                    controlDown = controlDown,
+                    altDown = altDown,
+                    onControlToggle = { controlDown = !controlDown },
+                    onAltToggle = { altDown = !altDown },
+                    onSendText = { session.writeText(it) },
+                )
         }
     }
 }
