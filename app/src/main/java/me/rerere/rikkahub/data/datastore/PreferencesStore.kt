@@ -300,12 +300,7 @@ class SettingsStore(
                     )
                 } else provider
             }.toMutableList()
-            val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS }.toMutableList()
-            DEFAULT_ASSISTANTS.forEach { defaultAssistant ->
-                if (assistants.none { it.id == defaultAssistant.id }) {
-                    assistants.add(defaultAssistant.copy())
-                }
-            }
+            val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS.toList() }.toMutableList()
             for (i in assistants.indices) {
                 val default = DEFAULT_ASSISTANTS.find { it.id == assistants[i].id }
                 if (default != null && default.systemPrompt.isNotEmpty() && assistants[i].systemPrompt.isEmpty()) {
