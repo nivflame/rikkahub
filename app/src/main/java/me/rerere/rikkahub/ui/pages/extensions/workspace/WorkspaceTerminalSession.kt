@@ -107,11 +107,47 @@ internal fun workspaceRootfsReady(context: Context, root: String): Boolean {
         java.nio.file.Files.exists(File(linuxDir, "bin/sh").toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)
 }
 
+internal object WorkspaceTerminalSessionHolder {
+    private data class SessionEntry(
+        val session: TerminalSession,
+        val client: WorkspaceTerminalSessionClient,
+    )
+
+    private val sessions = mutableMapOf<String, SessionEntry>()
+    private val finishedFlags = mutableMapOf<String, Boolean>()
+
+    fun get(root: String): TerminalSession? = sessions[root]?.session
+
+    fun getClient(root: String): WorkspaceTerminalSessionClient? = sessions[root]?.client
+
+    fun isFinished(root: String): Boolean = finishedFlags[root] ?: false
+
+    fun create(root: String, context: Context): TerminalSession {
+        remove(root)
+        val appContext = context.applicationContext
+        val client = WorkspaceTerminalSessionClient(appContext)
+        client.onFinished = { finishedFlags[root] = true }
+        val session = createWorkspaceTerminalSession(context, root, client)
+        sessions[root] = SessionEntry(session, client)
+        finishedFlags[root] = false
+        return session
+    }
+
+    fun detachView(root: String) {
+        sessions[root]?.client?.terminalView = null
+    }
+
+    fun remove(root: String) {
+        sessions.remove(root)?.session?.finishIfRunning()
+        finishedFlags.remove(root)
+    }
+}
+
 internal class WorkspaceTerminalSessionClient(
     private val context: Context,
-    private val onFinished: () -> Unit,
 ) : TerminalSessionClient {
     var terminalView: TerminalView? = null
+    var onFinished: (() -> Unit)? = null
 
     override fun onTextChanged(changedSession: TerminalSession) {
         terminalView?.onScreenUpdated()
@@ -121,7 +157,7 @@ internal class WorkspaceTerminalSessionClient(
 
     override fun onSessionFinished(finishedSession: TerminalSession) {
         terminalView?.onScreenUpdated()
-        onFinished()
+        onFinished?.invoke()
     }
 
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {

@@ -90,14 +90,9 @@ private fun WorkspaceTerminalContent(
     val terminalTypeface = remember(context) {
         ResourcesCompat.getFont(context, R.font.jetbrains_mono) ?: Typeface.MONOSPACE
     }
-    var finished by remember(root) { mutableStateOf(false) }
+    var finished by remember(root) { mutableStateOf(root?.let { WorkspaceTerminalSessionHolder.isFinished(it) } ?: false) }
     var controlDown by remember(root) { mutableStateOf(false) }
     var altDown by remember(root) { mutableStateOf(false) }
-    val sessionClient = remember(root) {
-        WorkspaceTerminalSessionClient(context.applicationContext) {
-            finished = true
-        }
-    }
     val viewClient = remember(root) {
         WorkspaceTerminalViewClient(context)
     }
@@ -107,33 +102,34 @@ private fun WorkspaceTerminalContent(
     val sessionState by produceState<TerminalSessionUiState>(
         initialValue = TerminalSessionUiState.Loading,
         root,
-        sessionClient,
     ) {
         val current = root
         value = if (current == null) {
             TerminalSessionUiState.Loading
         } else {
-            // rootfs stat 与 RootfsPatcher().patch()/DNS 查询都是阻塞 I/O, 放到 IO 线程执行;
-            // TerminalSession 构造内部会创建 Handler, 必须回到主线程执行
-            val prepared = withContext(Dispatchers.IO) {
-                if (!workspaceRootfsReady(context, current)) {
-                    false
-                } else {
-                    prepareWorkspaceTerminalSession(context, current)
-                    true
-                }
-            }
-            if (!prepared) {
-                TerminalSessionUiState.NotInstalled
+            val existing = WorkspaceTerminalSessionHolder.get(current)
+            if (existing != null && !WorkspaceTerminalSessionHolder.isFinished(current)) {
+                TerminalSessionUiState.Ready(existing)
             } else {
-                if (!isActive) return@produceState
-                val created = createWorkspaceTerminalSession(context, current, sessionClient)
-                // 创建后若组合已离开, 主动回收以免泄漏 proot 进程, 且不再把已 finish 的 session 暴露为 Ready
-                if (!isActive) {
-                    created.finishIfRunning()
-                    return@produceState
+                val prepared = withContext(Dispatchers.IO) {
+                    if (!workspaceRootfsReady(context, current)) {
+                        false
+                    } else {
+                        prepareWorkspaceTerminalSession(context, current)
+                        true
+                    }
                 }
-                TerminalSessionUiState.Ready(created)
+                if (!prepared) {
+                    TerminalSessionUiState.NotInstalled
+                } else {
+                    if (!isActive) return@produceState
+                    val session = WorkspaceTerminalSessionHolder.create(current, context)
+                    if (!isActive) {
+                        WorkspaceTerminalSessionHolder.remove(current)
+                        return@produceState
+                    }
+                    TerminalSessionUiState.Ready(session)
+                }
             }
         }
     }
@@ -160,12 +156,13 @@ private fun WorkspaceTerminalContent(
         return
     }
     val session = currentState.session
+    val sessionClient = root?.let { WorkspaceTerminalSessionHolder.getClient(it) }
 
     DisposableEffect(session) {
+        sessionClient?.onFinished = { finished = true }
         onDispose {
-            sessionClient.terminalView = null
+            root?.let { WorkspaceTerminalSessionHolder.detachView(it) }
             viewClient.terminalView = null
-            session.finishIfRunning()
         }
     }
 
@@ -192,7 +189,7 @@ private fun WorkspaceTerminalContent(
                             setTypeface(terminalTypeface)
                             setTerminalViewClient(viewClient)
                             attachSession(session)
-                            sessionClient.terminalView = this
+                            sessionClient?.terminalView = this
                             viewClient.terminalView = this
                             setOnTouchListener { _, event ->
                                 if (event.action == MotionEvent.ACTION_UP) {
@@ -211,7 +208,7 @@ private fun WorkspaceTerminalContent(
                         terminalView.setTextSize(terminalTextSizePx)
                         terminalView.setTypeface(terminalTypeface)
                         terminalView.setTerminalViewClient(viewClient)
-                        sessionClient.terminalView = terminalView
+                        sessionClient?.terminalView = terminalView
                         viewClient.terminalView = terminalView
                         terminalView.setOnTouchListener { _, event ->
                             if (event.action == MotionEvent.ACTION_UP) {
