@@ -338,7 +338,7 @@ class RootfsInstaller(
             .trim()
             .trimStart('/')
             .removePrefix("./")
-        require(normalized.isNotBlank()) { "Rootfs entry path is blank" }
+        if (normalized.isBlank()) return ""
         require(!normalized.contains('\u0000')) { "Rootfs entry path contains invalid character" }
         require(normalized.split('/').none { it == ".." }) { "Rootfs entry escapes target directory: $path" }
         return normalized
