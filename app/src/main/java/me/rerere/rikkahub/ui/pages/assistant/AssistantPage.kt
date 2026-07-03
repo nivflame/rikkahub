@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.datastore.DEFAULT_ASSISTANT_ID
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.AssistantMemory
@@ -531,24 +532,26 @@ private fun AssistantActionSheet(
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
             )
 
-            // 删除选项
-            ListItem(
-                headlineContent = {
-                    Text(
-                        stringResource(R.string.assistant_page_delete),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                },
-                leadingContent = {
-                    Icon(
-                        imageVector = HugeIcons.Delete01,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                },
-                modifier = Modifier.onClick { showDeleteDialog = true },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-            )
+            // 删除选项（主默认助手不可删除）
+            if (assistant.id != DEFAULT_ASSISTANT_ID) {
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.assistant_page_delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = HugeIcons.Delete01,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.onClick { showDeleteDialog = true },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+            }
         }
     }
 
