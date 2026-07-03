@@ -110,6 +110,7 @@ object ToolUIRegistry {
         BrowserToolUI("browser_interact"),
         BrowserToolUI("browser_dom_snapshot"),
         BrowserToolUI("browser_execute_script"),
+        BrowserToolUI("browser_waitfor"),
         BrowserToolUI("browser_logs"),
     ).associateBy { it.toolName }
 

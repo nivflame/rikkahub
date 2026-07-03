@@ -15,7 +15,7 @@ import me.rerere.rikkahub.browser.BrowserController
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 private val BROWSER_SYSTEM_PROMPT = """
-You have browser tools to navigate and automate the in-app WebView. Use browser_search to search Google (web or news) and get a list of result titles with URLs. Use browser_fetch to navigate to a URL and read its content as markdown in one step (main content extracted by Readability.js with links resolved to absolute URLs). Use browser_navigate only when you need to go back, forward, or reload, or when you plan to interact with the page before reading it. Use browser_get_content to read the current page after you have used browser_interact on it. Use browser_dom_snapshot to get an accessibility tree of the page (roles, names, links, and interactive elements with refs). Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with the [data-rkref="eN"] selector from the snapshot. Use browser_execute_script to run JavaScript in the browser page context (it cannot create files or interact with the device file system), browser_logs to read console or network logs, and browser_screenshot to capture the page. For search results or structured list pages, prefer browser_dom_snapshot over browser_fetch. If browser_fetch or browser_get_content returns a truncation notice, call it again with the start_index shown in that notice until you have read the whole page before responding. After reading an article, use browser_navigate with type "back" to return to search results instead of constructing a new search URL. If you need to create files (HTML, text, code), use the write_file or shell tools, not browser tools.
+You have browser tools to navigate and automate the in-app WebView. Use browser_search to search Google (web or news) and get a list of result titles with URLs. Use browser_fetch to navigate to a URL and read its content as markdown in one step (main content extracted by Readability.js with links resolved to absolute URLs). Use browser_navigate only when you need to go back, forward, or reload, or when you plan to interact with the page before reading it. Use browser_get_content to read the current page after you have used browser_interact on it. Use browser_dom_snapshot to get an accessibility tree of the page (roles, names, links, and interactive elements with refs). Use browser_interact to click, fill, scroll, hover, or type on elements, targeting them with the [data-rkref="eN"] selector from the snapshot. Use browser_waitfor to wait for an element to appear on the page (useful for Cloudflare challenges, dynamic content, or popups). If browser_fetch returns "no content" or the page shows a security verification, use browser_waitfor with a CSS selector like "article" or "main" and a longer timeout (e.g. 15000) to wait for the challenge to complete, then use browser_get_content to read the page. Use browser_execute_script to run JavaScript in the browser page context (it cannot create files or interact with the device file system), browser_logs to read console or network logs, and browser_screenshot to capture the page. For search results or structured list pages, prefer browser_dom_snapshot over browser_fetch. If browser_fetch or browser_get_content returns a truncation notice, call it again with the start_index shown in that notice until you have read the whole page before responding. After reading an article, use browser_navigate with type "back" to return to search results instead of constructing a new search URL. If you need to create files (HTML, text, code), use the write_file or shell tools, not browser tools.
 """.trimIndent().replace("\n", " ")
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
@@ -27,6 +27,7 @@ internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_interact",
     "browser_dom_snapshot",
     "browser_execute_script",
+    "browser_waitfor",
     "browser_logs",
 )
 
@@ -348,6 +349,42 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                 it.logs(type)
             }
             listOf(UIMessagePart.Text(logs.ifBlank { "no logs" }))
+        }
+    ),
+    Tool(
+        name = "browser_waitfor",
+        description = """
+            Wait for an element to appear on the current page. Supports both CSS selectors and text search.
+
+            - If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector
+            - Otherwise it is treated as a text search (e.g., "Login" finds a button with that text)
+            - Returns whether the element was found within the timeout
+            - Requires an active page (call browser_navigate or browser_fetch first)
+            - Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear
+        """.trimIndent(),
+        systemPrompt = { _, _ -> BROWSER_SYSTEM_PROMPT },
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("selector", buildJsonObject {
+                        put("type", "string")
+                        put("description", "CSS selector or text to search for")
+                    })
+                    put("timeout", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Maximum wait time in milliseconds (default 10000)")
+                    })
+                },
+                required = listOf("selector")
+            )
+        },
+        execute = {
+            val selector = it.jsonObject["selector"]?.jsonPrimitive?.contentOrNull ?: ""
+            val timeout = it.jsonObject["timeout"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 10000L
+            val result = HeadlessBrowserSession.withController(context) {
+                it.waitFor(selector, timeout)
+            }
+            listOf(UIMessagePart.Text(result))
         }
     )
 )

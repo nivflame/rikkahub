@@ -252,6 +252,30 @@ return '';
         return getContent(maxChars, startIndex)
     }
 
+    suspend fun waitFor(selector: String, timeoutMs: Long): String {
+        val cssChars = setOf('#', '.', '>', '[', ':', '*')
+        val isCss = selector.any { it in cssChars } || selector.startsWith("//")
+        val checkJs = if (isCss) {
+            val sel = Json.encodeToString(selector)
+            "(function(){return document.querySelector($sel)?'true':'false';})()"
+        } else {
+            val text = Json.encodeToString(selector)
+            "(function(){var t=$text;var els=document.querySelectorAll('*');" +
+                "for(var i=0;i<els.length;i++){" +
+                "var c=els[i].textContent||'';" +
+                "if(c.indexOf(t)>=0&&els[i].children.length===0)return'true';" +
+                "}return'false';})()"
+        }
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(checkJs) }
+            val result = raw?.let { unquoteJsString(it) }
+            if (result == "true") return "found"
+            kotlinx.coroutines.delay(500)
+        }
+        return "not found within ${timeoutMs}ms"
+    }
+
     private fun paginateMarkdown(markdown: String, startIndex: Int, maxChars: Int): String {
         if (markdown.isBlank()) return "no content on the current page"
         val lines = markdown.split("\n")
