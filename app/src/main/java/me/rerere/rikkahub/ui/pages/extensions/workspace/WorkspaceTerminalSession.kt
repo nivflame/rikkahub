@@ -100,7 +100,8 @@ internal fun prepareWorkspaceTerminalSession(context: Context, root: String) {
 
 internal fun workspaceRootfsReady(context: Context, root: String): Boolean {
     val linuxDir = File(File(File(context.applicationContext.filesDir, "workspaces"), root), "linux")
-    return linuxDir.isDirectory && File(linuxDir, "bin/sh").isFile
+    return linuxDir.isDirectory &&
+        java.nio.file.Files.exists(File(linuxDir, "bin/sh").toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)
 }
 
 internal class WorkspaceTerminalSessionClient(

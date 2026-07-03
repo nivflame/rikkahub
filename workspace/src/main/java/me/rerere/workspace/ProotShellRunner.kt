@@ -1,6 +1,8 @@
 package me.rerere.workspace
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
 
 data class WorkspaceBindMount(
     val source: File,
@@ -118,7 +120,7 @@ class ProotShellRunner(
     }
 
     private fun File.hasUsableRootfs(): Boolean =
-        isDirectory && File(this, "bin/sh").isFile
+        isDirectory && Files.exists(File(this, "bin/sh").toPath(), LinkOption.NOFOLLOW_LINKS)
 
     private companion object {
         private const val PROOT_EXEC = "libproot_exec.so"
