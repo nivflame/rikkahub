@@ -4,7 +4,6 @@ import android.graphics.Typeface
 import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Refresh01
@@ -39,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -280,40 +279,51 @@ private fun TerminalExtraKeysBar(
     onAltToggle: () -> Unit,
     onSendText: (String) -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        TerminalExtraKey("ESC") { onSendText("\u001B") }
-        TerminalExtraKey("TAB") { onSendText("\t") }
-        TerminalExtraKey("CTRL", selected = controlDown, onClick = onControlToggle)
-        TerminalExtraKey("ALT", selected = altDown, onClick = onAltToggle)
-        TerminalExtraKey("-") { onSendText("-") }
-        TerminalExtraKey("/") { onSendText("/") }
-        TerminalExtraKey("|") { onSendText("|") }
-        TerminalExtraKey("←") { onSendText("\u001B[D") }
-        TerminalExtraKey("↓") { onSendText("\u001B[B") }
-        TerminalExtraKey("↑") { onSendText("\u001B[A") }
-        TerminalExtraKey("→") { onSendText("\u001B[C") }
-        TerminalExtraKey("HOME") { onSendText("\u001B[H") }
-        TerminalExtraKey("END") { onSendText("\u001B[F") }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            TerminalExtraKey("ESC", Modifier.weight(1f)) { onSendText("\u001B") }
+            TerminalExtraKey("/", Modifier.weight(1f)) { onSendText("/") }
+            TerminalExtraKey("-", Modifier.weight(1f)) { onSendText("-") }
+            TerminalExtraKey("HOME", Modifier.weight(1f)) { onSendText("\u001B[H") }
+            TerminalExtraKey("UP", Modifier.weight(1f)) { onSendText("\u001B[A") }
+            TerminalExtraKey("END", Modifier.weight(1f)) { onSendText("\u001B[F") }
+            TerminalExtraKey("PGUP", Modifier.weight(1f)) { onSendText("\u001B[5~") }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            TerminalExtraKey("TAB", Modifier.weight(1f)) { onSendText("\t") }
+            TerminalExtraKey("CTRL", Modifier.weight(1f), selected = controlDown, onClick = onControlToggle)
+            TerminalExtraKey("ALT", Modifier.weight(1f), selected = altDown, onClick = onAltToggle)
+            TerminalExtraKey("LEFT", Modifier.weight(1f)) { onSendText("\u001B[D") }
+            TerminalExtraKey("DOWN", Modifier.weight(1f)) { onSendText("\u001B[B") }
+            TerminalExtraKey("RIGHT", Modifier.weight(1f)) { onSendText("\u001B[C") }
+            TerminalExtraKey("PGDN", Modifier.weight(1f)) { onSendText("\u001B[6~") }
+        }
     }
 }
 
 @Composable
 private fun TerminalExtraKey(
     label: String,
+    modifier: Modifier = Modifier,
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
     Text(
         text = label,
-        modifier = Modifier
+        textAlign = TextAlign.Center,
+        modifier = modifier
             .background(
                 color = if (selected) {
                     MaterialTheme.colorScheme.primary
@@ -323,7 +333,7 @@ private fun TerminalExtraKey(
                 shape = RoundedCornerShape(6.dp),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(vertical = 10.dp),
         style = MaterialTheme.typography.labelMedium,
         color = if (selected) {
             MaterialTheme.colorScheme.onPrimary
