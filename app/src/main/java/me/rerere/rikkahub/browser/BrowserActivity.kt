@@ -471,98 +471,72 @@ private fun BrowserScreen(
                     }
 
                     val showStatusPill = generating && (ui.reply.isBlank() || replyDismissed)
-                    AnimatedContent(
-                        targetState = showStatusPill,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(200)) togetherWith
-                                fadeOut(animationSpec = tween(200))
-                        },
-                        label = "fabState",
+                    AnimatedVisibility(
+                        visible = showStatusPill,
+                        enter = fadeIn(animationSpec = tween(200)),
+                        exit = fadeOut(animationSpec = tween(200)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
-                    ) { isStatusPill ->
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (isStatusPill) {
-                                ui.steps.lastOrNull()?.let { step ->
-                                    val (label, icon) = when (step) {
-                                        is BrowserStep.Tool -> "Calling ${step.name}" to HugeIcons.Tools
-                                        BrowserStep.Thinking -> "Thinking" to HugeIcons.AiBrain01
-                                        BrowserStep.Done -> "Done" to HugeIcons.Tick01
-                                    }
-                                    val (container, content) = when (step) {
-                                        is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-                                        BrowserStep.Thinking -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-                                        BrowserStep.Done -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                    Surface(
-                                        color = container,
-                                        contentColor = content,
-                                        shape = RoundedCornerShape(20.dp),
-                                        shadowElevation = 3.dp,
+                            ui.steps.lastOrNull()?.let { step ->
+                                val (label, icon) = when (step) {
+                                    is BrowserStep.Tool -> "Calling ${step.name}" to HugeIcons.Tools
+                                    BrowserStep.Thinking -> "Thinking" to HugeIcons.AiBrain01
+                                    BrowserStep.Done -> "Done" to HugeIcons.Tick01
+                                }
+                                val (container, content) = when (step) {
+                                    is BrowserStep.Tool -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+                                    BrowserStep.Thinking -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+                                    BrowserStep.Done -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Surface(
+                                    color = container,
+                                    contentColor = content,
+                                    shape = RoundedCornerShape(20.dp),
+                                    shadowElevation = 3.dp,
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .clickable { inputExpanded = true }
+                                            .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .clickable { inputExpanded = true }
-                                                .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        ) {
-                                            if (generating && step !is BrowserStep.Done) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(16.dp),
-                                                    strokeWidth = 2.dp,
-                                                    color = content,
-                                                )
-                                            } else {
-                                                Icon(
-                                                    imageVector = icon,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            }
-                                            Text(
-                                                text = label,
-                                                style = MaterialTheme.typography.labelMedium,
+                                        if (generating && step !is BrowserStep.Done) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                                color = content,
                                             )
-                                            IconButton(
-                                                onClick = { cancelGeneration() },
-                                                modifier = Modifier.size(28.dp),
-                                            ) {
-                                                Icon(
-                                                    imageVector = HugeIcons.Cancel01,
-                                                    contentDescription = "Cancel",
-                                                    modifier = Modifier.size(16.dp),
-                                                )
-                                            }
+                                        } else {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                        IconButton(
+                                            onClick = { cancelGeneration() },
+                                            modifier = Modifier.size(28.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = HugeIcons.Cancel01,
+                                                contentDescription = "Cancel",
+                                                modifier = Modifier.size(16.dp),
+                                            )
                                         }
                                     }
-                                }
-                            } else {
-                                val fabInteractionSource = remember { MutableInteractionSource() }
-                                val fabPressed by fabInteractionSource.collectIsPressedAsState()
-                                val fabScale by animateFloatAsState(
-                                    targetValue = if (fabPressed) 0.92f else 1f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow,
-                                    ),
-                                    label = "fabScale",
-                                )
-                                FloatingActionButton(
-                                    onClick = { inputExpanded = true },
-                                    shape = CircleShape,
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    interactionSource = fabInteractionSource,
-                                    modifier = Modifier.scale(fabScale),
-                                ) {
-                                    Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
                                 }
                             }
                         }
@@ -642,27 +616,13 @@ private fun BrowserScreen(
                 IconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
                     Icon(imageVector = HugeIcons.Home01, contentDescription = "Home")
                 }
-                IconButton(
-                    onClick = { controller?.webView?.goBack() },
-                    enabled = canGoBack,
+                FloatingActionButton(
+                    onClick = { inputExpanded = true },
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Icon(
-                        imageVector = HugeIcons.ArrowLeft01,
-                        contentDescription = "Back",
-                        tint = if (canGoBack) LocalContentColor.current
-                            else LocalContentColor.current.copy(alpha = 0.38f),
-                    )
-                }
-                IconButton(
-                    onClick = { controller?.webView?.goForward() },
-                    enabled = canGoForward,
-                ) {
-                    Icon(
-                        imageVector = HugeIcons.ArrowRight01,
-                        contentDescription = "Forward",
-                        tint = if (canGoForward) LocalContentColor.current
-                            else LocalContentColor.current.copy(alpha = 0.38f),
-                    )
+                    Icon(imageVector = HugeIcons.MessageAdd01, contentDescription = "Ask the AI")
                 }
                 IconButton(onClick = { showHamburgerMenu = true }) {
                     Icon(imageVector = HugeIcons.Menu03, contentDescription = "Menu")
@@ -674,95 +634,162 @@ private fun BrowserScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(16.dp)
                                 .width(210.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        showHamburgerMenu = false
-                                        showZoomDialog = true
-                                    }
-                                    .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Icon(
-                                    imageVector = HugeIcons.Search01,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    text = "Zoom",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    text = "$zoomLevel%",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = HugeIcons.SmartPhone01,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    text = "Desktop Site",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Switch(
-                                    checked = desktopMode,
-                                    onCheckedChange = {
-                                        desktopMode = it
-                                        val ua = if (it) {
-                                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                                        } else {
-                                            mobileUA
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            showHamburgerMenu = false
+                                            showZoomDialog = true
                                         }
-                                        controller?.webView?.settings?.userAgentString = ua
-                                        controller?.webView?.reload()
-                                    },
-                                )
+                                        .padding(vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.Search01,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = "Zoom",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        text = "$zoomLevel%",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.SmartPhone01,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = "Desktop Site",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = desktopMode,
+                                        onCheckedChange = {
+                                            desktopMode = it
+                                            val ua = if (it) {
+                                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                                            } else {
+                                                mobileUA
+                                            }
+                                            controller?.webView?.settings?.userAgentString = ua
+                                            controller?.webView?.reload()
+                                        },
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            showHamburgerMenu = false
+                                            showDeleteDataDialog = true
+                                        }
+                                        .padding(vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.Delete01,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        text = "Delete Browsing Data",
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
+                                }
                             }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        showHamburgerMenu = false
-                                        showDeleteDataDialog = true
-                                    }
-                                    .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 1.dp,
                             ) {
-                                Icon(
-                                    imageVector = HugeIcons.Delete01,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    text = "Delete Browsing Data",
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable(enabled = canGoBack) {
+                                                showHamburgerMenu = false
+                                                controller?.webView?.goBack()
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            imageVector = HugeIcons.ArrowLeft01,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (canGoBack) MaterialTheme.colorScheme.onSurfaceVariant
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                                        )
+                                        Text(
+                                            text = "Back",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = if (canGoBack) MaterialTheme.colorScheme.onSurface
+                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable(enabled = canGoForward) {
+                                                showHamburgerMenu = false
+                                                controller?.webView?.goForward()
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            imageVector = HugeIcons.ArrowRight01,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (canGoForward) MaterialTheme.colorScheme.onSurfaceVariant
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                                        )
+                                        Text(
+                                            text = "Forward",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = if (canGoForward) MaterialTheme.colorScheme.onSurface
+                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
