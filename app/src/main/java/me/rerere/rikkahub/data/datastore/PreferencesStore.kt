@@ -281,11 +281,6 @@ class SettingsStore(
         }
         .map {
             var providers = it.providers.ifEmpty { DEFAULT_PROVIDERS }.toMutableList()
-            DEFAULT_PROVIDERS.forEach { defaultProvider ->
-                if (providers.none { it.id == defaultProvider.id }) {
-                    providers.add(defaultProvider.copyProvider())
-                }
-            }
             providers = providers.map { provider ->
                 val defaultProvider = DEFAULT_PROVIDERS.find { it.id == provider.id }
                 if (defaultProvider != null) {
