@@ -26,6 +26,7 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.TextGenerationParams
 import me.rerere.ai.provider.providers.openai.ChatCompletionsAPI
 import me.rerere.ai.provider.providers.openai.ResponseAPI
+import me.rerere.ai.registry.ModelRegistry
 import me.rerere.ai.ui.ImageAspectRatio
 import me.rerere.ai.ui.ImageGenerationItem
 import me.rerere.ai.ui.MessageChunk
@@ -84,6 +85,9 @@ class OpenAIProvider(
                 Model(
                     modelId = id,
                     displayName = id,
+                    abilities = ModelRegistry.MODEL_ABILITIES.getData(id),
+                    inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(id),
+                    outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(id),
                 )
             }
         }
