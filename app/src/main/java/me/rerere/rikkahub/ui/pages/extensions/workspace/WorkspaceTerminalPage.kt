@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -24,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -56,6 +61,7 @@ import org.koin.core.parameter.parametersOf
 fun WorkspaceTerminalPage(id: String) {
     val vm: WorkspaceDetailVM = koinViewModel(parameters = { parametersOf(id) })
     val state by vm.state.collectAsStateWithLifecycle()
+    var restartTrigger by remember { mutableIntStateOf(0) }
 
     RikkahubTheme(colorMode = ColorMode.DARK) {
         Scaffold(
@@ -69,12 +75,25 @@ fun WorkspaceTerminalPage(id: String) {
                         )
                     },
                     navigationIcon = { BackButton() },
+                    actions = {
+                        IconButton(onClick = {
+                            state.workspace?.root?.let { WorkspaceTerminalSessionHolder.remove(it) }
+                            restartTrigger++
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Restart terminal",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    },
                 )
             },
         ) { innerPadding ->
             WorkspaceTerminalContent(
                 root = state.workspace?.root,
                 contentPadding = innerPadding,
+                restartTrigger = restartTrigger,
             )
         }
     }
@@ -84,13 +103,14 @@ fun WorkspaceTerminalPage(id: String) {
 private fun WorkspaceTerminalContent(
     root: String?,
     contentPadding: PaddingValues,
+    restartTrigger: Int,
 ) {
     val context = LocalContext.current
     val terminalTextSizePx = with(LocalDensity.current) { 12.sp.roundToPx() }
     val terminalTypeface = remember(context) {
         ResourcesCompat.getFont(context, R.font.jetbrains_mono) ?: Typeface.MONOSPACE
     }
-    var finished by remember(root) { mutableStateOf(root?.let { WorkspaceTerminalSessionHolder.isFinished(it) } ?: false) }
+    var finished by remember(root, restartTrigger) { mutableStateOf(root?.let { WorkspaceTerminalSessionHolder.isFinished(it) } ?: false) }
     var controlDown by remember(root) { mutableStateOf(false) }
     var altDown by remember(root) { mutableStateOf(false) }
     val viewClient = remember(root) {
@@ -102,6 +122,7 @@ private fun WorkspaceTerminalContent(
     val sessionState by produceState<TerminalSessionUiState>(
         initialValue = TerminalSessionUiState.Loading,
         root,
+        restartTrigger,
     ) {
         val current = root
         value = if (current == null) {
@@ -161,7 +182,11 @@ private fun WorkspaceTerminalContent(
     DisposableEffect(session) {
         sessionClient?.onFinished = { finished = true }
         onDispose {
-            root?.let { WorkspaceTerminalSessionHolder.detachView(it) }
+            if (finished) {
+                root?.let { WorkspaceTerminalSessionHolder.remove(it) }
+            } else {
+                root?.let { WorkspaceTerminalSessionHolder.detachView(it) }
+            }
             viewClient.terminalView = null
         }
     }

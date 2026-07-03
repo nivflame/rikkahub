@@ -15,6 +15,7 @@ import me.rerere.workspace.RootfsInstallProgress
 import me.rerere.workspace.RootfsInstaller
 import me.rerere.workspace.WorkspaceCommandResult
 import me.rerere.workspace.WorkspaceFileEntry
+import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceTerminalSessionHolder
 import me.rerere.workspace.WorkspaceManager
 import me.rerere.workspace.WorkspaceShellStatus
 import me.rerere.workspace.WorkspaceStorageArea
@@ -238,6 +239,7 @@ class WorkspaceRepository(
 
     suspend fun delete(id: String): Boolean {
         val workspace = dao.getById(id) ?: return false
+        WorkspaceTerminalSessionHolder.remove(workspace.root)
         dao.deleteById(id)
         withContext(Dispatchers.IO) {
             manager.deleteWorkspace(workspace.root)

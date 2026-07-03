@@ -141,6 +141,12 @@ internal object WorkspaceTerminalSessionHolder {
         sessions.remove(root)?.session?.finishIfRunning()
         finishedFlags.remove(root)
     }
+
+    fun removeAll() {
+        sessions.values.forEach { it.session.finishIfRunning() }
+        sessions.clear()
+        finishedFlags.clear()
+    }
 }
 
 internal class WorkspaceTerminalSessionClient(
