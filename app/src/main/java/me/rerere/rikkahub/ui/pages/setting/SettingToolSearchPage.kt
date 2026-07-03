@@ -38,7 +38,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
         val mcpNames = settings.mcpServers.flatMap { server ->
             server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
         }
-        listOf("WebSearch", "scrape_web") +
+        listOf("search_web", "scrape_web") +
             SUBAGENT_LOCAL_TOOL_NAMES +
             ALL_BROWSER_TOOL_NAMES +
             listOf("workspace_read_file", "workspace_write_file", "workspace_edit_file", "workspace_shell") +
@@ -74,7 +74,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
 
             val grouped = allToolNames.groupBy { name ->
                 when {
-                    name == "WebSearch" || name == "scrape_web" -> "Search"
+                    name == "search_web" || name == "scrape_web" -> "Search"
                     name in SUBAGENT_LOCAL_TOOL_NAMES -> "Local"
                     name.startsWith("browser_") -> "Browser"
                     name.startsWith("workspace_") -> "Workspace"
