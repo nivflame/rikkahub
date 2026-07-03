@@ -416,8 +416,8 @@ private fun statEntryCommand(path: String): String {
     val pathArg = path.shellQuote()
     return """
         if [ -d $pathArg ]; then entry_type=d; else entry_type=f; fi
-        entry_size=${'$'}(stat -c '%s' -- $pathArg) || exit 1
-        entry_mtime=${'$'}(stat -c '%Y' -- $pathArg) || exit 1
+        entry_size=$(stat -c '%s' $pathArg) || exit 1
+        entry_mtime=$(stat -c '%Y' $pathArg) || exit 1
         printf '%s\0%s\0%s\0%s\0' "${'$'}entry_type" "${'$'}entry_size" "${'$'}entry_mtime" $pathArg
     """.trimIndent()
 }

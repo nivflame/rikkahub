@@ -17,6 +17,7 @@ class RootfsPatcher {
         ensureLocale(etcDir, options.locale)
         ensureGroupNames(etcDir, options.groupIds.ifEmpty { currentSupplementaryGroupIds() })
         ensureTempDirs(linuxDir)
+        ensureApkRepositories(etcDir)
     }
 
     private fun ensureRootfsDns(
@@ -151,6 +152,20 @@ class RootfsPatcher {
             setReadable(true, true)
             setWritable(true, true)
             setExecutable(true, true)
+        }
+    }
+
+    private fun ensureApkRepositories(etcDir: File) {
+        val repos = File(etcDir, "apk/repositories")
+        if (!repos.isFile) return
+        val lines = repos.readLines().toMutableList()
+        val hasCommunity = lines.any { it.trimEnd().endsWith("/community") }
+        if (hasCommunity) return
+        val mainLine = lines.firstOrNull { it.trimEnd().endsWith("/main") }
+        if (mainLine != null) {
+            val communityLine = mainLine.trimEnd().removeSuffix("/main") + "/community"
+            lines.add(communityLine)
+            repos.writeText(lines.joinToString(separator = "\n", postfix = "\n"))
         }
     }
 

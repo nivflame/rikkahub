@@ -97,10 +97,9 @@ class ProotShellRunner(
             "LANG=C.UTF-8",
             "LC_ALL=C.UTF-8",
             "DEBIAN_FRONTEND=noninteractive",
-            "/bin/bash",
+            if (File(context.linuxDir, "bin/bash").isFile) "/bin/bash" else "/bin/sh",
             "-l",
             "-c",
-            // 命令通过位置参数传入, 避免任何转义; eval "$2" 对命令文本只求值一次, 等价于 bash -c "$cmd"
             "cd -- \"\$1\" && eval \"\$2\"",
             "rikkahub",
             context.prootCwd(),
