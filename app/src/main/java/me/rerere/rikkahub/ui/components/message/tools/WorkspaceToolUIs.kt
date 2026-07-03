@@ -54,7 +54,7 @@ import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 object EditFileToolUI : ToolUIRenderer {
     private const val SUMMARY_MAX_LINES = 10
 
-    override val toolName: String = "workspace_edit_file"
+    override val toolName: String = "workspace_edit"
 
     override fun icon(context: ToolUIContext): ImageVector = HugeIcons.FileEdit
 
@@ -157,7 +157,7 @@ object EditFileToolUI : ToolUIRenderer {
  * 工作空间读取文件: 摘要显示内容首部预览, 详情为带语法高亮的完整内容
  */
 object ReadFileToolUI : ToolUIRenderer {
-    override val toolName: String = "workspace_read_file"
+    override val toolName: String = "workspace_read"
 
     override fun icon(context: ToolUIContext): ImageVector = HugeIcons.FileView
 
@@ -198,7 +198,7 @@ object ReadFileToolUI : ToolUIRenderer {
  * 工作空间写入文件: 内容取自入参 (未执行也可预览), 摘要为内容首部, 详情为完整内容
  */
 object WriteFileToolUI : ToolUIRenderer {
-    override val toolName: String = "workspace_write_file"
+    override val toolName: String = "workspace_write"
 
     override fun icon(context: ToolUIContext): ImageVector = HugeIcons.FileAdd
 
@@ -292,7 +292,7 @@ object ShellToolUI : ToolUIRenderer {
     private const val TITLE_MAX_CHARS = 40
     private const val SUMMARY_MAX_LINES = 8
 
-    override val toolName: String = "workspace_shell"
+    override val toolName: String = "workspace_bash"
 
     override fun icon(context: ToolUIContext): ImageVector = HugeIcons.ComputerTerminal01
 
