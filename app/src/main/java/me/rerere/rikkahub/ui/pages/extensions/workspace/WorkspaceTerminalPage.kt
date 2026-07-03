@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import me.rerere.hugeicons.HugeIcons
@@ -198,11 +201,14 @@ private fun WorkspaceTerminalContent(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)
-            .imePadding(),
+            .padding(top = contentPadding.calculateTopPadding()),
         color = Color.Black,
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+        ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
