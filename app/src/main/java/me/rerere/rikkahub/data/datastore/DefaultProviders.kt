@@ -1,7 +1,6 @@
 package me.rerere.rikkahub.data.datastore
 
 import me.rerere.ai.provider.Model
-import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.ProviderSetting
 import kotlin.uuid.Uuid
 
@@ -16,7 +15,10 @@ val DEFAULT_PROVIDERS: List<ProviderSetting> = listOf(
             Model(
                 modelId = "deepseek-v4-flash-free",
                 displayName = "DeepSeek V4 Flash Free",
-                abilities = listOf(ModelAbility.TOOL, ModelAbility.REASONING),
+            ),
+            Model(
+                modelId = "mimo-v2.5-free",
+                displayName = "MiMo V2.5 Free",
             ),
         ),
     ),
