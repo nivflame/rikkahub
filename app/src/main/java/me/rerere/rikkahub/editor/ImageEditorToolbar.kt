@@ -25,8 +25,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowRight01
+import me.rerere.hugeicons.stroke.Circle
+import me.rerere.hugeicons.stroke.Crop
 import me.rerere.hugeicons.stroke.Eraser
+import me.rerere.hugeicons.stroke.Line
 import me.rerere.hugeicons.stroke.PencilEdit01
+import me.rerere.hugeicons.stroke.Square
 import me.rerere.hugeicons.stroke.Text
 
 @Composable
@@ -62,15 +66,15 @@ private fun ToolRow(state: ImageEditorState) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (state.tab == EditorTab.CROP) {
-            ToolLabel("Crop", state.tool == EditorTool.CROP)
+            ToolIcon(HugeIcons.Crop, state.tool == EditorTool.CROP) { state.tool = EditorTool.CROP }
         } else {
-            ToolButton("Brush", state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
-            ToolButton("Line", state.tool == EditorTool.LINE) { state.tool = EditorTool.LINE }
-            ToolButton("Rect", state.tool == EditorTool.RECTANGLE) { state.tool = EditorTool.RECTANGLE }
-            ToolButton("Circle", state.tool == EditorTool.CIRCLE) { state.tool = EditorTool.CIRCLE }
-            ToolButton("Arrow", state.tool == EditorTool.ARROW) { state.tool = EditorTool.ARROW }
-            ToolButton("Text", state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
-            ToolButton("Erase", state.tool == EditorTool.ERASER) { state.tool = EditorTool.ERASER }
+            ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
+            ToolIcon(HugeIcons.Line, state.tool == EditorTool.LINE) { state.tool = EditorTool.LINE }
+            ToolIcon(HugeIcons.Square, state.tool == EditorTool.RECTANGLE) { state.tool = EditorTool.RECTANGLE }
+            ToolIcon(HugeIcons.Circle, state.tool == EditorTool.CIRCLE) { state.tool = EditorTool.CIRCLE }
+            ToolIcon(HugeIcons.ArrowRight01, state.tool == EditorTool.ARROW) { state.tool = EditorTool.ARROW }
+            ToolIcon(HugeIcons.Text, state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
+            ToolIcon(HugeIcons.Eraser, state.tool == EditorTool.ERASER) { state.tool = EditorTool.ERASER }
         }
     }
 }
@@ -117,16 +121,15 @@ private fun SecondaryRow(state: ImageEditorState) {
 }
 
 @Composable
-private fun ToolButton(
-    text: String,
+private fun ToolIcon(
+    icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Text(
-        text = text,
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.labelMedium,
-        color = if (selected) MaterialTheme.colorScheme.primary
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = if (selected) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -135,7 +138,7 @@ private fun ToolButton(
                 else Color.Transparent,
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(10.dp),
     )
 }
 
