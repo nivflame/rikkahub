@@ -38,6 +38,7 @@ fun CropOverlay(
 
     var cropRect by remember { mutableStateOf<Rect?>(null) }
     var imageRect by remember { mutableStateOf<Rect?>(null) }
+    var moveLastPos by remember { mutableStateOf<Offset?>(null) }
 
     Canvas(
         modifier = modifier
@@ -60,6 +61,10 @@ fun CropOverlay(
                                     return@detectDragGestures
                                 }
                             }
+                            if (currentCrop.contains(offset)) {
+                                activeHandle = CropHandle.MOVE
+                                moveLastPos = offset
+                            }
                         }
                         activeHandle = null
                     },
@@ -70,6 +75,23 @@ fun CropOverlay(
                         val currentImage = imageRect ?: return@detectDragGestures
                         val pos = change.position
                         cropRect = when (handle) {
+                            CropHandle.MOVE -> {
+                                val last = moveLastPos
+                                moveLastPos = pos
+                                if (last != null) {
+                                    val delta = pos - last
+                                    val newLeft = (currentCrop.left + delta.x).coerceIn(currentImage.left, currentImage.right - currentCrop.width)
+                                    val newTop = (currentCrop.top + delta.y).coerceIn(currentImage.top, currentImage.bottom - currentCrop.height)
+                                    Rect(
+                                        left = newLeft,
+                                        top = newTop,
+                                        right = newLeft + currentCrop.width,
+                                        bottom = newTop + currentCrop.height,
+                                    )
+                                } else {
+                                    currentCrop
+                                }
+                            }
                             CropHandle.TopLeft -> Rect(
                                 left = pos.x.coerceIn(currentImage.left, currentCrop.right),
                                 top = pos.y.coerceIn(currentImage.top, currentCrop.bottom),
@@ -97,8 +119,8 @@ fun CropOverlay(
                         }
                         imageRect?.let { img -> onCropRectChange(cropRect!!, img) }
                     },
-                    onDragEnd = { activeHandle = null },
-                    onDragCancel = { activeHandle = null },
+                    onDragEnd = { activeHandle = null; moveLastPos = null },
+                    onDragCancel = { activeHandle = null; moveLastPos = null },
                 )
             },
     ) {
@@ -173,7 +195,7 @@ fun CropOverlay(
 
 private var activeHandle: CropHandle? = null
 
-private enum class CropHandle { TopLeft, TopRight, BottomLeft, BottomRight }
+private enum class CropHandle { TopLeft, TopRight, BottomLeft, BottomRight, MOVE }
 
 private fun distance(a: Offset, b: Offset): Float {
     val dx = a.x - b.x

@@ -100,20 +100,38 @@ sealed class DrawingAction {
         val text: String,
         override val color: Color,
         val textSize: Float,
+        val rotation: Float = 0f,
+        val scale: Float = 1f,
     ) : DrawingAction() {
         override val strokeWidth: Float get() = textSize
         override fun contains(point: Offset, tolerance: Float): Boolean {
-            val approxWidth = text.length * textSize * 0.6f
-            val rect = Rect(
-                left = position.x,
-                top = position.y,
-                right = position.x + approxWidth,
-                bottom = position.y + textSize * 1.2f,
-            )
-            return rect.inflate(tolerance).contains(point)
+            val approxWidth = text.length * textSize * 0.6f * scale
+            val approxHeight = textSize * 1.2f * scale
+            val centerX = position.x + approxWidth / 2f
+            val centerY = position.y + approxHeight / 2f
+            val dx = point.x - centerX
+            val dy = point.y - centerY
+            val cos = kotlin.math.cos(-rotation * Math.PI.toFloat() / 180f)
+            val sin = kotlin.math.sin(-rotation * Math.PI.toFloat() / 180f)
+            val localX = dx * cos - dy * sin
+            val localY = dx * sin + dy * cos
+            val halfW = approxWidth / 2f + tolerance
+            val halfH = approxHeight / 2f + tolerance
+            return localX in -halfW..halfW && localY in -halfH..halfH
         }
 
         override fun translate(delta: Offset) = copy(position = position + delta)
+
+        fun bounds(): Rect {
+            val w = text.length * textSize * 0.6f * scale
+            val h = textSize * 1.2f * scale
+            return Rect(position.x, position.y, position.x + w, position.y + h)
+        }
+
+        fun center(): Offset {
+            val b = bounds()
+            return Offset(b.center.x, b.center.y)
+        }
     }
 }
 
@@ -162,8 +180,7 @@ private fun distanceToSegment(point: Offset, start: Offset, end: Offset): Float 
     val dy = end.y - start.y
     val lenSq = dx * dx + dy * dy
     if (lenSq == 0f) return sqrt((point.x - start.x).pow2() + (point.y - start.y).pow2())
-    val t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lenSq
-        .coerceIn(0f, 1f)
+    val t = (((point.x - start.x) * dx + (point.y - start.y) * dy) / lenSq).coerceIn(0f, 1f)
     val projX = start.x + t * dx
     val projY = start.y + t * dy
     return sqrt((point.x - projX).pow2() + (point.y - projY).pow2())

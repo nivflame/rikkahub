@@ -385,13 +385,15 @@ private fun flattenBitmap(
             is DrawingAction.Text -> {
                 paint.style = android.graphics.Paint.Style.FILL
                 paint.color = action.color.toArgb()
-                paint.textSize = action.textSize * scaleX
-                canvas.drawText(
-                    action.text,
-                    (action.position.x - offsetX) * scaleX,
-                    (action.position.y - offsetY) * scaleY + action.textSize * scaleX,
-                    paint,
-                )
+                paint.textSize = action.textSize * scaleX * action.scale
+                val centerX = (action.center().x - offsetX) * scaleX
+                val centerY = (action.center().y - offsetY) * scaleY
+                canvas.save()
+                canvas.rotate(action.rotation, centerX, centerY)
+                val textX = (action.position.x - offsetX) * scaleX
+                val textY = (action.position.y - offsetY) * scaleY + action.textSize * scaleX * action.scale
+                canvas.drawText(action.text, textX, textY, paint)
+                canvas.restore()
                 paint.style = android.graphics.Paint.Style.STROKE
             }
         }

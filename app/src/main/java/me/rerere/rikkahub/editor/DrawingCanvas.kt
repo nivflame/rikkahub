@@ -66,12 +66,16 @@ fun DrawingCanvas(
     var textInputState by remember { mutableStateOf<TextInputState?>(null) }
     var dragTarget by remember { mutableStateOf<DrawingAction?>(null) }
     var dragLastPos by remember { mutableStateOf<Offset?>(null) }
+    var dragHandle by remember { mutableStateOf<String?>(null) }
     var zoom by remember { mutableFloatStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
 
     LaunchedEffect(state.tool) {
         if (state.tool != EditorTool.TEXT) {
             textInputState = null
+        }
+        if (state.tool != EditorTool.DRAG) {
+            state.selectedAction = null
         }
     }
 
@@ -289,33 +293,75 @@ fun DrawingCanvas(
 
                         EditorTool.DRAG -> detectDragGestures(
                             onDragStart = { offset ->
+                                val selected = state.selectedAction
+                                if (selected is DrawingAction.Text) {
+                                    val handlePos = getTextHandlePositions(selected)
+                                    val hitHandle = handlePos.entries.firstOrNull { distance(offset, it.value) <= 30f }
+                                    if (hitHandle != null) {
+                                        dragHandle = hitHandle.key
+                                        dragLastPos = offset
+                                        return@detectDragGestures
+                                    }
+                                    if (selected.contains(offset, tolerance = 48f)) {
+                                        dragTarget = selected
+                                        dragLastPos = offset
+                                        return@detectDragGestures
+                                    }
+                                }
                                 val hit = state.actions.lastOrNull { it.contains(offset, tolerance = 48f) }
                                 if (hit != null) {
-                                    dragTarget = hit
-                                    dragLastPos = offset
+                                    state.selectedAction = hit
+                                } else {
+                                    state.selectedAction = null
                                 }
                             },
                             onDrag = { change, _ ->
                                 change.consume()
-                                val target = dragTarget ?: return@detectDragGestures
-                                val lastPos = dragLastPos ?: return@detectDragGestures
-                                val delta = change.position - lastPos
-                                val index = state.actions.indexOf(target)
-                                if (index >= 0) {
-                                    val translated = target.translate(delta)
-                                    state.removeAction(target)
-                                    state.addAction(translated)
-                                    dragTarget = translated
+                                val handle = dragHandle
+                                val target = dragTarget
+                                val lastPos = dragLastPos
+                                if (handle != null) {
+                                    val selected = state.selectedAction as? DrawingAction.Text ?: return@detectDragGestures
+                                    val center = selected.center()
+                                    when (handle) {
+                                        "rot" -> {
+                                            val angle = Math.atan2(
+                                                (change.position.y - center.y).toDouble(),
+                                                (change.position.x - center.x).toDouble(),
+                                            ).toFloat() * 180f / Math.PI.toFloat() + 90f
+                                            updateSelectedText(state, rotation = angle)
+                                        }
+                                        else -> {
+                                            val newDist = distance(center, change.position)
+                                            val baseDist = distance(center, getTextHandlePositions(selected.copy(scale = 1f, rotation = 0f))[handle]!!)
+                                            val newScale = (newDist / baseDist).coerceIn(0.5f, 5f)
+                                            updateSelectedText(state, scale = newScale)
+                                        }
+                                    }
+                                    return@detectDragGestures
                                 }
-                                dragLastPos = change.position
+                                if (target != null && lastPos != null) {
+                                    val delta = change.position - lastPos
+                                    val index = state.actions.indexOf(target)
+                                    if (index >= 0) {
+                                        val translated = target.translate(delta)
+                                        state.removeAction(target)
+                                        state.addAction(translated)
+                                        dragTarget = translated
+                                        state.selectedAction = translated
+                                    }
+                                    dragLastPos = change.position
+                                }
                             },
                             onDragEnd = {
                                 dragTarget = null
                                 dragLastPos = null
+                                dragHandle = null
                             },
                             onDragCancel = {
                                 dragTarget = null
                                 dragLastPos = null
+                                dragHandle = null
                             },
                         )
 
@@ -356,6 +402,27 @@ fun DrawingCanvas(
             state.actions.forEach { action -> drawAction(action, textMeasurer) }
 
             previewAction?.let { drawAction(it, textMeasurer) }
+
+            val selected = state.selectedAction
+            if (selected is DrawingAction.Text) {
+                val handles = getTextHandlePositions(selected)
+                val handleColor = Color.White
+                val borderColor = Color(0xFF2196F3)
+                val handleR = 8f
+                drawLine(borderColor, handles["tl"]!!, handles["tr"]!!, 2f)
+                drawLine(borderColor, handles["tr"]!!, handles["br"]!!, 2f)
+                drawLine(borderColor, handles["br"]!!, handles["bl"]!!, 2f)
+                drawLine(borderColor, handles["bl"]!!, handles["tl"]!!, 2f)
+                val topCenter = Offset(
+                    (handles["tl"]!!.x + handles["tr"]!!.x) / 2f,
+                    (handles["tl"]!!.y + handles["tr"]!!.y) / 2f,
+                )
+                drawLine(borderColor, topCenter, handles["rot"]!!, 2f)
+                handles.forEach { (_, pos) ->
+                    drawCircle(handleColor, handleR, pos)
+                    drawCircle(borderColor, handleR, pos, style = Stroke(2f))
+                }
+            }
         }
 
         textInputState?.let { inputState ->
@@ -488,16 +555,60 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
             drawLine(action.color, end, headEnds.second, action.strokeWidth, StrokeCap.Round)
         }
         is DrawingAction.Text -> {
-            drawText(
-                textMeasurer = textMeasurer,
-                text = action.text,
-                topLeft = action.position,
-                style = TextStyle(
-                    color = action.color,
-                    fontSize = action.textSize.sp,
-                ),
-            )
+            val center = action.center()
+            rotate(action.rotation, center) {
+                scale(action.scale, action.scale, center) {
+                    drawText(
+                        textMeasurer = textMeasurer,
+                        text = action.text,
+                        topLeft = action.position,
+                        style = TextStyle(
+                            color = action.color,
+                            fontSize = action.textSize.sp,
+                        ),
+                    )
+                }
+            }
         }
+    }
+}
+
+private fun getTextHandlePositions(text: DrawingAction.Text): Map<String, Offset> {
+    val b = text.bounds()
+    val center = text.center()
+    val rotOffset = 40f
+    val raw = mapOf(
+        "tl" to Offset(b.left, b.top),
+        "tr" to Offset(b.right, b.top),
+        "bl" to Offset(b.left, b.bottom),
+        "br" to Offset(b.right, b.bottom),
+        "rot" to Offset(b.center.x, b.top - rotOffset),
+    )
+    val rad = text.rotation * Math.PI.toFloat() / 180f
+    val cos = kotlin.math.cos(rad)
+    val sin = kotlin.math.sin(rad)
+    return raw.mapValues { (_, pos) ->
+        val dx = pos.x - center.x
+        val dy = pos.y - center.y
+        Offset(center.x + dx * cos - dy * sin, center.y + dx * sin + dy * cos)
+    }
+}
+
+private fun updateSelectedText(
+    state: ImageEditorState,
+    rotation: Float? = null,
+    scale: Float? = null,
+) {
+    val current = state.selectedAction as? DrawingAction.Text ?: return
+    val updated = current.copy(
+        rotation = rotation ?: current.rotation,
+        scale = scale ?: current.scale,
+    )
+    val index = state.actions.indexOf(current)
+    if (index >= 0) {
+        state.removeAction(current)
+        state.addAction(updated)
+        state.selectedAction = updated
     }
 }
 
