@@ -22,7 +22,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
-import me.rerere.rikkahub.data.ai.tools.local.SUBAGENT_LOCAL_TOOL_NAMES
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.theme.CustomColors
@@ -34,16 +33,24 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val deferred = settings.deferredTools
 
+    val coreToolNames = listOf(
+        "Subagent",
+        "Bash",
+        "Read",
+        "Write",
+        "Edit",
+        "AskQuestion",
+        "Skill",
+        "WebSearch",
+        "WebFetch",
+        "ToolSearch",
+    )
+
     val allToolNames = remember(settings.mcpServers) {
         val mcpNames = settings.mcpServers.flatMap { server ->
             server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
         }
-        listOf("search_web", "scrape_web") +
-            SUBAGENT_LOCAL_TOOL_NAMES +
-            ALL_BROWSER_TOOL_NAMES +
-            listOf("Read", "Write", "Edit", "Bash", "WebSearch", "WebFetch") +
-            listOf("Subagent") +
-            mcpNames
+        coreToolNames + ALL_BROWSER_TOOL_NAMES + mcpNames
     }
 
     Scaffold(
@@ -72,15 +79,15 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
-            val grouped = allToolNames.groupBy { name ->
-                when {
-                    name == "search_web" || name == "scrape_web" -> "Search"
-                    name in SUBAGENT_LOCAL_TOOL_NAMES -> "Local"
-                    name.startsWith("browser_") -> "Browser"
-                    name.startsWith("workspace_") -> "Workspace"
-                    name.startsWith("mcp__") -> "MCP"
-                    else -> "Other"
-                }
+            val grouped = linkedMapOf(
+                "Core" to coreToolNames,
+                "Browser" to ALL_BROWSER_TOOL_NAMES,
+            )
+            val mcpGrouped = allToolNames.filter { it.startsWith("mcp__") }.groupBy { name ->
+                name.substringAfter("mcp__").substringBefore("__")
+            }
+            mcpGrouped.forEach { (server, names) ->
+                grouped["MCP: $server"] = names
             }
 
             grouped.forEach { (category, names) ->
