@@ -120,7 +120,7 @@ fun ImageEditorScreen(
                             color = if (state.canUndo) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                             tonalElevation = 2.dp,
                             modifier = Modifier
-                                .padding(end = 4.dp)
+                                .padding(end = 8.dp)
                                 .size(40.dp)
                                 .clickable(enabled = state.canUndo) { state.undo() },
                         ) {
@@ -142,7 +142,7 @@ fun ImageEditorScreen(
                             color = if (state.canRedo) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                             tonalElevation = 2.dp,
                             modifier = Modifier
-                                .padding(end = 4.dp)
+                                .padding(end = 8.dp)
                                 .size(40.dp)
                                 .clickable(enabled = state.canRedo) { state.redo() },
                         ) {

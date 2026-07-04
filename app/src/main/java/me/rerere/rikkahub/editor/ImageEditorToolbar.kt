@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.editor
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -90,15 +92,16 @@ fun ImageEditorToolbar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
-        shadowElevation = 8.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (showColorAndSize) {
                 ScrollableRow {
@@ -111,6 +114,9 @@ fun ImageEditorToolbar(
                     }
                 }
             }
+            if (showColorAndSize && showSize) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
             if (showSize) {
                 ScrollableRow {
                     BrushSize.entries.forEach { size ->
@@ -121,6 +127,9 @@ fun ImageEditorToolbar(
                         )
                     }
                 }
+            }
+            if (showSize && showModeRow) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
             if (showModeRow) {
                 ScrollableRow {
@@ -149,6 +158,9 @@ fun ImageEditorToolbar(
                     }
                 }
             }
+            if (showModeRow && showShapeRow) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
             if (showShapeRow) {
                 ScrollableRow {
                     ToolLabel(
@@ -168,6 +180,7 @@ fun ImageEditorToolbar(
                     )
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             ScrollableRow {
                 ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
                 ToolIcon(HugeIcons.Square, state.tool == EditorTool.SHAPE) { state.tool = EditorTool.SHAPE }

@@ -2,9 +2,10 @@ package me.rerere.rikkahub.editor
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -78,12 +79,20 @@ fun DrawingCanvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTransformGestures { _, panChange, zoomChange, _ ->
-                    zoom = (zoom * zoomChange).coerceIn(1f, 5f)
-                    if (zoom > 1f) {
-                        pan += panChange
-                    } else {
-                        pan = Offset.Zero
+                while (true) {
+                    val event = awaitPointerEvent()
+                    if (event.changes.size >= 2) {
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        if (zoomChange != 1f) {
+                            zoom = (zoom * zoomChange).coerceIn(1f, 5f)
+                        }
+                        if (zoom > 1f && panChange != Offset.Zero) {
+                            pan += panChange
+                        } else if (zoom <= 1f) {
+                            pan = Offset.Zero
+                        }
+                        event.changes.forEach { it.consume() }
                     }
                 }
             },
