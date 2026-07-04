@@ -2,6 +2,7 @@ package me.rerere.rikkahub.editor
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -79,7 +80,7 @@ fun DrawingCanvas(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                while (true) {
+                awaitEachGesture {
                     val event = awaitPointerEvent()
                     if (event.changes.size >= 2) {
                         val zoomChange = event.calculateZoom()
