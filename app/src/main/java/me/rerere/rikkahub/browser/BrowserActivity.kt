@@ -638,6 +638,7 @@ private fun BrowserScreen(
                         ) {
                             Column(
                                 modifier = Modifier
+                                    .heightIn(max = 200.dp)
                                     .verticalScroll(rememberScrollState())
                                     .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
