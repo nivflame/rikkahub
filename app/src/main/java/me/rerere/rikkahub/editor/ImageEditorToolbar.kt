@@ -3,7 +3,6 @@ package me.rerere.rikkahub.editor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -19,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,41 +55,22 @@ private val CircleIcon: ImageVector by lazy {
     }.build()
 }
 
-private val ArrowIcon: ImageVector by lazy {
-    ImageVector.Builder(
-        name = "Arrow",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f,
-    ).path(
-        stroke = SolidColor(Color.Black),
-        strokeLineWidth = 2f,
-    ) {
-        moveTo(4f, 20f)
-        lineTo(20f, 4f)
-        moveTo(20f, 4f)
-        lineTo(14f, 4f)
-        moveTo(20f, 4f)
-        lineTo(20f, 10f)
-    }.build()
-}
-
 @Composable
 fun ImageEditorToolbar(
     state: ImageEditorState,
     modifier: Modifier = Modifier,
 ) {
     if (state.tab != EditorTab.DRAW) return
-    val showColorAndSize = state.tool != EditorTool.DRAG && state.tool != EditorTool.ERASER
-    val showSize = state.tool != EditorTool.DRAG
-    val showShapeRow = state.tool == EditorTool.SHAPE
-    val showModeRow = state.tool == EditorTool.SHAPE
+
+    val showColors = state.tool != EditorTool.DRAG && state.tool != EditorTool.ERASER
+    val showSizes = state.tool != EditorTool.DRAG
+    val showShapeOptions = state.tool == EditorTool.SHAPE
+    val hasContextRow = showColors || showSizes || showShapeOptions
 
     Surface(
         modifier = modifier
             .wrapContentWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
@@ -103,87 +83,84 @@ fun ImageEditorToolbar(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (showColorAndSize) {
-                ScrollableRow {
-                    PresetColor.entries.forEach { presetColor ->
-                        ColorChip(
-                            color = presetColor.color,
-                            selected = state.selectedColor == presetColor,
-                            onClick = { state.selectedColor = presetColor },
+            if (hasContextRow) {
+                Row(
+                    modifier = Modifier.wrapContentWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (showColors) {
+                        PresetColor.entries.forEach { presetColor ->
+                            ColorChip(
+                                color = presetColor.color,
+                                selected = state.selectedColor == presetColor,
+                                onClick = { state.selectedColor = presetColor },
+                            )
+                        }
+                    }
+                    if (showColors && showSizes) {
+                        VerticalDivider(
+                            modifier = Modifier.size(height = 20.dp, width = 1.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                         )
                     }
-                }
-            }
-            if (showColorAndSize && showSize) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-            if (showSize) {
-                ScrollableRow {
-                    BrushSize.entries.forEach { size ->
-                        ToolLabel(
-                            text = size.name,
-                            selected = state.brushSize == size,
-                            onClick = { state.brushSize = size },
+                    if (showSizes) {
+                        BrushSize.entries.forEach { size ->
+                            ToolLabel(
+                                text = size.name,
+                                selected = state.brushSize == size,
+                                onClick = { state.brushSize = size },
+                            )
+                        }
+                    }
+                    if (showSizes && showShapeOptions) {
+                        VerticalDivider(
+                            modifier = Modifier.size(height = 20.dp, width = 1.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                         )
                     }
-                }
-            }
-            if (showSize && showModeRow) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-            if (showModeRow) {
-                ScrollableRow {
-                    if (state.shapeType == ShapeType.ARROW) {
+                    if (showShapeOptions) {
                         ToolLabel(
-                            text = "Straight",
-                            selected = state.shapeMode == ShapeMode.DRAG,
-                            onClick = { state.shapeMode = ShapeMode.DRAG },
+                            text = if (state.shapeType == ShapeType.RECTANGLE) "Rect" else if (state.shapeType == ShapeType.CIRCLE) "Circle" else "Arrow",
+                            selected = true,
+                            onClick = {
+                                state.shapeType = when (state.shapeType) {
+                                    ShapeType.RECTANGLE -> ShapeType.CIRCLE
+                                    ShapeType.CIRCLE -> ShapeType.ARROW
+                                    ShapeType.ARROW -> ShapeType.RECTANGLE
+                                }
+                            },
                         )
-                        ToolLabel(
-                            text = "Curved",
-                            selected = state.shapeMode == ShapeMode.TAP,
-                            onClick = { state.shapeMode = ShapeMode.TAP },
+                        VerticalDivider(
+                            modifier = Modifier.size(height = 20.dp, width = 1.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                         )
-                    } else {
-                        ToolLabel(
-                            text = "Tap",
-                            selected = state.shapeMode == ShapeMode.TAP,
-                            onClick = { state.shapeMode = ShapeMode.TAP },
-                        )
-                        ToolLabel(
-                            text = "Drag",
-                            selected = state.shapeMode == ShapeMode.DRAG,
-                            onClick = { state.shapeMode = ShapeMode.DRAG },
-                        )
+                        if (state.shapeType == ShapeType.ARROW) {
+                            ToolLabel(
+                                text = if (state.shapeMode == ShapeMode.DRAG) "Straight" else "Curved",
+                                selected = true,
+                                onClick = {
+                                    state.shapeMode = if (state.shapeMode == ShapeMode.DRAG) ShapeMode.TAP else ShapeMode.DRAG
+                                },
+                            )
+                        } else {
+                            ToolLabel(
+                                text = if (state.shapeMode == ShapeMode.TAP) "Tap" else "Drag",
+                                selected = true,
+                                onClick = {
+                                    state.shapeMode = if (state.shapeMode == ShapeMode.TAP) ShapeMode.DRAG else ShapeMode.TAP
+                                },
+                            )
+                        }
                     }
                 }
-            }
-            if (showModeRow && showShapeRow) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-            if (showShapeRow) {
-                ScrollableRow {
-                    ToolLabel(
-                        text = "Rect",
-                        selected = state.shapeType == ShapeType.RECTANGLE,
-                        onClick = { state.shapeType = ShapeType.RECTANGLE },
-                    )
-                    ToolLabel(
-                        text = "Circle",
-                        selected = state.shapeType == ShapeType.CIRCLE,
-                        onClick = { state.shapeType = ShapeType.CIRCLE },
-                    )
-                    ToolLabel(
-                        text = "Arrow",
-                        selected = state.shapeType == ShapeType.ARROW,
-                        onClick = { state.shapeType = ShapeType.ARROW },
-                    )
-                }
-            }
-            if (showColorAndSize || showSize || showModeRow || showShapeRow) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-            ScrollableRow {
+            Row(
+                modifier = Modifier.wrapContentWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
                 ToolIcon(HugeIcons.Square, state.tool == EditorTool.SHAPE) { state.tool = EditorTool.SHAPE }
                 ToolIcon(HugeIcons.Text, state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
@@ -192,18 +169,6 @@ fun ImageEditorToolbar(
             }
         }
     }
-}
-
-@Composable
-private fun ScrollableRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier
-            .wrapContentWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
 }
 
 @Composable
