@@ -4,20 +4,26 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.scale
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +40,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowTurnBackward
+import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Tick01
 import java.io.File
@@ -84,68 +91,151 @@ fun ImageEditorScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onCancel) {
-                        Icon(HugeIcons.Cancel01, contentDescription = "Cancel")
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(40.dp)
+                            .clickable(onClick = onCancel),
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                HugeIcons.Cancel01,
+                                contentDescription = "Cancel",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 },
                 actions = {
                     if (state.tab == EditorTab.DRAW) {
-                        IconButton(
-                            onClick = { state.undo() },
-                            enabled = state.canUndo,
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (state.canUndo) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .size(40.dp)
+                                .clickable(enabled = state.canUndo) { state.undo() },
                         ) {
-                            Icon(
-                                HugeIcons.ArrowTurnBackward,
-                                contentDescription = "Undo",
-                                tint = if (state.canUndo) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    HugeIcons.ArrowTurnBackward,
+                                    contentDescription = "Undo",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (state.canUndo) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                )
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (state.canRedo) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .size(40.dp)
+                                .clickable(enabled = state.canRedo) { state.redo() },
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    HugeIcons.ArrowTurnBackward,
+                                    contentDescription = "Redo",
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .scale(-1f, 1f),
+                                    tint = if (state.canRedo) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                )
+                            }
                         }
                     }
                     if (state.tab == EditorTab.CROP) {
-                        TextButton(
-                            onClick = {
-                                state.cropRect?.let { rect ->
-                                    val imgRect = imageRect
-                                    croppedBitmap = if (imgRect != null) {
-                                        cropBitmap(originalBitmap, rect, imgRect)
-                                    } else {
-                                        originalBitmap
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primary,
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clickable {
+                                    state.cropRect?.let { rect ->
+                                        val imgRect = imageRect
+                                        croppedBitmap = if (imgRect != null) {
+                                            cropBitmap(originalBitmap, rect, imgRect)
+                                        } else {
+                                            originalBitmap
+                                        }
+                                        state.cropApplied = true
+                                        state.tab = EditorTab.DRAW
                                     }
-                                    state.cropApplied = true
-                                    state.tab = EditorTab.DRAW
-                                }
-                            },
+                                },
                         ) {
-                            Text("Next")
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    HugeIcons.ArrowUp02,
+                                    contentDescription = "Next",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
                         }
                     } else {
-                        TextButton(
-                            onClick = {
-                                val result = flattenBitmap(
-                                    displayBitmap,
-                                    state.actions,
-                                    state.drawImageRect,
-                                )
-                                val outputFile = File(
-                                    context.cacheDir,
-                                    "edit_output_${System.currentTimeMillis()}.png",
-                                )
-                                FileOutputStream(outputFile).use {
-                                    result.compress(Bitmap.CompressFormat.PNG, 100, it)
-                                }
-                                onResult(Uri.fromFile(outputFile))
-                            },
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primary,
+                            tonalElevation = 2.dp,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clickable {
+                                    val result = flattenBitmap(
+                                        displayBitmap,
+                                        state.actions,
+                                        state.drawImageRect,
+                                    )
+                                    val outputFile = File(
+                                        context.cacheDir,
+                                        "edit_output_${System.currentTimeMillis()}.png",
+                                    )
+                                    FileOutputStream(outputFile).use {
+                                        result.compress(Bitmap.CompressFormat.PNG, 100, it)
+                                    }
+                                    onResult(Uri.fromFile(outputFile))
+                                },
                         ) {
-                            Icon(HugeIcons.Tick01, contentDescription = null)
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    HugeIcons.Tick01,
+                                    contentDescription = "Done",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
                         }
                     }
                 },
             )
         },
-        bottomBar = {
-            ImageEditorToolbar(state)
-        },
+        bottomBar = { },
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -169,6 +259,10 @@ fun ImageEditorScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+            ImageEditorToolbar(
+                state = state,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 }

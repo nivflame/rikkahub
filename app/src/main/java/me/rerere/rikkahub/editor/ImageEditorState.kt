@@ -11,7 +11,6 @@ class ImageEditorState {
     var tool: EditorTool by mutableStateOf(EditorTool.BRUSH)
     var shapeMode: ShapeMode by mutableStateOf(ShapeMode.DRAG)
     var shapeType: ShapeType by mutableStateOf(ShapeType.RECTANGLE)
-    var arrowMode: ArrowMode by mutableStateOf(ArrowMode.STRAIGHT)
     var selectedColor: PresetColor by mutableStateOf(PresetColor.RED)
     var brushSize: BrushSize by mutableStateOf(BrushSize.MEDIUM)
     var cropRect: Rect? by mutableStateOf(null)

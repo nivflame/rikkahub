@@ -4,13 +4,11 @@ import androidx.compose.ui.graphics.Color
 
 enum class EditorTab { CROP, DRAW }
 
-enum class EditorTool { CROP, BRUSH, SHAPE, ARROW, TEXT, ERASER, DRAG }
+enum class EditorTool { CROP, BRUSH, SHAPE, TEXT, ERASER, DRAG }
 
 enum class ShapeMode { TAP, DRAG }
 
-enum class ShapeType { RECTANGLE, CIRCLE }
-
-enum class ArrowMode { STRAIGHT, CURVED }
+enum class ShapeType { RECTANGLE, CIRCLE, ARROW }
 
 enum class BrushSize(val strokeWidth: Float) {
     THIN(4f),
