@@ -6,6 +6,8 @@ enum class EditorTab { CROP, DRAW }
 
 enum class EditorTool { CROP, BRUSH, SHAPE, TEXT, ERASER, DRAG }
 
+enum class ToolbarCategory { NONE, COLOR, SIZE, MODE }
+
 enum class ShapeMode { TAP, DRAG }
 
 enum class ShapeType { RECTANGLE, CIRCLE, ARROW }

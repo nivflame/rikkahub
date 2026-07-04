@@ -12,6 +12,7 @@ class ImageEditorState {
     var shapeMode: ShapeMode by mutableStateOf(ShapeMode.DRAG)
     var shapeType: ShapeType by mutableStateOf(ShapeType.RECTANGLE)
     var selectedColor: PresetColor by mutableStateOf(PresetColor.RED)
+    var expandedCategory: ToolbarCategory by mutableStateOf(ToolbarCategory.NONE)
     var brushSize: BrushSize by mutableStateOf(BrushSize.MEDIUM)
     var cropRect: Rect? by mutableStateOf(null)
     var cropApplied: Boolean by mutableStateOf(false)
