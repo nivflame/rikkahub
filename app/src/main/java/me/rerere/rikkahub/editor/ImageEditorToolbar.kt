@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathNode
-import androidx.compose.ui.graphics.vector.addPath
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
@@ -45,29 +44,12 @@ private val CircleIcon: ImageVector by lazy {
         viewportHeight = 24f,
     ).addPath(
         pathData = listOf(
-            PathNode.MoveTo(20f, 12f),
-            PathNode.ArcTo(
-                horizontalEllipseRadius = 8f,
-                verticalEllipseRadius = 8f,
-                theta = 0f,
-                isMoreThanHalf = true,
-                isPositiveArc = true,
-                arcStartX = 20f,
-                arcStartY = 12f,
-                arcEndX = 4f,
-                arcEndY = 12f,
-            ),
-            PathNode.ArcTo(
-                horizontalEllipseRadius = 8f,
-                verticalEllipseRadius = 8f,
-                theta = 0f,
-                isMoreThanHalf = true,
-                isPositiveArc = true,
-                arcStartX = 4f,
-                arcStartY = 12f,
-                arcEndX = 20f,
-                arcEndY = 12f,
-            ),
+            PathNode.MoveTo(12f, 4f),
+            PathNode.CurveTo(16.42f, 4f, 20f, 7.58f, 20f, 12f),
+            PathNode.CurveTo(20f, 16.42f, 16.42f, 20f, 12f, 20f),
+            PathNode.CurveTo(7.58f, 20f, 4f, 16.42f, 4f, 12f),
+            PathNode.CurveTo(4f, 7.58f, 7.58f, 4f, 12f, 4f),
+            PathNode.Close,
         ),
         stroke = SolidColor(Color.Black),
         strokeLineWidth = 2f,
