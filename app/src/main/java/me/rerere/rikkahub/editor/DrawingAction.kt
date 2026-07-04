@@ -97,14 +97,6 @@ sealed class DrawingAction {
             return rect.inflate(tolerance).contains(point)
         }
     }
-
-    data class Erase(
-        val points: List<Offset>,
-        override val strokeWidth: Float,
-    ) : DrawingAction() {
-        override val color: Color get() = Color.Transparent
-        override fun contains(point: Offset, tolerance: Float): Boolean = false
-    }
 }
 
 internal fun arrowheadEndpoints(

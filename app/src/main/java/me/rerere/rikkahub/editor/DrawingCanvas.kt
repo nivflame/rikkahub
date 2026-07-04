@@ -1,22 +1,31 @@
 package me.rerere.rikkahub.editor
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -33,7 +42,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.max
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Tick01
 import kotlin.math.sqrt
 
 @Composable
@@ -56,7 +66,7 @@ fun DrawingCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(state.tool) {
+                .pointerInput(state.tool, state.selectedColor, state.brushSize, state.shapeMode) {
                     when (state.tool) {
                         EditorTool.BRUSH -> detectDragGestures(
                             onDragStart = { offset ->
@@ -81,34 +91,19 @@ fun DrawingCanvas(
                         EditorTool.ERASER -> detectDragGestures(
                             onDragStart = { offset ->
                                 val hit = state.actions.lastOrNull { it.contains(offset) }
-                                if (hit != null && hit !is DrawingAction.Erase) {
+                                if (hit != null) {
                                     state.removeAction(hit)
-                                    previewAction = null
-                                } else {
-                                    previewAction = DrawingAction.Erase(
-                                        points = listOf(offset),
-                                        strokeWidth = strokeWidth * 2f,
-                                    )
                                 }
                             },
                             onDrag = { change, _ ->
                                 change.consume()
-                                val current = previewAction as? DrawingAction.Erase ?: run {
-                                    val hit = state.actions.lastOrNull { it.contains(change.position) }
-                                    if (hit != null && hit !is DrawingAction.Erase) {
-                                        state.removeAction(hit)
-                                    }
-                                    return@detectDragGestures
+                                val hit = state.actions.lastOrNull { it.contains(change.position) }
+                                if (hit != null) {
+                                    state.removeAction(hit)
                                 }
-                                previewAction = current.copy(points = current.points + change.position)
                             },
-                            onDragEnd = {
-                                if (previewAction is DrawingAction.Erase) {
-                                    state.addAction(previewAction!!)
-                                }
-                                previewAction = null
-                            },
-                            onDragCancel = { previewAction = null },
+                            onDragEnd = { },
+                            onDragCancel = { },
                         )
 
                         EditorTool.ARROW -> detectDragGestures(
@@ -253,9 +248,34 @@ fun DrawingCanvas(
                     }
                 },
         ) {
+            if (state.drawImageRect == null) {
+                val bitmapAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+                val canvasAspect = size.width / size.height
+                val fitRect = if (bitmapAspect > canvasAspect) {
+                    val scaledWidth = size.width
+                    val scaledHeight = size.width / bitmapAspect
+                    val top = (size.height - scaledHeight) / 2f
+                    Rect(0f, top, scaledWidth, top + scaledHeight)
+                } else {
+                    val scaledHeight = size.height
+                    val scaledWidth = size.height * bitmapAspect
+                    val left = (size.width - scaledWidth) / 2f
+                    Rect(left, 0f, left + scaledWidth, scaledHeight)
+                }
+                state.drawImageRect = fitRect
+            }
+
+            val imgRect = state.drawImageRect!!
             drawImage(
                 image = bitmap.asImageBitmap(),
-                dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+                dstOffset = androidx.compose.ui.unit.IntOffset(
+                    imgRect.left.toInt(),
+                    imgRect.top.toInt(),
+                ),
+                dstSize = IntSize(
+                    imgRect.width.toInt(),
+                    imgRect.height.toInt(),
+                ),
             )
 
             state.actions.forEach { action -> drawAction(action, textMeasurer) }
@@ -272,35 +292,55 @@ fun DrawingCanvas(
         }
 
         textInputState?.let { inputState ->
-            BasicTextField(
-                value = inputState.text,
-                onValueChange = { newText ->
-                    textInputState = inputState.copy(text = newText)
-                },
-                textStyle = TextStyle(
-                    color = color,
-                    fontSize = with(density) { 16.dp.toSp() },
-                ),
+            Row(
                 modifier = Modifier
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { _ ->
-                                if (inputState.text.isNotBlank()) {
-                                    state.addAction(
-                                        DrawingAction.Text(
-                                            position = inputState.position,
-                                            text = inputState.text,
-                                            color = color,
-                                            textSize = with(density) { 16.dp.toPx() },
-                                        ),
-                                    )
-                                }
-                                textInputState = null
-                            },
-                        )
+                    .offset(
+                        x = with(density) { inputState.position.x.toDp() },
+                        y = with(density) { inputState.position.y.toDp() },
+                    )
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                BasicTextField(
+                    value = inputState.text,
+                    onValueChange = { newText ->
+                        textInputState = inputState.copy(text = newText)
                     },
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(color),
-            )
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = with(density) { 16.dp.toSp() },
+                    ),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.onSurface),
+                    modifier = Modifier
+                        .widthIn(min = 100.dp)
+                        .padding(4.dp),
+                )
+                IconButton(
+                    onClick = {
+                        if (inputState.text.isNotBlank()) {
+                            state.addAction(
+                                DrawingAction.Text(
+                                    position = inputState.position,
+                                    text = inputState.text,
+                                    color = color,
+                                    textSize = with(density) { 16.dp.toPx() },
+                                ),
+                            )
+                        }
+                        textInputState = null
+                    },
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Tick01,
+                        contentDescription = "Confirm text",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
     }
 }
@@ -376,25 +416,6 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
                     color = action.color,
                     fontSize = action.textSize.sp,
                 ),
-            )
-        }
-        is DrawingAction.Erase -> {
-            if (action.points.size < 2) return
-            val path = Path().apply {
-                moveTo(action.points.first().x, action.points.first().y)
-                for (i in 1 until action.points.size) {
-                    lineTo(action.points[i].x, action.points[i].y)
-                }
-            }
-            drawPath(
-                path = path,
-                color = Color.Black,
-                style = Stroke(
-                    width = action.strokeWidth,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round,
-                ),
-                blendMode = BlendMode.Clear,
             )
         }
     }

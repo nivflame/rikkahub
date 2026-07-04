@@ -21,18 +21,58 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathNode
+import androidx.compose.ui.graphics.vector.addPath
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowRight01
-import me.rerere.hugeicons.stroke.Circle
 import me.rerere.hugeicons.stroke.Crop
 import me.rerere.hugeicons.stroke.Eraser
 import me.rerere.hugeicons.stroke.Line
 import me.rerere.hugeicons.stroke.PencilEdit01
 import me.rerere.hugeicons.stroke.Square
 import me.rerere.hugeicons.stroke.Text
+
+private val CircleIcon: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Circle",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).addPath(
+        pathData = listOf(
+            PathNode.MoveTo(20f, 12f),
+            PathNode.ArcTo(
+                horizontalEllipseRadius = 8f,
+                verticalEllipseRadius = 8f,
+                theta = 0f,
+                isMoreThanHalf = true,
+                isPositiveArc = true,
+                arcStartX = 20f,
+                arcStartY = 12f,
+                arcEndX = 4f,
+                arcEndY = 12f,
+            ),
+            PathNode.ArcTo(
+                horizontalEllipseRadius = 8f,
+                verticalEllipseRadius = 8f,
+                theta = 0f,
+                isMoreThanHalf = true,
+                isPositiveArc = true,
+                arcStartX = 4f,
+                arcStartY = 12f,
+                arcEndX = 20f,
+                arcEndY = 12f,
+            ),
+        ),
+        stroke = SolidColor(Color.Black),
+        strokeLineWidth = 2f,
+    ).build()
+}
 
 @Composable
 fun ImageEditorToolbar(
@@ -72,7 +112,7 @@ private fun ToolRow(state: ImageEditorState) {
             ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
             ToolIcon(HugeIcons.Line, state.tool == EditorTool.LINE) { state.tool = EditorTool.LINE }
             ToolIcon(HugeIcons.Square, state.tool == EditorTool.RECTANGLE) { state.tool = EditorTool.RECTANGLE }
-            ToolIcon(HugeIcons.Circle, state.tool == EditorTool.CIRCLE) { state.tool = EditorTool.CIRCLE }
+            ToolIcon(CircleIcon, state.tool == EditorTool.CIRCLE) { state.tool = EditorTool.CIRCLE }
             ToolIcon(HugeIcons.ArrowRight01, state.tool == EditorTool.ARROW) { state.tool = EditorTool.ARROW }
             ToolIcon(HugeIcons.Text, state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
             ToolIcon(HugeIcons.Eraser, state.tool == EditorTool.ERASER) { state.tool = EditorTool.ERASER }

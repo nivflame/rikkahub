@@ -20,14 +20,15 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.min
 
 @Composable
 fun CropOverlay(
     bitmap: android.graphics.Bitmap,
-    canvasSize: Size,
-    onCropRectChange: (Rect) -> Unit,
+    onCropRectChange: (Rect, Rect) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -35,33 +36,29 @@ fun CropOverlay(
     val handleTouchRadius = with(density) { 24.dp.toPx() }
     val borderWidth = with(density) { 2.dp.toPx() }
 
-    var cropRect by remember {
-        mutableStateOf(
-            Rect(
-                left = canvasSize.width * 0.1f,
-                top = canvasSize.height * 0.1f,
-                right = canvasSize.width * 0.9f,
-                bottom = canvasSize.height * 0.9f,
-            ),
-        )
-    }
+    var cropRect by remember { mutableStateOf<Rect?>(null) }
+    var imageRect by remember { mutableStateOf<Rect?>(null) }
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(cropRect, canvasSize) {
-                val corners = listOf(
-                    CropHandle.TopLeft to cropRect.topLeft,
-                    CropHandle.TopRight to cropRect.topRight,
-                    CropHandle.BottomLeft to cropRect.bottomLeft,
-                    CropHandle.BottomRight to cropRect.bottomRight,
-                )
+            .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { offset ->
-                        corners.forEach { (handle, pos) ->
-                            if (distance(offset, pos) <= handleTouchRadius) {
-                                activeHandle = handle
-                                return@detectDragGestures
+                        val currentCrop = cropRect
+                        val currentImage = imageRect
+                        if (currentCrop != null && currentImage != null) {
+                            val corners = listOf(
+                                CropHandle.TopLeft to currentCrop.topLeft,
+                                CropHandle.TopRight to currentCrop.topRight,
+                                CropHandle.BottomLeft to currentCrop.bottomLeft,
+                                CropHandle.BottomRight to currentCrop.bottomRight,
+                            )
+                            corners.forEach { (handle, pos) ->
+                                if (distance(offset, pos) <= handleTouchRadius) {
+                                    activeHandle = handle
+                                    return@detectDragGestures
+                                }
                             }
                         }
                         activeHandle = null
@@ -69,56 +66,92 @@ fun CropOverlay(
                     onDrag = { change, _ ->
                         change.consume()
                         val handle = activeHandle ?: return@detectDragGestures
+                        val currentCrop = cropRect ?: return@detectDragGestures
+                        val currentImage = imageRect ?: return@detectDragGestures
                         val pos = change.position
                         cropRect = when (handle) {
                             CropHandle.TopLeft -> Rect(
-                                left = pos.x.coerceIn(0f, cropRect.right),
-                                top = pos.y.coerceIn(0f, cropRect.bottom),
-                                right = cropRect.right,
-                                bottom = cropRect.bottom,
+                                left = pos.x.coerceIn(currentImage.left, currentCrop.right),
+                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom),
+                                right = currentCrop.right,
+                                bottom = currentCrop.bottom,
                             )
                             CropHandle.TopRight -> Rect(
-                                left = cropRect.left,
-                                top = pos.y.coerceIn(0f, cropRect.bottom),
-                                right = pos.x.coerceIn(cropRect.left, canvasSize.width),
-                                bottom = cropRect.bottom,
+                                left = currentCrop.left,
+                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom),
+                                right = pos.x.coerceIn(currentCrop.left, currentImage.right),
+                                bottom = currentCrop.bottom,
                             )
                             CropHandle.BottomLeft -> Rect(
-                                left = pos.x.coerceIn(0f, cropRect.right),
-                                top = cropRect.top,
-                                right = cropRect.right,
-                                bottom = pos.y.coerceIn(cropRect.top, canvasSize.height),
+                                left = pos.x.coerceIn(currentImage.left, currentCrop.right),
+                                top = currentCrop.top,
+                                right = currentCrop.right,
+                                bottom = pos.y.coerceIn(currentCrop.top, currentImage.bottom),
                             )
                             CropHandle.BottomRight -> Rect(
-                                left = cropRect.left,
-                                top = cropRect.top,
-                                right = pos.x.coerceIn(cropRect.left, canvasSize.width),
-                                bottom = pos.y.coerceIn(cropRect.top, canvasSize.height),
+                                left = currentCrop.left,
+                                top = currentCrop.top,
+                                right = pos.x.coerceIn(currentCrop.left, currentImage.right),
+                                bottom = pos.y.coerceIn(currentCrop.top, currentImage.bottom),
                             )
                         }
-                        onCropRectChange(cropRect)
+                        imageRect?.let { img -> onCropRectChange(cropRect!!, img) }
                     },
                     onDragEnd = { activeHandle = null },
                     onDragCancel = { activeHandle = null },
                 )
             },
     ) {
+        if (imageRect == null) {
+            val bitmapAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+            val canvasAspect = size.width / size.height
+            val fitRect = if (bitmapAspect > canvasAspect) {
+                val scaledWidth = size.width
+                val scaledHeight = size.width / bitmapAspect
+                val top = (size.height - scaledHeight) / 2f
+                Rect(0f, top, scaledWidth, top + scaledHeight)
+            } else {
+                val scaledHeight = size.height
+                val scaledWidth = size.height * bitmapAspect
+                val left = (size.width - scaledWidth) / 2f
+                Rect(left, 0f, left + scaledWidth, scaledHeight)
+            }
+            imageRect = fitRect
+            cropRect = Rect(
+                fitRect.left + fitRect.width * 0.05f,
+                fitRect.top + fitRect.height * 0.05f,
+                fitRect.right - fitRect.width * 0.05f,
+                fitRect.bottom - fitRect.height * 0.05f,
+            )
+            onCropRectChange(cropRect!!, fitRect)
+        }
+
+        val imgRect = imageRect!!
+        val cr = cropRect!!
+
         drawImage(
             image = bitmap.asImageBitmap(),
-            dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+            dstOffset = IntOffset(
+                imgRect.left.toInt(),
+                imgRect.top.toInt(),
+            ),
+            dstSize = IntSize(
+                imgRect.width.toInt(),
+                imgRect.height.toInt(),
+            ),
         )
 
         val dimPath = Path().apply {
             addRect(Rect(Offset.Zero, size))
-            addRect(cropRect)
+            addRect(cr)
             fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
         }
         drawPath(dimPath, Color.Black.copy(alpha = 0.5f))
 
         drawRect(
             color = Color.White,
-            topLeft = cropRect.topLeft,
-            size = cropRect.size,
+            topLeft = cr.topLeft,
+            size = cr.size,
             style = Stroke(
                 width = borderWidth,
                 join = StrokeJoin.Miter,
@@ -127,10 +160,10 @@ fun CropOverlay(
         )
 
         listOf(
-            cropRect.topLeft,
-            cropRect.topRight,
-            cropRect.bottomLeft,
-            cropRect.bottomRight,
+            cr.topLeft,
+            cr.topRight,
+            cr.bottomLeft,
+            cr.bottomRight,
         ).forEach { corner ->
             drawCircle(Color.White, handleRadius, corner)
             drawCircle(

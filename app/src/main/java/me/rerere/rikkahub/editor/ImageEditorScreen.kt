@@ -56,7 +56,7 @@ fun ImageEditorScreen(
     }
 
     var croppedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var canvasSize by remember { mutableStateOf(Size.Zero) }
+    var imageRect by remember { mutableStateOf<Rect?>(null) }
 
     if (originalBitmap == null) {
         Box(
@@ -106,7 +106,12 @@ fun ImageEditorScreen(
                         TextButton(
                             onClick = {
                                 state.cropRect?.let { rect ->
-                                    croppedBitmap = cropBitmap(originalBitmap, rect, canvasSize)
+                                    val imgRect = imageRect
+                                    croppedBitmap = if (imgRect != null) {
+                                        cropBitmap(originalBitmap, rect, imgRect)
+                                    } else {
+                                        originalBitmap
+                                    }
                                     state.cropApplied = true
                                     state.tab = EditorTab.DRAW
                                 }
@@ -120,7 +125,7 @@ fun ImageEditorScreen(
                                 val result = flattenBitmap(
                                     displayBitmap,
                                     state.actions,
-                                    canvasSize,
+                                    state.drawImageRect,
                                 )
                                 val outputFile = File(
                                     context.cacheDir,
@@ -151,8 +156,10 @@ fun ImageEditorScreen(
             if (state.tab == EditorTab.CROP) {
                 CropOverlay(
                     bitmap = originalBitmap,
-                    canvasSize = canvasSize,
-                    onCropRectChange = { rect -> state.cropRect = rect },
+                    onCropRectChange = { rect, imgRect ->
+                        state.cropRect = rect
+                        imageRect = imgRect
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
@@ -166,38 +173,34 @@ fun ImageEditorScreen(
     }
 }
 
-private fun cropBitmap(bitmap: Bitmap, rect: Rect, canvasSize: Size): Bitmap {
-    if (canvasSize.width == 0f || canvasSize.height == 0f) return bitmap
-    val scaleX = bitmap.width.toFloat() / canvasSize.width
-    val scaleY = bitmap.height.toFloat() / canvasSize.height
-    val left = (rect.left * scaleX).toInt().coerceIn(0, bitmap.width - 1)
-    val top = (rect.top * scaleY).toInt().coerceIn(0, bitmap.height - 1)
-    val right = (rect.right * scaleX).toInt().coerceIn(left + 1, bitmap.width)
-    val bottom = (rect.bottom * scaleY).toInt().coerceIn(top + 1, bitmap.height)
+private fun cropBitmap(bitmap: Bitmap, rect: Rect, imageRect: Rect): Bitmap {
+    if (imageRect.width == 0f || imageRect.height == 0f) return bitmap
+    val scaleX = bitmap.width.toFloat() / imageRect.width
+    val scaleY = bitmap.height.toFloat() / imageRect.height
+    val left = ((rect.left - imageRect.left) * scaleX).toInt().coerceIn(0, bitmap.width - 1)
+    val top = ((rect.top - imageRect.top) * scaleY).toInt().coerceIn(0, bitmap.height - 1)
+    val right = ((rect.right - imageRect.left) * scaleX).toInt().coerceIn(left + 1, bitmap.width)
+    val bottom = ((rect.bottom - imageRect.top) * scaleY).toInt().coerceIn(top + 1, bitmap.height)
     return Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top)
 }
 
 private fun flattenBitmap(
     bitmap: Bitmap,
     actions: List<DrawingAction>,
-    canvasSize: Size,
+    imageRect: Rect?,
 ): Bitmap {
-    if (canvasSize.width == 0f || canvasSize.height == 0f) return bitmap
+    if (imageRect == null || imageRect.width == 0f || imageRect.height == 0f) return bitmap
     if (actions.isEmpty()) return bitmap
     val result = bitmap.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = android.graphics.Canvas(result)
-    val scaleX = result.width.toFloat() / canvasSize.width
-    val scaleY = result.height.toFloat() / canvasSize.height
+    val scaleX = result.width.toFloat() / imageRect.width
+    val scaleY = result.height.toFloat() / imageRect.height
+    val offsetX = imageRect.left
+    val offsetY = imageRect.top
     val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.STROKE
         strokeCap = android.graphics.Paint.Cap.ROUND
         strokeJoin = android.graphics.Paint.Join.ROUND
-    }
-    val erasePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.STROKE
-        strokeCap = android.graphics.Paint.Cap.ROUND
-        strokeJoin = android.graphics.Paint.Join.ROUND
-        xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
     }
     actions.forEach { action ->
         when (action) {
@@ -207,10 +210,10 @@ private fun flattenBitmap(
                 paint.strokeWidth = action.strokeWidth * scaleX
                 for (i in 0 until action.points.size - 1) {
                     canvas.drawLine(
-                        action.points[i].x * scaleX,
-                        action.points[i].y * scaleY,
-                        action.points[i + 1].x * scaleX,
-                        action.points[i + 1].y * scaleY,
+                        (action.points[i].x - offsetX) * scaleX,
+                        (action.points[i].y - offsetY) * scaleY,
+                        (action.points[i + 1].x - offsetX) * scaleX,
+                        (action.points[i + 1].y - offsetY) * scaleY,
                         paint,
                     )
                 }
@@ -219,8 +222,8 @@ private fun flattenBitmap(
                 paint.color = action.color.toArgb()
                 paint.strokeWidth = action.strokeWidth * scaleX
                 canvas.drawLine(
-                    action.start.x * scaleX, action.start.y * scaleY,
-                    action.end.x * scaleX, action.end.y * scaleY,
+                    (action.start.x - offsetX) * scaleX, (action.start.y - offsetY) * scaleY,
+                    (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
                     paint,
                 )
             }
@@ -228,10 +231,10 @@ private fun flattenBitmap(
                 paint.color = action.color.toArgb()
                 paint.strokeWidth = action.strokeWidth * scaleX
                 canvas.drawRect(
-                    action.rect.left * scaleX,
-                    action.rect.top * scaleY,
-                    action.rect.right * scaleX,
-                    action.rect.bottom * scaleY,
+                    (action.rect.left - offsetX) * scaleX,
+                    (action.rect.top - offsetY) * scaleY,
+                    (action.rect.right - offsetX) * scaleX,
+                    (action.rect.bottom - offsetY) * scaleY,
                     paint,
                 )
             }
@@ -239,8 +242,8 @@ private fun flattenBitmap(
                 paint.color = action.color.toArgb()
                 paint.strokeWidth = action.strokeWidth * scaleX
                 canvas.drawCircle(
-                    action.center.x * scaleX,
-                    action.center.y * scaleY,
+                    (action.center.x - offsetX) * scaleX,
+                    (action.center.y - offsetY) * scaleY,
                     action.radius * scaleX,
                     paint,
                 )
@@ -249,19 +252,19 @@ private fun flattenBitmap(
                 paint.color = action.color.toArgb()
                 paint.strokeWidth = action.strokeWidth * scaleX
                 canvas.drawLine(
-                    action.start.x * scaleX, action.start.y * scaleY,
-                    action.end.x * scaleX, action.end.y * scaleY,
+                    (action.start.x - offsetX) * scaleX, (action.start.y - offsetY) * scaleY,
+                    (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
                     paint,
                 )
                 val (leftEnd, rightEnd) = arrowheadEndpoints(action.start, action.end, action.strokeWidth)
                 canvas.drawLine(
-                    action.end.x * scaleX, action.end.y * scaleY,
-                    leftEnd.x * scaleX, leftEnd.y * scaleY,
+                    (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
+                    (leftEnd.x - offsetX) * scaleX, (leftEnd.y - offsetY) * scaleY,
                     paint,
                 )
                 canvas.drawLine(
-                    action.end.x * scaleX, action.end.y * scaleY,
-                    rightEnd.x * scaleX, rightEnd.y * scaleY,
+                    (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
+                    (rightEnd.x - offsetX) * scaleX, (rightEnd.y - offsetY) * scaleY,
                     paint,
                 )
             }
@@ -271,24 +274,11 @@ private fun flattenBitmap(
                 paint.textSize = action.textSize * scaleX
                 canvas.drawText(
                     action.text,
-                    action.position.x * scaleX,
-                    action.position.y * scaleY + action.textSize * scaleX,
+                    (action.position.x - offsetX) * scaleX,
+                    (action.position.y - offsetY) * scaleY + action.textSize * scaleX,
                     paint,
                 )
                 paint.style = android.graphics.Paint.Style.STROKE
-            }
-            is DrawingAction.Erase -> {
-                if (action.points.size < 2) return@forEach
-                erasePaint.strokeWidth = action.strokeWidth * scaleX
-                for (i in 0 until action.points.size - 1) {
-                    canvas.drawLine(
-                        action.points[i].x * scaleX,
-                        action.points[i].y * scaleY,
-                        action.points[i + 1].x * scaleX,
-                        action.points[i + 1].y * scaleY,
-                        erasePaint,
-                    )
-                }
             }
         }
     }

@@ -14,6 +14,7 @@ class ImageEditorState {
     var brushSize: BrushSize by mutableStateOf(BrushSize.MEDIUM)
     var cropRect: Rect? by mutableStateOf(null)
     var cropApplied: Boolean by mutableStateOf(false)
+    var drawImageRect: Rect? by mutableStateOf(null)
 
     private val undoStack = mutableStateListOf<DrawingAction>()
     private val redoStack = mutableStateListOf<DrawingAction>()
