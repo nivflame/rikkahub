@@ -17,8 +17,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
-    "browser_search",
-    "browser_fetch",
     "browser_navigate",
     "browser_get_content",
     "browser_screenshot",
@@ -33,8 +31,8 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
-        name = "browser_search",
-        description = "Allows you to search the web using Google Search\n\nUsage notes:\n- Set news to true for News search, false for regular web search\n- Keep queries short and specific (1-6 words). Start broad, then narrow\n- Make each query distinct. Repeating phrases yields the same results\n- Use the correct year in search queries:\n  - The current month is ${LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. You MUST use this year when searching for recent information, documentation, or current events\n  - Example: If the user asks for \"latest React docs\", search for \"React documentation\" with the current year ${LocalDate.now().year}, NOT last year\n- Use browser_fetch to read full articles. browser_search snippets are too brief to cite\n- Prioritize browser_fetch on primary sources (company blogs, official announcements, peer-reviewed papers, first-hand reports) over aggregator roundups. When search results contain both official source URLs and aggregator URLs covering the same topic, ALWAYS fetch the official source first\n- If a source is not found, inform the user\n- Use the user's provided location for location-dependent queries\n- NEVER mention your knowledge cutoff or justify using search tools. Just search\n- Provide a substantive answer first. Do not reply with only a search offer or disclaimer\n- Trust search results even if surprising. Be skeptical of SEO-heavy results and conspiracy-prone topics\n- If results conflict or are incomplete, run more searches to clarify\n- This is more efficient than navigating to Google and using browser_dom_snapshot",
+        name = "WebSearch",
+        description = "Allows you to search the web using Google Search\n\nUsage notes:\n- Set news to true for News search, false for regular web search\n- Keep queries short and specific (1-6 words). Start broad, then narrow\n- Make each query distinct. Repeating phrases yields the same results\n- Use the correct year in search queries:\n  - The current month is ${LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. You MUST use this year when searching for recent information, documentation, or current events\n  - Example: If the user asks for \"latest React docs\", search for \"React documentation\" with the current year ${LocalDate.now().year}, NOT last year\n- Use WebFetch to read full articles. WebSearch snippets are too brief to cite\n- Prioritize WebFetch on primary sources (company blogs, official announcements, peer-reviewed papers, first-hand reports) over aggregator roundups. When search results contain both official source URLs and aggregator URLs covering the same topic, ALWAYS fetch the official source first\n- If a source is not found, inform the user\n- Use the user's provided location for location-dependent queries\n- NEVER mention your knowledge cutoff or justify using search tools. Just search\n- Provide a substantive answer first. Do not reply with only a search offer or disclaimer\n- Trust search results even if surprising. Be skeptical of SEO-heavy results and conspiracy-prone topics\n- If results conflict or are incomplete, run more searches to clarify\n- This is more efficient than navigating to Google and using browser_dom_snapshot",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -60,7 +58,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         }
     ),
     Tool(
-        name = "browser_fetch",
+        name = "WebFetch",
         description = "Fetches content from a specified URL\n\nUsage notes:\n- When a URL redirects to a different host, the tool will inform you and provide the redirect URL in a special format. You should then make a new WebFetch request with the redirect URL to fetch the content\n- For GitHub URLs, prefer using the gh CLI via Bash instead (e.g., gh pr view, gh issue view, gh api)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until you read full content\n- If it returns \"no content\", use browser_dom_snapshot with a selector targeting the main content area",
         parameters = {
             InputSchema.Obj(
@@ -117,7 +115,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_get_content",
-        description = "Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.\n\nUsage notes:\n- Use this to read content from a page you have already navigated to and possibly interacted with\n- For reading a new URL, use browser_fetch instead (it combines navigation and content extraction in one call)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read",
+        description = "Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.\n\nUsage notes:\n- Use this to read content from a page you have already navigated to and possibly interacted with\n- For reading a new URL, use WebFetch instead (it combines navigation and content extraction in one call)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -285,7 +283,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_waitfor",
-        description = "Wait for an element to appear on the current page. Supports both CSS selectors and text search.\n\n- If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector\n- Otherwise it is treated as a text search (e.g., \"Login\" finds a button with that text)\n- Returns whether the element was found within the timeout\n- Requires an active page (call browser_navigate or browser_fetch first)\n- Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear",
+        description = "Wait for an element to appear on the current page. Supports both CSS selectors and text search.\n\n- If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector\n- Otherwise it is treated as a text search (e.g., \"Login\" finds a button with that text)\n- Returns whether the element was found within the timeout\n- Requires an active page (call browser_navigate or WebFetch first)\n- Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {

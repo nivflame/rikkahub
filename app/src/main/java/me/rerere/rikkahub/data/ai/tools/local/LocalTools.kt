@@ -24,6 +24,12 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
                     .map { tool -> browserToolDescriptions[tool.name]?.let { tool.copy(description = it) } ?: tool }
             )
         }
+        if (options.contains(LocalToolOption.WebSearch)) {
+            tools.add(browserTools.first { it.name == "WebSearch" })
+        }
+        if (options.contains(LocalToolOption.WebFetch)) {
+            tools.add(browserTools.first { it.name == "WebFetch" })
+        }
         return tools
     }
 }

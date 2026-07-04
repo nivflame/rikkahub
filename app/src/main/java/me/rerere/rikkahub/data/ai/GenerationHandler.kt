@@ -285,7 +285,7 @@ class GenerationHandler(
                             }
                             Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
                             val result = toolDef.execute(args)
-                            val hasShellAccess = toolsInternal.any { it.name == "workspace_bash" }
+                            val hasShellAccess = toolsInternal.any { it.name == "Bash" }
                             executedTools += tool.copy(
                                 output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
                             )

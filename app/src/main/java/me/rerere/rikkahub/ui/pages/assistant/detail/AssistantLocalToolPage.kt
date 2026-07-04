@@ -116,6 +116,34 @@ private fun AssistantLocalToolContent(
             )
             item(
                 headlineContent = {
+                    Text("WebSearch")
+                },
+                supportingContent = {
+                    Text("Search the web using Google Search")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.WebSearch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebSearch, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("WebFetch")
+                },
+                supportingContent = {
+                    Text("Fetch and read content from a URL")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.WebFetch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebFetch, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
                     Text("Subagent")
                 },
                 supportingContent = {

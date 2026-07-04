@@ -41,7 +41,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
         listOf("search_web", "scrape_web") +
             SUBAGENT_LOCAL_TOOL_NAMES +
             ALL_BROWSER_TOOL_NAMES +
-            listOf("workspace_read", "workspace_write", "workspace_edit", "workspace_bash") +
+            listOf("Read", "Write", "Edit", "Bash", "WebSearch", "WebFetch") +
             listOf("Subagent") +
             mcpNames
     }

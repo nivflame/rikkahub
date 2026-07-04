@@ -1,7 +1,7 @@
 package me.rerere.rikkahub.data.ai.tools
 
 /**
- * workspace_edit 使用的文本替换器, 按 [WorkspaceEditReplacers] 顺序逐级尝试,
+ * Edit 使用的文本替换器, 按 [WorkspaceEditReplacers] 顺序逐级尝试,
  * 前一级找不到任何匹配时才会降级到下一级更宽松的匹配策略。
  */
 interface TextReplacer {

@@ -14,6 +14,14 @@ sealed class LocalToolOption {
     data object Browser : LocalToolOption()
 
     @Serializable
+    @SerialName("web_search")
+    data object WebSearch : LocalToolOption()
+
+    @Serializable
+    @SerialName("web_fetch")
+    data object WebFetch : LocalToolOption()
+
+    @Serializable
     @SerialName("subagent")
     data object Subagent : LocalToolOption()
 

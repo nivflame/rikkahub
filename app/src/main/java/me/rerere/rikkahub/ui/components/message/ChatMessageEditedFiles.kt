@@ -51,7 +51,7 @@ import org.koin.compose.koinInject
 import java.io.File
 
 private const val DEFAULT_VISIBLE_COUNT = 3
-private val WORKSPACE_FILE_TOOL_NAMES = setOf("workspace_write", "workspace_edit")
+private val WORKSPACE_FILE_TOOL_NAMES = setOf("Write", "Edit")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

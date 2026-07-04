@@ -231,6 +231,8 @@ private fun CountChip(count: Int) {
 private fun localToolOptions(): List<LocalToolOption> = listOf(
     LocalToolOption.AskQuestion,
     LocalToolOption.Browser,
+    LocalToolOption.WebSearch,
+    LocalToolOption.WebFetch,
     LocalToolOption.Subagent,
     LocalToolOption.Skill,
     LocalToolOption.ToolSearch,
@@ -239,6 +241,8 @@ private fun localToolOptions(): List<LocalToolOption> = listOf(
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
     LocalToolOption.AskQuestion -> "AskQuestion"
     LocalToolOption.Browser -> "Browser"
+    LocalToolOption.WebSearch -> "WebSearch"
+    LocalToolOption.WebFetch -> "WebFetch"
     LocalToolOption.Subagent -> "Subagent"
     LocalToolOption.Skill -> "Skill"
     LocalToolOption.ToolSearch -> "ToolSearch"
