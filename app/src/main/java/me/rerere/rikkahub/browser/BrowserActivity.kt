@@ -734,60 +734,39 @@ private fun BrowserScreen(
                                 color = MaterialTheme.colorScheme.surfaceContainer,
                                 tonalElevation = 1.dp,
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable(enabled = canGoBack) {
-                                                showHamburgerMenu = false
-                                                controller?.webView?.goBack()
-                                            }
-                                            .padding(vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
+                                    IconButton(
+                                        onClick = {
+                                            showHamburgerMenu = false
+                                            controller?.webView?.goBack()
+                                        },
+                                        enabled = canGoBack,
                                     ) {
                                         Icon(
                                             imageVector = HugeIcons.ArrowLeft01,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
+                                            contentDescription = "Back",
                                             tint = if (canGoBack) MaterialTheme.colorScheme.onSurfaceVariant
                                                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                                         )
-                                        Text(
-                                            text = "Back",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (canGoBack) MaterialTheme.colorScheme.onSurface
-                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                        )
                                     }
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable(enabled = canGoForward) {
-                                                showHamburgerMenu = false
-                                                controller?.webView?.goForward()
-                                            }
-                                            .padding(vertical = 12.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
+                                    IconButton(
+                                        onClick = {
+                                            showHamburgerMenu = false
+                                            controller?.webView?.goForward()
+                                        },
+                                        enabled = canGoForward,
                                     ) {
                                         Icon(
                                             imageVector = HugeIcons.ArrowRight01,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
+                                            contentDescription = "Forward",
                                             tint = if (canGoForward) MaterialTheme.colorScheme.onSurfaceVariant
                                                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                                        )
-                                        Text(
-                                            text = "Forward",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (canGoForward) MaterialTheme.colorScheme.onSurface
-                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                                         )
                                     }
                                 }
