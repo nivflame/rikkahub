@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -89,7 +89,7 @@ fun ImageEditorToolbar(
 
     Surface(
         modifier = modifier
-            .fillMaxWidth()
+            .wrapContentWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -99,7 +99,7 @@ fun ImageEditorToolbar(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .wrapContentWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -180,7 +180,9 @@ fun ImageEditorToolbar(
                     )
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            if (showColorAndSize || showSize || showModeRow || showShapeRow) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
             ScrollableRow {
                 ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
                 ToolIcon(HugeIcons.Square, state.tool == EditorTool.SHAPE) { state.tool = EditorTool.SHAPE }
@@ -196,7 +198,7 @@ fun ImageEditorToolbar(
 private fun ScrollableRow(content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .wrapContentWidth()
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
