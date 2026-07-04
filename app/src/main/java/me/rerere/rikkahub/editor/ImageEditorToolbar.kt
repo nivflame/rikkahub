@@ -320,5 +320,3 @@ private fun ColorChip(color: Color, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick),
     )
 }
-    }
-}
