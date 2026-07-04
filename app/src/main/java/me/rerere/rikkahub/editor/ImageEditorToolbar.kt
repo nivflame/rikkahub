@@ -1,13 +1,19 @@
 package me.rerere.rikkahub.editor
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,7 +67,11 @@ fun ImageEditorToolbar(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        if (hasContext) {
+        AnimatedVisibility(
+            visible = hasContext,
+            enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)),
+        ) {
             ContextCapsule(state, showColor, showSize, showMode)
         }
         ToolsCapsule(state)
@@ -185,11 +195,11 @@ private fun ToolsCapsule(state: ImageEditorState) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            ToolIcon(HugeIcons.CursorPointer01, state.tool == EditorTool.DRAG) { state.tool = EditorTool.DRAG }
             ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
             ToolIcon(HugeIcons.Square, state.tool == EditorTool.SHAPE) { state.tool = EditorTool.SHAPE }
             ToolIcon(HugeIcons.TextIcon, state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
             ToolIcon(HugeIcons.Eraser, state.tool == EditorTool.ERASER) { state.tool = EditorTool.ERASER }
-            ToolIcon(HugeIcons.CursorPointer01, state.tool == EditorTool.DRAG) { state.tool = EditorTool.DRAG }
         }
     }
 }
@@ -209,6 +219,7 @@ private fun CapsuleSurface(content: @Composable () -> Unit) {
         Row(
             modifier = Modifier
                 .wrapContentWidth()
+                .animateContentSize(animationSpec = tween(300))
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -301,16 +312,13 @@ private fun ColorChip(color: Color, selected: Boolean, onClick: () -> Unit) {
             .size(28.dp)
             .clip(CircleShape)
             .background(color)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selected) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.Transparent),
+            .border(
+                width = if (selected) 3.dp else 0.dp,
+                color = MaterialTheme.colorScheme.onSurface,
+                shape = CircleShape,
             )
-        }
+            .clickable(onClick = onClick),
+    )
+}
     }
 }

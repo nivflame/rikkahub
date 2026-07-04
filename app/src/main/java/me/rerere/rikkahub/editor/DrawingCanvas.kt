@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -69,6 +70,7 @@ fun DrawingCanvas(
     var dragHandle by remember { mutableStateOf<String?>(null) }
     var zoom by remember { mutableFloatStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
+    var boxHeight by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(state.tool) {
         if (state.tool != EditorTool.TEXT) {
@@ -82,6 +84,7 @@ fun DrawingCanvas(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged { boxHeight = it.height.toFloat() }
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -430,7 +433,10 @@ fun DrawingCanvas(
                 modifier = Modifier
                     .offset(
                         x = with(density) { inputState.position.x.toDp() },
-                        y = with(density) { inputState.position.y.toDp() },
+                        y = with(density) {
+                            val maxY = boxHeight - 130.dp.toPx()
+                            minOf(inputState.position.y, maxY).toDp()
+                        },
                     )
                     .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(4.dp),
