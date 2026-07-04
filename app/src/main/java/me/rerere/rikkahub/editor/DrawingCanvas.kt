@@ -300,7 +300,9 @@ fun DrawingCanvas(
                             onDragStart = { offset ->
                                 val selected = state.selectedAction
                                 if (selected is DrawingAction.Text) {
-                                    val handlePos = getTextHandlePositions(selected)
+                                    val bounds = measureTextBounds(selected, textMeasurer)
+                                    val center = Offset(bounds.center.x, bounds.center.y)
+                                    val handlePos = getTextHandlePositions(bounds, center, selected.rotation)
                                     val hitHandle = handlePos.entries.firstOrNull { distance(offset, it.value) <= 30f }
                                     if (hitHandle != null) {
                                         dragHandle = hitHandle.key
@@ -327,7 +329,8 @@ fun DrawingCanvas(
                                 val lastPos = dragLastPos
                                 if (handle != null) {
                                     val selected = state.selectedAction as? DrawingAction.Text ?: return@detectDragGestures
-                                    val center = selected.center()
+                                    val measuredBounds = measureTextBounds(selected, textMeasurer)
+                                    val center = Offset(measuredBounds.center.x, measuredBounds.center.y)
                                     when (handle) {
                                         "rot" -> {
                                             val angle = Math.atan2(
@@ -337,8 +340,11 @@ fun DrawingCanvas(
                                             updateSelectedText(state, rotation = angle)
                                         }
                                         else -> {
+                                            val baseBounds = measureTextBounds(selected.copy(scale = 1f, rotation = 0f), textMeasurer)
+                                            val baseCenter = Offset(baseBounds.center.x, baseBounds.center.y)
+                                            val baseHandles = getTextHandlePositions(baseBounds, baseCenter, 0f)
+                                            val baseDist = distance(center, baseHandles[handle]!!)
                                             val newDist = distance(center, change.position)
-                                            val baseDist = distance(center, getTextHandlePositions(selected.copy(scale = 1f, rotation = 0f))[handle]!!)
                                             val newScale = (newDist / baseDist).coerceIn(0.5f, 5f)
                                             updateSelectedText(state, scale = newScale)
                                         }
@@ -410,7 +416,9 @@ fun DrawingCanvas(
 
             val selected = state.selectedAction
             if (selected is DrawingAction.Text) {
-                val handles = getTextHandlePositions(selected)
+                val bounds = measureTextBounds(selected, textMeasurer)
+                val center = Offset(bounds.center.x, bounds.center.y)
+                val handles = getTextHandlePositions(bounds, center, selected.rotation)
                 val handleColor = Color.White
                 val borderColor = Color(0xFF2196F3)
                 val handleR = 8f
@@ -563,7 +571,8 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
             drawLine(action.color, end, headEnds.second, action.strokeWidth, StrokeCap.Round)
         }
         is DrawingAction.Text -> {
-            val center = action.center()
+            val measuredBounds = measureTextBounds(action, textMeasurer)
+            val center = Offset(measuredBounds.center.x, measuredBounds.center.y)
             rotate(action.rotation, center) {
                 scale(action.scale, action.scale, center) {
                     drawText(
@@ -581,18 +590,26 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
     }
 }
 
-private fun getTextHandlePositions(text: DrawingAction.Text): Map<String, Offset> {
-    val b = text.bounds()
-    val center = text.center()
+private fun measureTextBounds(text: DrawingAction.Text, textMeasurer: TextMeasurer): Rect {
+    val result = textMeasurer.measure(
+        text = text.text,
+        style = TextStyle(fontSize = text.textSize.sp),
+    )
+    val w = result.size.width * text.scale
+    val h = result.size.height * text.scale
+    return Rect(text.position.x, text.position.y, text.position.x + w, text.position.y + h)
+}
+
+private fun getTextHandlePositions(bounds: Rect, center: Offset, rotation: Float): Map<String, Offset> {
     val rotOffset = 40f
     val raw = mapOf(
-        "tl" to Offset(b.left, b.top),
-        "tr" to Offset(b.right, b.top),
-        "bl" to Offset(b.left, b.bottom),
-        "br" to Offset(b.right, b.bottom),
-        "rot" to Offset(b.center.x, b.top - rotOffset),
+        "tl" to Offset(bounds.left, bounds.top),
+        "tr" to Offset(bounds.right, bounds.top),
+        "bl" to Offset(bounds.left, bounds.bottom),
+        "br" to Offset(bounds.right, bounds.bottom),
+        "rot" to Offset(bounds.center.x, bounds.top - rotOffset),
     )
-    val rad = text.rotation * Math.PI.toFloat() / 180f
+    val rad = rotation * Math.PI.toFloat() / 180f
     val cos = kotlin.math.cos(rad)
     val sin = kotlin.math.sin(rad)
     return raw.mapValues { (_, pos) ->

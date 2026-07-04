@@ -18,6 +18,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -52,6 +54,7 @@ fun ImageEditorToolbar(
     modifier: Modifier = Modifier,
 ) {
     if (state.tab != EditorTab.DRAW) return
+    if (WindowInsets.isImeVisible) return
 
     LaunchedEffect(state.tool) {
         state.expandedCategory = ToolbarCategory.NONE
