@@ -21,13 +21,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalTextMeasurer
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,7 +43,7 @@ fun DrawingCanvas(
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    val textMeasurer = LocalTextMeasurer.current
+    val textMeasurer = rememberTextMeasurer()
     val strokeWidth = with(density) { state.brushSize.strokeWidth.dp.toPx() }
     val color = state.selectedColor.color
     val tapShapeSize = with(density) { 48.dp.toPx() }
