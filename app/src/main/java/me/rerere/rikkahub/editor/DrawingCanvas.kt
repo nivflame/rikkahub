@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -60,13 +60,20 @@ fun DrawingCanvas(
 
     var previewAction by remember { mutableStateOf<DrawingAction?>(null) }
     var textInputState by remember { mutableStateOf<TextInputState?>(null) }
-    var lineStart by remember { mutableStateOf<Offset?>(null) }
+    var dragTarget by remember { mutableStateOf<DrawingAction?>(null) }
+    var dragLastPos by remember { mutableStateOf<Offset?>(null) }
+
+    LaunchedEffect(state.tool) {
+        if (state.tool != EditorTool.TEXT) {
+            textInputState = null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(state.tool, state.selectedColor, state.brushSize, state.shapeMode) {
+                .pointerInput(state.tool, state.selectedColor, state.brushSize, state.shapeMode, state.shapeType, state.arrowMode) {
                     when (state.tool) {
                         EditorTool.BRUSH -> detectDragGestures(
                             onDragStart = { offset ->
@@ -90,14 +97,14 @@ fun DrawingCanvas(
 
                         EditorTool.ERASER -> detectDragGestures(
                             onDragStart = { offset ->
-                                val hit = state.actions.lastOrNull { it.contains(offset) }
+                                val hit = state.actions.lastOrNull { it.contains(offset, tolerance = 48f) }
                                 if (hit != null) {
                                     state.removeAction(hit)
                                 }
                             },
                             onDrag = { change, _ ->
                                 change.consume()
-                                val hit = state.actions.lastOrNull { it.contains(change.position) }
+                                val hit = state.actions.lastOrNull { it.contains(change.position, tolerance = 48f) }
                                 if (hit != null) {
                                     state.removeAction(hit)
                                 }
@@ -106,64 +113,67 @@ fun DrawingCanvas(
                             onDragCancel = { },
                         )
 
-                        EditorTool.ARROW -> detectDragGestures(
-                            onDragStart = { offset ->
-                                previewAction = DrawingAction.Arrow(
-                                    start = offset,
-                                    end = offset,
-                                    color = color,
-                                    strokeWidth = strokeWidth,
-                                )
-                            },
-                            onDrag = { change, _ ->
-                                change.consume()
-                                val current = previewAction as? DrawingAction.Arrow ?: return@detectDragGestures
-                                previewAction = current.copy(end = change.position)
-                            },
-                            onDragEnd = {
-                                previewAction?.let {
-                                    val arrow = it as DrawingAction.Arrow
-                                    if (distance(arrow.start, arrow.end) > 10f) {
-                                        state.addAction(it)
-                                    }
-                                }
-                                previewAction = null
-                            },
-                            onDragCancel = { previewAction = null },
-                        )
-
-                        EditorTool.LINE -> detectTapGestures(
-                            onTap = { offset ->
-                                val start = lineStart
-                                if (start == null) {
-                                    lineStart = offset
-                                    previewAction = DrawingAction.Line(
-                                        start = offset,
-                                        end = offset,
-                                        color = color,
-                                        strokeWidth = strokeWidth,
-                                    )
-                                } else {
-                                    previewAction = null
-                                    lineStart = null
-                                    state.addAction(
-                                        DrawingAction.Line(
-                                            start = start,
+                        EditorTool.ARROW -> {
+                            if (state.arrowMode == ArrowMode.STRAIGHT) {
+                                detectDragGestures(
+                                    onDragStart = { offset ->
+                                        previewAction = DrawingAction.Arrow(
+                                            start = offset,
                                             end = offset,
                                             color = color,
                                             strokeWidth = strokeWidth,
-                                        ),
-                                    )
-                                }
-                            },
-                        )
+                                        )
+                                    },
+                                    onDrag = { change, _ ->
+                                        change.consume()
+                                        val current = previewAction as? DrawingAction.Arrow ?: return@detectDragGestures
+                                        previewAction = current.copy(end = change.position)
+                                    },
+                                    onDragEnd = {
+                                        previewAction?.let {
+                                            val arrow = it as DrawingAction.Arrow
+                                            if (distance(arrow.start, arrow.end) > 10f) {
+                                                state.addAction(it)
+                                            }
+                                        }
+                                        previewAction = null
+                                    },
+                                    onDragCancel = { previewAction = null },
+                                )
+                            } else {
+                                detectDragGestures(
+                                    onDragStart = { offset ->
+                                        previewAction = DrawingAction.CurvedArrow(
+                                            points = listOf(offset),
+                                            color = color,
+                                            strokeWidth = strokeWidth,
+                                        )
+                                    },
+                                    onDrag = { change, _ ->
+                                        change.consume()
+                                        val current = previewAction as? DrawingAction.CurvedArrow ?: return@detectDragGestures
+                                        previewAction = current.copy(points = current.points + change.position)
+                                    },
+                                    onDragEnd = {
+                                        previewAction?.let {
+                                            val curved = it as DrawingAction.CurvedArrow
+                                            if (curved.points.size >= 2) {
+                                                state.addAction(it)
+                                            }
+                                        }
+                                        previewAction = null
+                                    },
+                                    onDragCancel = { previewAction = null },
+                                )
+                            }
+                        }
 
-                        EditorTool.RECTANGLE, EditorTool.CIRCLE -> {
+                        EditorTool.SHAPE -> {
                             if (state.shapeMode == ShapeMode.TAP) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         val halfSize = tapShapeSize / 2f
-                                        val action: DrawingAction = if (state.tool == EditorTool.RECTANGLE) {
+                                        val action: DrawingAction = if (state.shapeType == ShapeType.RECTANGLE) {
                                             DrawingAction.Rectangle(
                                                 rect = Rect(
                                                     offset.x - halfSize,
@@ -188,7 +198,7 @@ fun DrawingCanvas(
                             } else {
                                 detectDragGestures(
                                     onDragStart = { offset ->
-                                        if (state.tool == EditorTool.RECTANGLE) {
+                                        if (state.shapeType == ShapeType.RECTANGLE) {
                                             previewAction = DrawingAction.Rectangle(
                                                 rect = Rect(offset.x, offset.y, offset.x, offset.y),
                                                 color = color,
@@ -208,7 +218,7 @@ fun DrawingCanvas(
                                         val start = (previewAction as? DrawingAction.Rectangle)?.rect?.topLeft
                                             ?: (previewAction as? DrawingAction.Circle)?.center
                                             ?: return@detectDragGestures
-                                        if (state.tool == EditorTool.RECTANGLE) {
+                                        if (state.shapeType == ShapeType.RECTANGLE) {
                                             previewAction = DrawingAction.Rectangle(
                                                 rect = Rect(
                                                     minOf(start.x, change.position.x),
@@ -241,6 +251,38 @@ fun DrawingCanvas(
                         EditorTool.TEXT -> detectTapGestures(
                             onTap = { offset ->
                                 textInputState = TextInputState(position = offset, text = "")
+                            },
+                        )
+
+                        EditorTool.DRAG -> detectDragGestures(
+                            onDragStart = { offset ->
+                                val hit = state.actions.lastOrNull { it.contains(offset, tolerance = 48f) }
+                                if (hit != null) {
+                                    dragTarget = hit
+                                    dragLastPos = offset
+                                }
+                            },
+                            onDrag = { change, _ ->
+                                change.consume()
+                                val target = dragTarget ?: return@detectDragGestures
+                                val lastPos = dragLastPos ?: return@detectDragGestures
+                                val delta = change.position - lastPos
+                                val index = state.actions.indexOf(target)
+                                if (index >= 0) {
+                                    val translated = target.translate(delta)
+                                    state.removeAction(target)
+                                    state.addAction(translated)
+                                    dragTarget = translated
+                                }
+                                dragLastPos = change.position
+                            },
+                            onDragEnd = {
+                                dragTarget = null
+                                dragLastPos = null
+                            },
+                            onDragCancel = {
+                                dragTarget = null
+                                dragLastPos = null
                             },
                         )
 
@@ -281,14 +323,6 @@ fun DrawingCanvas(
             state.actions.forEach { action -> drawAction(action, textMeasurer) }
 
             previewAction?.let { drawAction(it, textMeasurer) }
-
-            if (lineStart != null && state.tool == EditorTool.LINE) {
-                drawCircle(
-                    color = color,
-                    radius = strokeWidth / 2f,
-                    center = lineStart!!,
-                )
-            }
         }
 
         textInputState?.let { inputState ->
@@ -370,15 +404,6 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
                 ),
             )
         }
-        is DrawingAction.Line -> {
-            drawLine(
-                color = action.color,
-                start = action.start,
-                end = action.end,
-                strokeWidth = action.strokeWidth,
-                cap = StrokeCap.Round,
-            )
-        }
         is DrawingAction.Rectangle -> {
             drawRect(
                 color = action.color,
@@ -406,6 +431,28 @@ private fun DrawScope.drawAction(action: DrawingAction, textMeasurer: TextMeasur
             val (leftEnd, rightEnd) = arrowheadEndpoints(action.start, action.end, action.strokeWidth)
             drawLine(action.color, action.end, leftEnd, action.strokeWidth, StrokeCap.Round)
             drawLine(action.color, action.end, rightEnd, action.strokeWidth, StrokeCap.Round)
+        }
+        is DrawingAction.CurvedArrow -> {
+            if (action.points.size < 2) return
+            val path = Path().apply {
+                moveTo(action.points.first().x, action.points.first().y)
+                for (i in 1 until action.points.size) {
+                    lineTo(action.points[i].x, action.points[i].y)
+                }
+            }
+            drawPath(
+                path = path,
+                color = action.color,
+                style = Stroke(
+                    width = action.strokeWidth,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
+            )
+            val headEnds = curvedArrowheadEndpoints(action.points, action.strokeWidth) ?: return
+            val end = action.points.last()
+            drawLine(action.color, end, headEnds.first, action.strokeWidth, StrokeCap.Round)
+            drawLine(action.color, end, headEnds.second, action.strokeWidth, StrokeCap.Round)
         }
         is DrawingAction.Text -> {
             drawText(

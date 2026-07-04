@@ -23,15 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Crop
+import me.rerere.hugeicons.stroke.CursorPointer01
 import me.rerere.hugeicons.stroke.Eraser
-import me.rerere.hugeicons.stroke.Line
 import me.rerere.hugeicons.stroke.PencilEdit01
 import me.rerere.hugeicons.stroke.Square
 import me.rerere.hugeicons.stroke.Text
@@ -92,18 +91,34 @@ private fun ToolRow(state: ImageEditorState) {
             ToolIcon(HugeIcons.Crop, state.tool == EditorTool.CROP) { state.tool = EditorTool.CROP }
         } else {
             ToolIcon(HugeIcons.PencilEdit01, state.tool == EditorTool.BRUSH) { state.tool = EditorTool.BRUSH }
-            ToolIcon(HugeIcons.Line, state.tool == EditorTool.LINE) { state.tool = EditorTool.LINE }
-            ToolIcon(HugeIcons.Square, state.tool == EditorTool.RECTANGLE) { state.tool = EditorTool.RECTANGLE }
-            ToolIcon(CircleIcon, state.tool == EditorTool.CIRCLE) { state.tool = EditorTool.CIRCLE }
+            ToolIcon(HugeIcons.Square, state.tool == EditorTool.SHAPE) { state.tool = EditorTool.SHAPE }
             ToolIcon(HugeIcons.ArrowRight01, state.tool == EditorTool.ARROW) { state.tool = EditorTool.ARROW }
             ToolIcon(HugeIcons.Text, state.tool == EditorTool.TEXT) { state.tool = EditorTool.TEXT }
             ToolIcon(HugeIcons.Eraser, state.tool == EditorTool.ERASER) { state.tool = EditorTool.ERASER }
+            ToolIcon(HugeIcons.CursorPointer01, state.tool == EditorTool.DRAG) { state.tool = EditorTool.DRAG }
         }
     }
 }
 
 @Composable
 private fun SecondaryRow(state: ImageEditorState) {
+    if (state.tool == EditorTool.ERASER) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrushSize.entries.forEach { size ->
+                ToolLabel(
+                    text = size.name,
+                    selected = state.brushSize == size,
+                    onClick = { state.brushSize = size },
+                )
+            }
+        }
+        return
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -131,12 +146,28 @@ private fun SecondaryRow(state: ImageEditorState) {
                 onClick = { state.brushSize = size },
             )
         }
-        if (state.tool == EditorTool.RECTANGLE || state.tool == EditorTool.CIRCLE) {
+        if (state.tool == EditorTool.SHAPE) {
             ToolLabel(
                 text = if (state.shapeMode == ShapeMode.TAP) "Tap" else "Drag",
                 selected = true,
                 onClick = {
                     state.shapeMode = if (state.shapeMode == ShapeMode.TAP) ShapeMode.DRAG else ShapeMode.TAP
+                },
+            )
+            ToolLabel(
+                text = if (state.shapeType == ShapeType.RECTANGLE) "Rect" else "Circle",
+                selected = true,
+                onClick = {
+                    state.shapeType = if (state.shapeType == ShapeType.RECTANGLE) ShapeType.CIRCLE else ShapeType.RECTANGLE
+                },
+            )
+        }
+        if (state.tool == EditorTool.ARROW) {
+            ToolLabel(
+                text = if (state.arrowMode == ArrowMode.STRAIGHT) "Straight" else "Curved",
+                selected = true,
+                onClick = {
+                    state.arrowMode = if (state.arrowMode == ArrowMode.STRAIGHT) ArrowMode.CURVED else ArrowMode.STRAIGHT
                 },
             )
         }
@@ -199,7 +230,6 @@ private fun ColorChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val border = if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent
     androidx.compose.foundation.layout.Box(
         modifier = Modifier
             .size(28.dp)

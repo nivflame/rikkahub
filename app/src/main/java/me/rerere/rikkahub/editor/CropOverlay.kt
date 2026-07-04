@@ -117,12 +117,7 @@ fun CropOverlay(
                 Rect(left, 0f, left + scaledWidth, scaledHeight)
             }
             imageRect = fitRect
-            cropRect = Rect(
-                fitRect.left + fitRect.width * 0.05f,
-                fitRect.top + fitRect.height * 0.05f,
-                fitRect.right - fitRect.width * 0.05f,
-                fitRect.bottom - fitRect.height * 0.05f,
-            )
+            cropRect = fitRect
             onCropRectChange(cropRect!!, fitRect)
         }
 

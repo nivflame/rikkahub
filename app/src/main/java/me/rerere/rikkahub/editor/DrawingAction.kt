@@ -16,6 +16,8 @@ sealed class DrawingAction {
 
     abstract fun contains(point: Offset, tolerance: Float = 24f): Boolean
 
+    abstract fun translate(delta: Offset): DrawingAction
+
     data class Freehand(
         val points: List<Offset>,
         override val color: Color,
@@ -28,16 +30,8 @@ sealed class DrawingAction {
             }
             return false
         }
-    }
 
-    data class Line(
-        val start: Offset,
-        val end: Offset,
-        override val color: Color,
-        override val strokeWidth: Float,
-    ) : DrawingAction() {
-        override fun contains(point: Offset, tolerance: Float): Boolean =
-            distanceToSegment(point, start, end) <= tolerance + strokeWidth / 2f
+        override fun translate(delta: Offset) = copy(points = points.map { it + delta })
     }
 
     data class Rectangle(
@@ -51,6 +45,8 @@ sealed class DrawingAction {
             val inner = rect.deflate(effective)
             return outer.contains(point) && !inner.contains(point)
         }
+
+        override fun translate(delta: Offset) = copy(rect = rect.translate(delta))
     }
 
     data class Circle(
@@ -67,6 +63,8 @@ sealed class DrawingAction {
             )
             return abs(distance - radius) <= effective
         }
+
+        override fun translate(delta: Offset) = copy(center = center + delta)
     }
 
     data class Arrow(
@@ -77,6 +75,24 @@ sealed class DrawingAction {
     ) : DrawingAction() {
         override fun contains(point: Offset, tolerance: Float): Boolean =
             distanceToSegment(point, start, end) <= tolerance + strokeWidth / 2f
+
+        override fun translate(delta: Offset) = copy(start = start + delta, end = end + delta)
+    }
+
+    data class CurvedArrow(
+        val points: List<Offset>,
+        override val color: Color,
+        override val strokeWidth: Float,
+    ) : DrawingAction() {
+        override fun contains(point: Offset, tolerance: Float): Boolean {
+            val effective = tolerance + strokeWidth / 2f
+            for (i in 0 until points.size - 1) {
+                if (distanceToSegment(point, points[i], points[i + 1]) <= effective) return true
+            }
+            return false
+        }
+
+        override fun translate(delta: Offset) = copy(points = points.map { it + delta })
     }
 
     data class Text(
@@ -96,6 +112,8 @@ sealed class DrawingAction {
             )
             return rect.inflate(tolerance).contains(point)
         }
+
+        override fun translate(delta: Offset) = copy(position = position + delta)
     }
 }
 
@@ -107,6 +125,27 @@ internal fun arrowheadEndpoints(
     val headLen = max(strokeWidth * 4f, 20f)
     val headAngle = 30f * (Math.PI / 180f).toFloat()
     val angle = atan2(end.y - start.y, end.x - start.x)
+    val left = Offset(
+        end.x + headLen * cos(angle + Math.PI.toFloat() - headAngle),
+        end.y + headLen * sin(angle + Math.PI.toFloat() - headAngle),
+    )
+    val right = Offset(
+        end.x + headLen * cos(angle + Math.PI.toFloat() + headAngle),
+        end.y + headLen * sin(angle + Math.PI.toFloat() + headAngle),
+    )
+    return left to right
+}
+
+internal fun curvedArrowheadEndpoints(
+    points: List<Offset>,
+    strokeWidth: Float,
+): Pair<Offset, Offset>? {
+    if (points.size < 2) return null
+    val end = points.last()
+    val before = points[points.size - 2]
+    val headLen = max(strokeWidth * 4f, 20f)
+    val headAngle = 30f * (Math.PI / 180f).toFloat()
+    val angle = atan2(end.y - before.y, end.x - before.x)
     val left = Offset(
         end.x + headLen * cos(angle + Math.PI.toFloat() - headAngle),
         end.y + headLen * sin(angle + Math.PI.toFloat() - headAngle),

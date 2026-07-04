@@ -218,15 +218,6 @@ private fun flattenBitmap(
                     )
                 }
             }
-            is DrawingAction.Line -> {
-                paint.color = action.color.toArgb()
-                paint.strokeWidth = action.strokeWidth * scaleX
-                canvas.drawLine(
-                    (action.start.x - offsetX) * scaleX, (action.start.y - offsetY) * scaleY,
-                    (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
-                    paint,
-                )
-            }
             is DrawingAction.Rectangle -> {
                 paint.color = action.color.toArgb()
                 paint.strokeWidth = action.strokeWidth * scaleX
@@ -265,6 +256,35 @@ private fun flattenBitmap(
                 canvas.drawLine(
                     (action.end.x - offsetX) * scaleX, (action.end.y - offsetY) * scaleY,
                     (rightEnd.x - offsetX) * scaleX, (rightEnd.y - offsetY) * scaleY,
+                    paint,
+                )
+            }
+            is DrawingAction.CurvedArrow -> {
+                if (action.points.size < 2) return@forEach
+                paint.color = action.color.toArgb()
+                paint.strokeWidth = action.strokeWidth * scaleX
+                val androidPath = android.graphics.Path()
+                androidPath.moveTo(
+                    (action.points[0].x - offsetX) * scaleX,
+                    (action.points[0].y - offsetY) * scaleY,
+                )
+                for (i in 1 until action.points.size) {
+                    androidPath.lineTo(
+                        (action.points[i].x - offsetX) * scaleX,
+                        (action.points[i].y - offsetY) * scaleY,
+                    )
+                }
+                canvas.drawPath(androidPath, paint)
+                val headEnds = curvedArrowheadEndpoints(action.points, action.strokeWidth) ?: return@forEach
+                val end = action.points.last()
+                canvas.drawLine(
+                    (end.x - offsetX) * scaleX, (end.y - offsetY) * scaleY,
+                    (headEnds.first.x - offsetX) * scaleX, (headEnds.first.y - offsetY) * scaleY,
+                    paint,
+                )
+                canvas.drawLine(
+                    (end.x - offsetX) * scaleX, (end.y - offsetY) * scaleY,
+                    (headEnds.second.x - offsetX) * scaleX, (headEnds.second.y - offsetY) * scaleY,
                     paint,
                 )
             }
