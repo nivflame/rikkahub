@@ -738,7 +738,7 @@ private fun BrowserScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     IconButton(
@@ -747,6 +747,9 @@ private fun BrowserScreen(
                                             controller?.webView?.goBack()
                                         },
                                         enabled = canGoBack,
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
                                     ) {
                                         Icon(
                                             imageVector = HugeIcons.ArrowLeft01,
@@ -761,6 +764,9 @@ private fun BrowserScreen(
                                             controller?.webView?.goForward()
                                         },
                                         enabled = canGoForward,
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
                                     ) {
                                         Icon(
                                             imageVector = HugeIcons.ArrowRight01,
