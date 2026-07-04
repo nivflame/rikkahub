@@ -56,7 +56,7 @@ import me.rerere.hugeicons.stroke.Edit03
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.model.Avatar
-import me.rerere.rikkahub.ui.components.ai.useCropLauncher
+import me.rerere.rikkahub.editor.useImageEditorLauncher
 import me.rerere.rikkahub.ui.hooks.rememberAvatarShape
 import org.koin.compose.koinInject
 import java.io.File
@@ -114,16 +114,14 @@ fun UIAvatar(
         }
     }
 
-    val (_, launchImageCrop) = useCropLauncher(
-        onCroppedImageReady = { croppedUri ->
+    val (_, launchImageCrop) = useImageEditorLauncher(
+        onResult = { croppedUri ->
             saveAvatarImage(croppedUri)
         },
         onCleanup = {
             preCropTempFile?.delete()
             preCropTempFile = null
         },
-        aspectRatio = 1f to 1f,
-        freeStyleCropEnabled = false
     )
 
     val imagePickerLauncher = rememberLauncherForActivityResult(

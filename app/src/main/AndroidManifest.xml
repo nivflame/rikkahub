@@ -61,6 +61,13 @@
       android:label="@string/title_activity_safe_mode"
       android:theme="@style/Theme.Rikkahub" />
     <activity
+      android:name=".editor.ImageEditorActivity"
+      android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density"
+      android:exported="false"
+      android:label="Image Editor"
+      android:theme="@style/Theme.Rikkahub"
+      android:windowSoftInputMode="adjustResize" />
+    <activity
       android:name=".browser.BrowserActivity"
       android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density"
       android:exported="false"
