@@ -12,12 +12,6 @@ enum class ShapeMode { TAP, DRAG }
 
 enum class ShapeType { RECTANGLE, CIRCLE, ARROW }
 
-enum class BrushSize(val strokeWidth: Float) {
-    THIN(4f),
-    MEDIUM(8f),
-    THICK(16f),
-}
-
 enum class PresetColor(val color: Color) {
     RED(Color.Red),
     YELLOW(Color.Yellow),

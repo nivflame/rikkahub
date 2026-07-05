@@ -61,7 +61,7 @@ fun DrawingCanvas(
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val strokeWidth = with(density) { state.brushSize.strokeWidth.dp.toPx() }
+    val strokeWidth = state.brushSize
     val color = state.selectedColor.color
     val tapShapeSize = with(density) { 48.dp.toPx() }
 
@@ -320,6 +320,8 @@ fun DrawingCanvas(
                                 val hit = state.actions.lastOrNull { it.contains(offset, tolerance = 48f) }
                                 if (hit != null) {
                                     state.selectedAction = hit
+                                    dragTarget = hit
+                                    dragLastPos = offset
                                 } else {
                                     state.selectedAction = null
                                 }

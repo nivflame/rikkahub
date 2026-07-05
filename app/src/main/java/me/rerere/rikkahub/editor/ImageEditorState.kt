@@ -14,7 +14,7 @@ class ImageEditorState {
     var selectedColor: PresetColor by mutableStateOf(PresetColor.RED)
     var expandedCategory: ToolbarCategory by mutableStateOf(ToolbarCategory.NONE)
     var selectedAction: DrawingAction? by mutableStateOf(null)
-    var brushSize: BrushSize by mutableStateOf(BrushSize.MEDIUM)
+    var brushSize: Float by mutableStateOf(8f)
     var cropRect: Rect? by mutableStateOf(null)
     var cropApplied: Boolean by mutableStateOf(false)
     var drawImageRect: Rect? by mutableStateOf(null)

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -138,13 +139,17 @@ private fun ContextCapsule(
                             }
                         }
                         ToolbarCategory.SIZE -> {
-                            BrushSize.entries.forEach { size ->
-                                ToolLabel(
-                                    text = size.name,
-                                    selected = state.brushSize == size,
-                                    onClick = { state.brushSize = size },
-                                )
-                            }
+                            Text(
+                                text = "${state.brushSize.toInt()}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Slider(
+                                value = state.brushSize,
+                                onValueChange = { state.brushSize = it },
+                                valueRange = 1f..30f,
+                                modifier = Modifier.width(120.dp),
+                            )
                         }
                         ToolbarCategory.MODE -> {
                             if (state.shapeType == ShapeType.ARROW) {
