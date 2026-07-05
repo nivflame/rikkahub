@@ -610,7 +610,6 @@ private fun BrowserScreen(
         ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -620,9 +619,8 @@ private fun BrowserScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = { controller?.webView?.loadUrl(HOME_URL) }) {
