@@ -64,6 +64,7 @@ fun CropOverlay(
                             if (currentCrop.contains(offset)) {
                                 activeHandle = CropHandle.MOVE
                                 moveLastPos = offset
+                                return@detectDragGestures
                             }
                         }
                         activeHandle = null

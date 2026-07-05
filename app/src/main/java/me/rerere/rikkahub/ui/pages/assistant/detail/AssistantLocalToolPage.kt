@@ -184,6 +184,62 @@ private fun AssistantLocalToolContent(
                     )
                 }
             )
+            item(
+                headlineContent = {
+                    Text("Bash")
+                },
+                supportingContent = {
+                    Text("Run shell commands in the workspace (requires workspace)")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Bash),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Bash, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("Read")
+                },
+                supportingContent = {
+                    Text("Read file contents in the workspace (requires workspace)")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Read),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Read, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("Write")
+                },
+                supportingContent = {
+                    Text("Create new files in the workspace (requires workspace)")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Write),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Write, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("Edit")
+                },
+                supportingContent = {
+                    Text("Make precise edits to existing files (requires workspace)")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Edit),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Edit, it) }
+                    )
+                }
+            )
         }
     }
 }

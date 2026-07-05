@@ -236,6 +236,10 @@ private fun localToolOptions(): List<LocalToolOption> = listOf(
     LocalToolOption.Subagent,
     LocalToolOption.Skill,
     LocalToolOption.ToolSearch,
+    LocalToolOption.Bash,
+    LocalToolOption.Read,
+    LocalToolOption.Write,
+    LocalToolOption.Edit,
 )
 
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
@@ -246,4 +250,8 @@ private fun localToolLabel(option: LocalToolOption): String = when (option) {
     LocalToolOption.Subagent -> "Subagent"
     LocalToolOption.Skill -> "Skill"
     LocalToolOption.ToolSearch -> "ToolSearch"
+    LocalToolOption.Bash -> "Bash"
+    LocalToolOption.Read -> "Read"
+    LocalToolOption.Write -> "Write"
+    LocalToolOption.Edit -> "Edit"
 }

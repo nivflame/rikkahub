@@ -70,6 +70,7 @@ fun DrawingCanvas(
     var dragTarget by remember { mutableStateOf<DrawingAction?>(null) }
     var dragLastPos by remember { mutableStateOf<Offset?>(null) }
     var dragHandle by remember { mutableStateOf<String?>(null) }
+    var dragCenter by remember { mutableStateOf<Offset?>(null) }
     var zoom by remember { mutableFloatStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     var boxHeight by remember { mutableFloatStateOf(0f) }
@@ -307,6 +308,7 @@ fun DrawingCanvas(
                                     if (hitHandle != null) {
                                         dragHandle = hitHandle.key
                                         dragLastPos = offset
+                                        dragCenter = center
                                         return@detectDragGestures
                                     }
                                     if (selected.contains(offset, tolerance = 48f)) {
@@ -329,13 +331,12 @@ fun DrawingCanvas(
                                 val lastPos = dragLastPos
                                 if (handle != null) {
                                     val selected = state.selectedAction as? DrawingAction.Text ?: return@detectDragGestures
-                                    val measuredBounds = measureTextBounds(selected, textMeasurer)
-                                    val center = Offset(measuredBounds.center.x, measuredBounds.center.y)
+                                    val fixedCenter = dragCenter ?: return@detectDragGestures
                                     when (handle) {
                                         "rot" -> {
                                             val angle = Math.atan2(
-                                                (change.position.y - center.y).toDouble(),
-                                                (change.position.x - center.x).toDouble(),
+                                                (change.position.y - fixedCenter.y).toDouble(),
+                                                (change.position.x - fixedCenter.x).toDouble(),
                                             ).toFloat() * 180f / Math.PI.toFloat() + 90f
                                             updateSelectedText(state, rotation = angle)
                                         }
@@ -343,10 +344,16 @@ fun DrawingCanvas(
                                             val baseBounds = measureTextBounds(selected.copy(scale = 1f, rotation = 0f), textMeasurer)
                                             val baseCenter = Offset(baseBounds.center.x, baseBounds.center.y)
                                             val baseHandles = getTextHandlePositions(baseBounds, baseCenter, 0f)
-                                            val baseDist = distance(center, baseHandles[handle]!!)
-                                            val newDist = distance(center, change.position)
+                                            val baseDist = distance(fixedCenter, baseHandles[handle]!!)
+                                            val newDist = distance(fixedCenter, change.position)
                                             val newScale = (newDist / baseDist).coerceIn(0.5f, 5f)
-                                            updateSelectedText(state, scale = newScale)
+                                            val unscaledW = baseBounds.width
+                                            val unscaledH = baseBounds.height
+                                            val newPos = Offset(
+                                                fixedCenter.x - unscaledW * newScale / 2f,
+                                                fixedCenter.y - unscaledH * newScale / 2f,
+                                            )
+                                            updateSelectedText(state, scale = newScale, position = newPos)
                                         }
                                     }
                                     return@detectDragGestures
@@ -368,11 +375,13 @@ fun DrawingCanvas(
                                 dragTarget = null
                                 dragLastPos = null
                                 dragHandle = null
+                                dragCenter = null
                             },
                             onDragCancel = {
                                 dragTarget = null
                                 dragLastPos = null
                                 dragHandle = null
+                                dragCenter = null
                             },
                         )
 
@@ -623,11 +632,13 @@ private fun updateSelectedText(
     state: ImageEditorState,
     rotation: Float? = null,
     scale: Float? = null,
+    position: Offset? = null,
 ) {
     val current = state.selectedAction as? DrawingAction.Text ?: return
     val updated = current.copy(
         rotation = rotation ?: current.rotation,
         scale = scale ?: current.scale,
+        position = position ?: current.position,
     )
     val index = state.actions.indexOf(current)
     if (index >= 0) {

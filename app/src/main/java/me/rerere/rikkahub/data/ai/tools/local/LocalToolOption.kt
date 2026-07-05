@@ -32,4 +32,20 @@ sealed class LocalToolOption {
     @Serializable
     @SerialName("tool_search")
     data object ToolSearch : LocalToolOption()
+
+    @Serializable
+    @SerialName("bash")
+    data object Bash : LocalToolOption()
+
+    @Serializable
+    @SerialName("read")
+    data object Read : LocalToolOption()
+
+    @Serializable
+    @SerialName("write")
+    data object Write : LocalToolOption()
+
+    @Serializable
+    @SerialName("edit")
+    data object Edit : LocalToolOption()
 }

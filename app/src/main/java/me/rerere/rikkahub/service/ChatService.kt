@@ -609,7 +609,7 @@ class ChatService(
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
-                    addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd))
+                    addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, assistant.localTools))
                     if (LocalToolOption.Skill in assistant.localTools) {
                         addAll(
                             createSkillTools(
@@ -775,7 +775,11 @@ class ChatService(
         }
     }
 
-    private suspend fun createWorkspaceToolsIfReady(workspaceId: String?, cwd: String? = null): List<Tool> {
+    private suspend fun createWorkspaceToolsIfReady(
+        workspaceId: String?,
+        cwd: String? = null,
+        localTools: List<LocalToolOption> = emptyList(),
+    ): List<Tool> {
         if (workspaceId.isNullOrBlank()) return emptyList()
         val workspace = workspaceRepository.getById(workspaceId) ?: return emptyList()
         if (workspace.shellStatus != WorkspaceShellStatus.READY.name) {
@@ -785,7 +789,16 @@ class ChatService(
             )
             return emptyList()
         }
-        return createWorkspaceTools(workspaceId, workspaceRepository, cwd)
+        val allTools = createWorkspaceTools(workspaceId, workspaceRepository, cwd)
+        return allTools.filter { tool ->
+            when (tool.name) {
+                "Bash" -> LocalToolOption.Bash in localTools
+                "Read" -> LocalToolOption.Read in localTools
+                "Write" -> LocalToolOption.Write in localTools
+                "Edit" -> LocalToolOption.Edit in localTools
+                else -> true
+            }
+        }
     }
 
     // ---- 检查无效消息 ----
