@@ -188,6 +188,7 @@ private fun BrowserScreen(
     var canGoForward by remember { mutableStateOf(false) }
     var replyDismissed by remember { mutableStateOf(false) }
     var showHamburgerMenu by remember { mutableStateOf(false) }
+    var navBarVisible by remember { mutableStateOf(true) }
     var showZoomDialog by remember { mutableStateOf(false) }
     var showDeleteDataDialog by remember { mutableStateOf(false) }
     var desktopMode by remember { mutableStateOf(false) }
@@ -363,6 +364,13 @@ private fun BrowserScreen(
                         )
                         controller = c
                         mobileUA = webView.settings.userAgentString
+                        webView.setOnScrollChangeListener { _, scrollY, _, oldScrollY ->
+                            if (scrollY > oldScrollY + 10) {
+                                navBarVisible = false
+                            } else if (scrollY < oldScrollY || scrollY == 0) {
+                                navBarVisible = true
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -596,7 +604,7 @@ private fun BrowserScreen(
             }
         }
         AnimatedVisibility(
-            visible = !inputExpanded,
+            visible = !inputExpanded && navBarVisible,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
@@ -604,7 +612,7 @@ private fun BrowserScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 4.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = CircleShape,
             tonalElevation = 2.dp,
