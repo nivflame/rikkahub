@@ -1,11 +1,13 @@
 package me.rerere.rikkahub.ui.pages.setting
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -23,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,7 +42,6 @@ import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
-import me.rerere.rikkahub.data.ai.tools.local.SUBAGENT_LOCAL_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
 import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
@@ -56,10 +58,26 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
     var editDesc by remember { mutableStateOf("") }
     var editSystem by remember { mutableStateOf("") }
 
-    val toolNames = remember(settings.mcpServers) {
-        SUBAGENT_LOCAL_TOOL_NAMES + ALL_BROWSER_TOOL_NAMES + settings.mcpServers.flatMap { server ->
-            server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
+    val toolGroups = remember(settings.mcpServers) {
+        val core = listOf(
+            "Subagent",
+            "Bash",
+            "Read",
+            "Write",
+            "Edit",
+            "AskQuestion",
+            "Skill",
+            "WebSearch",
+            "WebFetch",
+            "ToolSearch",
+        )
+        val mcpGroups = settings.mcpServers.associate { server ->
+            "MCP: ${server.commonOptions.name}" to server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
         }
+        linkedMapOf(
+            "Core" to core,
+            "Browser" to ALL_BROWSER_TOOL_NAMES,
+        ).apply { putAll(mcpGroups) }
     }
 
     Scaffold(
@@ -140,7 +158,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
             settings.subagentPrompts.forEach { prompt ->
                 SubagentPromptItem(
                     prompt = prompt,
-                    toolNames = toolNames,
+                    toolGroups = toolGroups,
                     onChange = { updated ->
                         vm.updateSettings(
                             settings.copy(
@@ -211,12 +229,13 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
 @Composable
 private fun SubagentPromptItem(
     prompt: SubagentPrompt,
-    toolNames: List<String>,
+    toolGroups: Map<String, List<String>>,
     onChange: (SubagentPrompt) -> Unit,
     onRemove: () -> Unit,
     onEdit: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val categoryExpanded = remember { mutableStateMapOf<String, Boolean>() }
     Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -248,19 +267,44 @@ private fun SubagentPromptItem(
             )
             if (expanded) {
                 Text("Tools", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
-                toolNames.forEach { name ->
+                toolGroups.forEach { (category, names) ->
+                    val isExpanded = categoryExpanded[category] ?: (category == "Core")
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .clickable { categoryExpanded[category] = !isExpanded },
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        Switch(
-                            checked = name in prompt.enabledTools,
-                            onCheckedChange = { enabled ->
-                                val next = if (enabled) prompt.enabledTools + name else prompt.enabledTools - name
-                                onChange(prompt.copy(enabledTools = next))
-                            }
+                        Text(
+                            text = "# $category",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
                         )
+                        Icon(
+                            imageVector = if (isExpanded) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
+                            contentDescription = "Expand category",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (isExpanded) {
+                        names.forEach { name ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                Switch(
+                                    checked = name in prompt.enabledTools,
+                                    onCheckedChange = { enabled ->
+                                        val next = if (enabled) prompt.enabledTools + name else prompt.enabledTools - name
+                                        onChange(prompt.copy(enabledTools = next))
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
