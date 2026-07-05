@@ -364,7 +364,7 @@ private fun BrowserScreen(
                         )
                         controller = c
                         mobileUA = webView.settings.userAgentString
-                        webView.setOnScrollChangeListener { _, scrollY, _, oldScrollY ->
+                        webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
                             if (scrollY > oldScrollY + 10) {
                                 navBarVisible = false
                             } else if (scrollY < oldScrollY || scrollY == 0) {
