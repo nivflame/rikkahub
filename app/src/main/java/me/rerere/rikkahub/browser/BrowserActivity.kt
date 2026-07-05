@@ -652,7 +652,7 @@ private fun BrowserScreen(
                                 modifier = Modifier
                                     .heightIn(max = 200.dp)
                                     .verticalScroll(rememberScrollState())
-                                    .padding(16.dp),
+                                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Row(
@@ -742,6 +742,7 @@ private fun BrowserScreen(
                                     )
                                 }
                             }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceContainer,
                                 tonalElevation = 1.dp,
