@@ -601,15 +601,19 @@ private fun BrowserScreen(
             exit = slideOutVertically { it } + fadeOut(),
         ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = topBarColor,
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = CircleShape,
             tonalElevation = 2.dp,
+            shadowElevation = 3.dp,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
