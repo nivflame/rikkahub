@@ -81,8 +81,10 @@ fun CropOverlay(
                                 moveLastPos = pos
                                 if (last != null) {
                                     val delta = pos - last
-                                    val newLeft = (currentCrop.left + delta.x).coerceIn(currentImage.left, currentImage.right - currentCrop.width)
-                                    val newTop = (currentCrop.top + delta.y).coerceIn(currentImage.top, currentImage.bottom - currentCrop.height)
+                                    val maxLeft = currentImage.right - currentCrop.width
+                                    val maxTop = currentImage.bottom - currentCrop.height
+                                    val newLeft = maxOf(currentImage.left, minOf(currentCrop.left + delta.x, maxLeft))
+                                    val newTop = maxOf(currentImage.top, minOf(currentCrop.top + delta.y, maxTop))
                                     Rect(
                                         left = newLeft,
                                         top = newTop,
