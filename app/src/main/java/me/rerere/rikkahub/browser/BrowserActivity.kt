@@ -351,8 +351,12 @@ private fun BrowserScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             AndroidView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.navigationBars),
                 factory = { context ->
                     WebView(context).also { webView ->
                         val c = BrowserController(
@@ -616,9 +620,8 @@ private fun BrowserScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Surface(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = CircleShape,
             tonalElevation = 2.dp,
