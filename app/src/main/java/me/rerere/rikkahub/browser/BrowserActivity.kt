@@ -380,7 +380,6 @@ private fun BrowserScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxSize()
             )
 
             if (inputExpanded) {
