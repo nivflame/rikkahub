@@ -327,24 +327,24 @@ private fun BrowserScreen(
             OutlinedTextField(
                 value = addressBar,
                 onValueChange = { addressBar = it },
-                placeholder = { Text("Search or enter address", style = MaterialTheme.typography.bodySmall) },
+                placeholder = { Text("Search or enter address", style = MaterialTheme.typography.bodyLarge) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 0.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                     keyboardActions = KeyboardActions(onGo = {
                         navigate()
                         focusManager.clearFocus()
                     }),
-                shape = RoundedCornerShape(24.dp),
+                shape = CircleShape,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
-                textStyle = MaterialTheme.typography.bodySmall,
+                textStyle = MaterialTheme.typography.bodyLarge,
             )
         }
         Box(
