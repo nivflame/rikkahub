@@ -8,6 +8,7 @@ import android.webkit.WebStorage
 import androidx.navigation3.runtime.NavKey
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -149,6 +150,7 @@ class BrowserActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         val conversationId = intent.getStringExtra("conversationId")
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
