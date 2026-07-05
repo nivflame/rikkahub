@@ -609,7 +609,11 @@ private fun BrowserScreen(
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
-        Surface(
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
             modifier = Modifier
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -792,6 +796,7 @@ private fun BrowserScreen(
                         }
                     }
                 }
+            }
             }
         }
         }
