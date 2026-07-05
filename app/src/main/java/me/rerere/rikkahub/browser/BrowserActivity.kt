@@ -390,7 +390,8 @@ private fun BrowserScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .imePadding()
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (!inputExpanded) {
                     if (ui.reply.isNotBlank() && !replyDismissed) {
@@ -611,7 +612,7 @@ private fun BrowserScreen(
         Surface(
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = CircleShape,
             tonalElevation = 2.dp,
