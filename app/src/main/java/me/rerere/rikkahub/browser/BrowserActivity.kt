@@ -152,6 +152,7 @@ class BrowserActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        window.isNavigationBarContrastEnforced = false
         val conversationId = intent.getStringExtra("conversationId")
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
@@ -355,9 +356,7 @@ private fun BrowserScreen(
                 .background(MaterialTheme.colorScheme.surface)
         ) {
             AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.navigationBars),
+                modifier = Modifier.fillMaxSize(),
                 factory = { context ->
                     WebView(context).also { webView ->
                         val c = BrowserController(
@@ -396,6 +395,7 @@ private fun BrowserScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .imePadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
