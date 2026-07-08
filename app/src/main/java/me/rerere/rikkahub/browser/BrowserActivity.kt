@@ -161,6 +161,7 @@ class BrowserActivity : ComponentActivity() {
                 android.graphics.Color.TRANSPARENT,
             ),
         )
+        window.setBackgroundDrawableResource(android.R.color.transparent)
         val conversationId = intent.getStringExtra("conversationId")
             ?.let { runCatching { Uuid.parse(it) }.getOrNull() }
         setContent {
