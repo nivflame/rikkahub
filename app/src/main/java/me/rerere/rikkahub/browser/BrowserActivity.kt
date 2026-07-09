@@ -812,6 +812,7 @@ private fun BrowserScreen(
             }
         }
     }
+    }
 
     if (showZoomDialog) {
         Dialog(onDismissRequest = { showZoomDialog = false }) {
