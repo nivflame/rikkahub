@@ -43,7 +43,6 @@ import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
-import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
@@ -116,16 +115,6 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
-            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                val subagentTool = buildSubagentTool(settings)
-                ToolSchemaCard(
-                    tool = subagentTool.copy(description = settings.toolDescriptions["Subagent"] ?: subagentTool.description),
-                    modifier = Modifier.padding(12.dp),
-                    onEditDescription = { desc ->
-                        vm.updateSettings(settings.copy(toolDescriptions = settings.toolDescriptions + ("Subagent" to desc)))
-                    },
-                )
-            }
             Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Subagent model", style = MaterialTheme.typography.titleMedium)

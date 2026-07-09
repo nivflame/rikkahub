@@ -15,7 +15,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
-import me.rerere.hugeicons.stroke.BubbleChatQuestion
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.Screen
@@ -65,12 +64,6 @@ fun SettingToolsPage() {
                 leadingContent = { Icon(HugeIcons.Puzzle, null) },
                 supportingContent = { Text("Defer tools so the agent fetches their schemas on demand, saving tokens") },
                 headlineContent = { Text("ToolSearch") },
-            )
-            item(
-                onClick = { navController.navigate(Screen.SettingAskQuestion) },
-                leadingContent = { Icon(HugeIcons.BubbleChatQuestion, null) },
-                supportingContent = { Text("Edit the AskQuestion tool description") },
-                headlineContent = { Text("AskQuestion") },
             )
             item(
                 onClick = { navController.navigate(Screen.Skills) },

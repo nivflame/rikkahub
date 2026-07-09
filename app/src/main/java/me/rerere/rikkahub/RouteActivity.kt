@@ -119,7 +119,6 @@ import me.rerere.rikkahub.ui.pages.setting.SettingProviderDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingProviderPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchPage
-import me.rerere.rikkahub.ui.pages.setting.SettingAskQuestionPage
 import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
@@ -476,10 +475,6 @@ class RouteActivity : ComponentActivity() {
                                 SettingToolsPage()
                             }
 
-                            entry<Screen.SettingAskQuestion> {
-                                SettingAskQuestionPage()
-                            }
-
                             entry<Screen.SettingDonate> {
                                 SettingDonatePage()
                             }
@@ -747,7 +742,4 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingToolSearch : Screen
-
-    @Serializable
-    data object SettingAskQuestion : Screen
 }
