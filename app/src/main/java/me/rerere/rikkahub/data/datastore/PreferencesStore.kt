@@ -198,7 +198,7 @@ class SettingsStore(
                 } ?: emptyMap(),
                 deferredTools = preferences[DEFERRED_TOOLS]?.let {
                     JsonInstant.decodeFromString<Set<String>>(it)
-                } ?: emptySet(),
+                } ?: ALL_BROWSER_TOOL_NAMES.toSet(),
                 favoriteModels = preferences[FAVORITE_MODELS]?.let {
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
