@@ -106,11 +106,17 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Configuration",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            )
+            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 val subagentTool = buildSubagentTool(settings)
                 ToolSchemaCard(
                     tool = subagentTool.copy(description = settings.toolDescriptions["Subagent"] ?: subagentTool.description),
@@ -120,7 +126,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                     },
                 )
             }
-            Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Subagent model", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -136,7 +142,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                     )
                 }
             }
-            Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Max concurrent subagents", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -154,7 +160,18 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                     )
                 }
             }
-            Text("Subagent prompts", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Prompts",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+            )
+            Text(
+                text = "Create and configure subagent prompts with custom tools",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             settings.subagentPrompts.forEach { prompt ->
                 SubagentPromptItem(
                     prompt = prompt,

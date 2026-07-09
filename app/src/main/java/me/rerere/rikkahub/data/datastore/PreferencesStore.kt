@@ -24,6 +24,7 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.AppScope
 import me.rerere.rikkahub.data.ai.mcp.McpServerConfig
+import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.prompts.DEFAULT_COMPRESS_PROMPT
 import me.rerere.rikkahub.data.ai.prompts.DEFAULT_OCR_PROMPT
 import me.rerere.rikkahub.data.ai.prompts.DEFAULT_SUGGESTION_PROMPT
@@ -537,7 +538,7 @@ data class Settings(
     val subagentModelId: Uuid? = null,
     val askQuestionDescription: String = DEFAULT_ASK_QUESTION_DESCRIPTION,
     val toolDescriptions: Map<String, String> = emptyMap(),
-    val deferredTools: Set<String> = emptySet(),
+    val deferredTools: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet(),
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),

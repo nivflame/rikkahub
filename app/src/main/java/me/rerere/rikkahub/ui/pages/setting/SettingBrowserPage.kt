@@ -79,10 +79,22 @@ fun SettingBrowserPage(vm: SettingVM = koinViewModel()) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Text(
+                text = "Browser Tools",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            )
+            Text(
+                text = "Enable or disable individual browser tools and edit their descriptions",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             ALL_BROWSER_TOOL_NAMES.forEach { toolName ->
                 BrowserToolItem(
                     toolName = toolName,
