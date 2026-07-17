@@ -271,7 +271,13 @@ private fun SubagentPromptItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val categoryExpanded = remember { mutableStateMapOf<String, Boolean>() }
-    Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -282,22 +288,18 @@ private fun SubagentPromptItem(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = onEdit) {
+                    Icon(imageVector = HugeIcons.Edit01, contentDescription = "Edit")
+                }
+                if (!prompt.isBuiltIn) {
+                    IconButton(onClick = onRemove) {
+                        Icon(imageVector = HugeIcons.Delete01, contentDescription = "Remove")
+                    }
+                }
                 Switch(
                     checked = prompt.enabled,
                     onCheckedChange = { checked -> onChange(prompt.copy(enabled = checked)) },
                 )
-                IconButton(onClick = onEdit) {
-                    Icon(imageVector = HugeIcons.Edit01, contentDescription = "Edit")
-                }
-                IconButton(onClick = onRemove) {
-                    Icon(imageVector = HugeIcons.Delete01, contentDescription = "Remove")
-                }
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = if (expanded) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
-                        contentDescription = "Expand"
-                    )
-                }
             }
             Text(
                 text = prompt.description,
@@ -345,7 +347,7 @@ private fun SubagentPromptItem(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "# $category",
+                            text = category,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),

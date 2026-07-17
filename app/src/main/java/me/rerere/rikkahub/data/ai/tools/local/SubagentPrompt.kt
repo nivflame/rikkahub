@@ -13,6 +13,7 @@ data class SubagentPrompt(
     val enabledTools: List<String> = emptyList(),
     val enabled: Boolean = true,
     val modelId: Uuid? = null,
+    val isBuiltIn: Boolean = false,
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
@@ -41,6 +42,7 @@ fun loadDefaultSubagentPrompts(assets: android.content.res.AssetManager): List<S
             description = description,
             systemPrompt = body.trim(),
             enabledTools = enabledTools,
+            isBuiltIn = true,
         )
     }
 }
