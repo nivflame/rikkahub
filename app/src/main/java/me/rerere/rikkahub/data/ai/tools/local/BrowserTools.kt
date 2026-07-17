@@ -24,7 +24,6 @@ internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_dom_snapshot",
     "browser_execute_script",
     "browser_waitfor",
-    "browser_logs",
 )
 
 val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
