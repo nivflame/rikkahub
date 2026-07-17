@@ -116,12 +116,7 @@ fun ToolsButton(
                             onUpdateAssistant(assistant.copy(localTools = newTools))
                         },
                     )
-                } + ToolEntry(
-                    label = "Web Search",
-                    count = 1,
-                    checked = enableSearch,
-                    onCheckedChange = onToggleSearch,
-                )
+                }
                 ToolGrid(toolEntries)
 
                 if (settings.mcpServers.isNotEmpty()) {
