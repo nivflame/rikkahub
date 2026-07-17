@@ -230,6 +230,11 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         type = ModelType.CHAT,
                         onSelect = { editModelId = it.id }
                     )
+                    if (editModelId != null) {
+                        TextButton(onClick = { editModelId = null }) {
+                            Text("Use global model")
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -305,6 +310,11 @@ private fun SubagentPromptItem(
                     type = ModelType.CHAT,
                     onSelect = { onChange(prompt.copy(modelId = it.id)) }
                 )
+                if (prompt.modelId != null) {
+                    TextButton(onClick = { onChange(prompt.copy(modelId = null)) }) {
+                        Text("Use global model")
+                    }
+                }
                 Text("Tools", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
                 toolGroups.forEach { (category, names) ->
                     val isExpanded = categoryExpanded[category] ?: (category == "Core")
