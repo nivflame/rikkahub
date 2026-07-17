@@ -205,7 +205,7 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                     item(
                         onClick = { navController.navigate(Screen.SettingTools) },
                         leadingContent = { Icon(HugeIcons.Tools, null) },
-                        supportingContent = { Text("Browser, Subagent, and ToolSearch settings") },
+                        supportingContent = { Text("Browser, Subagent, ToolSearch and Skills settings") },
                         headlineContent = { Text("Tools") },
                     )
                 }

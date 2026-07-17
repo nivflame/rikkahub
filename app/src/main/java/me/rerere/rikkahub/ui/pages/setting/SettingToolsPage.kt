@@ -68,8 +68,8 @@ fun SettingToolsPage() {
             item(
                 onClick = { navController.navigate(Screen.Skills) },
                 leadingContent = { Icon(HugeIcons.Puzzle, null) },
-                supportingContent = { Text("Manage agent skills and their tools") },
-                headlineContent = { Text("Agent Skills") },
+                supportingContent = { Text("Manage skills") },
+                headlineContent = { Text("Skills") },
             )
         }
     }
