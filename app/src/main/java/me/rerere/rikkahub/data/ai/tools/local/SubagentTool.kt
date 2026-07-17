@@ -9,7 +9,7 @@ import me.rerere.rikkahub.data.datastore.Settings
 internal fun buildSubagentTool(settings: Settings): Tool = Tool(
     name = "Subagent",
     description = SUBAGENT_DESCRIPTION_INTRO +
-        settings.subagentPrompts.joinToString("\n") { "- ${it.name}: ${it.description}" } +
+        settings.subagentPrompts.filter { it.enabled }.joinToString("\n") { "- ${it.name}: ${it.description}" } +
         SUBAGENT_DESCRIPTION_REST,
     parameters = {
         InputSchema.Obj(

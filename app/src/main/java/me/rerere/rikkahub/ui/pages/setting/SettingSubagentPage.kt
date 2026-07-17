@@ -253,6 +253,10 @@ private fun SubagentPromptItem(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
+                Switch(
+                    checked = prompt.enabled,
+                    onCheckedChange = { checked -> onChange(prompt.copy(enabled = checked)) },
+                )
                 IconButton(onClick = onEdit) {
                     Icon(imageVector = HugeIcons.Edit01, contentDescription = "Edit")
                 }

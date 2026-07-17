@@ -654,7 +654,7 @@ class ChatService(
                             )
                         )
                     }
-                    if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.isNotEmpty()) {
+                    if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.any { it.enabled }) {
                         val parentTools = this.toList()
                         val existingToolNames = parentTools.map { it.name }.toSet()
                         val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
@@ -679,7 +679,7 @@ class ChatService(
                                 description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
                                 execute = {
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
-                                        ?: settings.subagentPrompts.firstOrNull()?.name ?: "general-purpose"
+                                        ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
                                     listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task)))
                                 }
