@@ -32,7 +32,7 @@ class SubagentRunner(
             return "Subagent concurrent limit reached (${settings.subagentConcurrency}). " +
                 "Wait for a running subagent to finish before launching another."
         }
-        val model = settings.findModelById(settings.subagentModelId)
+        val model = settings.findModelById(def.modelId ?: settings.subagentModelId)
             ?: return "Subagent model is not configured. Set it in Settings, Subagent."
 
         running.incrementAndGet()

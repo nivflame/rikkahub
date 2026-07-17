@@ -56,6 +56,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
     var editName by remember { mutableStateOf("") }
     var editDesc by remember { mutableStateOf("") }
     var editSystem by remember { mutableStateOf("") }
+    var editModelId by remember { mutableStateOf<Uuid?>(null) }
 
     val toolGroups = remember(settings.mcpServers) {
         val core = listOf(
@@ -165,6 +166,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 SubagentPromptItem(
                     prompt = prompt,
                     toolGroups = toolGroups,
+                    providers = settings.providers,
                     onChange = { updated ->
                         vm.updateSettings(
                             settings.copy(
@@ -182,6 +184,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         editName = prompt.name
                         editDesc = prompt.description
                         editSystem = prompt.systemPrompt
+                        editModelId = prompt.modelId
                     }
                 )
             }
@@ -214,11 +217,23 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
+                    Text("Model (optional)", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = "Override the global subagent model",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ModelSelector(
+                        modelId = editModelId,
+                        providers = settings.providers,
+                        type = ModelType.CHAT,
+                        onSelect = { editModelId = it.id }
+                    )
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val updated = prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem)
+                    val updated = prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem, modelId = editModelId)
                     val list = settings.subagentPrompts
                     val newList = if (list.any { it.id == prompt.id }) list.map { if (it.id == prompt.id) updated else it } else list + updated
                     vm.updateSettings(settings.copy(subagentPrompts = newList))
@@ -236,6 +251,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
 private fun SubagentPromptItem(
     prompt: SubagentPrompt,
     toolGroups: Map<String, List<String>>,
+    providers: List<me.rerere.ai.provider.ProviderSetting>,
     onChange: (SubagentPrompt) -> Unit,
     onRemove: () -> Unit,
     onEdit: () -> Unit
@@ -276,6 +292,18 @@ private fun SubagentPromptItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (expanded) {
+                Text("Model", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    text = "Override the global subagent model (optional)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ModelSelector(
+                    modelId = prompt.modelId,
+                    providers = providers,
+                    type = ModelType.CHAT,
+                    onSelect = { onChange(prompt.copy(modelId = it.id)) }
+                )
                 Text("Tools", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
                 toolGroups.forEach { (category, names) ->
                     val isExpanded = categoryExpanded[category] ?: (category == "Core")

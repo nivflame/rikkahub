@@ -12,6 +12,7 @@ data class SubagentPrompt(
     val systemPrompt: String = "",
     val enabledTools: List<String> = emptyList(),
     val enabled: Boolean = true,
+    val modelId: Uuid? = null,
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
