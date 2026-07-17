@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -117,6 +118,12 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
+            Text(
+                text = "Global defaults applied to all subagents",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
             Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Subagent model", style = MaterialTheme.typography.titleMedium)
@@ -155,7 +162,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 text = "Prompts",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
             Text(
                 text = "Create and configure subagent prompts with custom tools",
@@ -264,7 +271,7 @@ private fun SubagentPromptItem(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val categoryExpanded = remember { mutableStateMapOf<String, Boolean>() }
-    Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -298,7 +305,13 @@ private fun SubagentPromptItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (expanded) {
-                Text("Model", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    text = "Model",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
                 Text(
                     text = "Override the global subagent model (optional)",
                     style = MaterialTheme.typography.bodySmall,
@@ -315,7 +328,13 @@ private fun SubagentPromptItem(
                         Text("Use global model")
                     }
                 }
-                Text("Tools", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    text = "Tools",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
                 toolGroups.forEach { (category, names) ->
                     val isExpanded = categoryExpanded[category] ?: (category == "Core")
                     Row(
