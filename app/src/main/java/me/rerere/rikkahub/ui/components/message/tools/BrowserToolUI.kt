@@ -129,8 +129,6 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
 }
 
 private fun browserActionLabel(toolName: String): String = when (toolName) {
-    "WebSearch" -> "WebSearch"
-    "WebFetch" -> "WebFetch"
     "browser_navigate" -> "Navigate"
     "browser_get_content" -> "Get Content"
     "browser_screenshot" -> "Screenshot"
@@ -138,6 +136,5 @@ private fun browserActionLabel(toolName: String): String = when (toolName) {
     "browser_dom_snapshot" -> "DOM Snapshot"
     "browser_execute_script" -> "Execute Script"
     "browser_waitfor" -> "Wait"
-    "browser_logs" -> "Logs"
     else -> toolName
 }

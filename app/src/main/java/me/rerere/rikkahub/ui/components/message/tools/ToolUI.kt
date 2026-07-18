@@ -102,8 +102,8 @@ object ToolUIRegistry {
         ReadFileToolUI,
         WriteFileToolUI,
         ShellToolUI,
-        BrowserToolUI("WebSearch"),
-        BrowserToolUI("WebFetch"),
+        WebToolUI("WebSearch"),
+        WebToolUI("WebFetch"),
         BrowserToolUI("browser_navigate"),
         BrowserToolUI("browser_get_content"),
         BrowserToolUI("browser_screenshot"),
@@ -111,7 +111,6 @@ object ToolUIRegistry {
         BrowserToolUI("browser_dom_snapshot"),
         BrowserToolUI("browser_execute_script"),
         BrowserToolUI("browser_waitfor"),
-        BrowserToolUI("browser_logs"),
     ).associateBy { it.toolName }
 
     /** 查找工具对应的渲染器, 未注册时返回默认渲染器 */
