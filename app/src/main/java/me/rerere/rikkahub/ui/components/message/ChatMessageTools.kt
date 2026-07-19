@@ -337,55 +337,55 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                         if (isPending && onToolAnswer != null) {
                             val hasPreview = !q.multiSelect && q.options.any { !it.preview.isNullOrBlank() }
                             if (hasPreview) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        q.options.forEach { option ->
-                                            AskOptionRow(
-                                                label = option.label,
-                                                description = option.description,
-                                                selected = answers[q.question] == option.label,
-                                                onClick = {
-                                                    answers[q.question] = option.label
-                                                    otherSelected[q.question] = false
-                                                    focusedOption = q.question to option
-                                                },
-                                            )
-                                        }
-                                        AskOtherRow(
-                                            selected = otherSelected[q.question] == true,
-                                            onToggle = {
-                                                val nowSelected = !(otherSelected[q.question] ?: false)
-                                                otherSelected[q.question] = nowSelected
-                                                if (nowSelected) {
-                                                    answers.remove(q.question)
-                                                    focusedOption = null
-                                                }
-                                            },
-                                            text = otherText[q.question] ?: "",
-                                            onTextChange = {
-                                                otherText[q.question] = it
-                                                otherSelected[q.question] = true
-                                                answers.remove(q.question)
-                                                focusedOption = null
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                    q.options.forEach { option ->
+                                        AskOptionRow(
+                                            label = option.label,
+                                            description = option.description,
+                                            selected = answers[q.question] == option.label,
+                                            onClick = {
+                                                answers[q.question] = option.label
+                                                otherSelected[q.question] = false
+                                                focusedOption = q.question to option
                                             },
                                         )
                                     }
-                                    Surface(
-                                        tonalElevation = 1.dp,
-                                        shape = MaterialTheme.shapes.small,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .heightIn(max = 200.dp),
-                                    ) {
-                                        Text(
-                                            text = (focusedOption?.takeIf { it.first == q.question }?.second?.preview)
-                                                ?: q.options.firstOrNull { it.label == answers[q.question] }?.preview
-                                                ?: "Preview",
-                                            style = MaterialTheme.typography.bodySmall,
+                                    AskOtherRow(
+                                        selected = otherSelected[q.question] == true,
+                                        onToggle = {
+                                            val nowSelected = !(otherSelected[q.question] ?: false)
+                                            otherSelected[q.question] = nowSelected
+                                            if (nowSelected) {
+                                                answers.remove(q.question)
+                                                focusedOption = null
+                                            }
+                                        },
+                                        text = otherText[q.question] ?: "",
+                                        onTextChange = {
+                                            otherText[q.question] = it
+                                            otherSelected[q.question] = true
+                                            answers.remove(q.question)
+                                            focusedOption = null
+                                        },
+                                    )
+                                    val previewText = (focusedOption?.takeIf { it.first == q.question }?.second?.preview)
+                                        ?: q.options.firstOrNull { it.label == answers[q.question] }?.preview
+                                    if (!previewText.isNullOrBlank()) {
+                                        Surface(
+                                            tonalElevation = 1.dp,
+                                            shape = MaterialTheme.shapes.small,
                                             modifier = Modifier
-                                                .padding(8.dp)
-                                                .verticalScroll(rememberScrollState()),
-                                        )
+                                                .fillMaxWidth()
+                                                .heightIn(max = 200.dp),
+                                        ) {
+                                            Text(
+                                                text = previewText,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier
+                                                    .padding(8.dp)
+                                                    .verticalScroll(rememberScrollState()),
+                                            )
+                                        }
                                     }
                                 }
                             } else {
