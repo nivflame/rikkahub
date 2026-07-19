@@ -354,6 +354,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                     }
                                     AskOtherRow(
                                         selected = otherSelected[q.question] == true,
+                                        multiSelect = false,
                                         onToggle = {
                                             val nowSelected = !(otherSelected[q.question] ?: false)
                                             otherSelected[q.question] = nowSelected
@@ -420,6 +421,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 }
                                 AskOtherRow(
                                     selected = otherSelected[q.question] == true,
+                                    multiSelect = q.multiSelect,
                                     onToggle = {
                                         val nowSelected = !(otherSelected[q.question] ?: false)
                                         otherSelected[q.question] = nowSelected
@@ -598,6 +600,7 @@ private fun AskOtherRow(
     onToggle: () -> Unit,
     text: String,
     onTextChange: (String) -> Unit,
+    multiSelect: Boolean = false,
 ) {
     Column {
         Surface(
@@ -610,11 +613,19 @@ private fun AskOtherRow(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Checkbox(
-                    checked = selected,
-                    onCheckedChange = null,
-                    modifier = Modifier.size(20.dp),
-                )
+                if (multiSelect) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                } else {
+                    RadioButton(
+                        selected = selected,
+                        onClick = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
                 Spacer(Modifier.width(4.dp))
                 Text(text = "Other", style = MaterialTheme.typography.labelMedium)
             }
