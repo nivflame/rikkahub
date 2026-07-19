@@ -140,12 +140,12 @@ class SkillsVM(
 
     private fun findSkillDirs(root: DocumentFile): List<DocumentFile> {
         val result = mutableListOf<DocumentFile>()
-        if (root.findChild("SKILL.md") != null) {
+        if (root.listFiles().any { !it.isDirectory && it.name?.equals("SKILL.md", ignoreCase = true) == true }) {
             result.add(root)
         }
         for (child in root.listFiles()) {
             if (child.isDirectory) {
-                if (child.findChild("SKILL.md") != null) {
+                if (child.listFiles().any { !it.isDirectory && it.name?.equals("SKILL.md", ignoreCase = true) == true }) {
                     result.add(child)
                 }
             }
