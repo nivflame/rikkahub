@@ -2,6 +2,8 @@ package me.rerere.rikkahub.ui.pages.extensions.skills
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import java.io.ByteArrayInputStream
@@ -79,6 +81,94 @@ class SkillsVM(
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "未知错误") }
+            }
+        }
+    }
+
+    fun importSkillFromFolder(context: Context, treeUri: Uri, onResult: (Boolean, String) -> Unit) {
+        val appContext = context.applicationContext
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val tree = DocumentFile.fromTreeUri(appContext, treeUri)
+                if (tree == null || !tree.isDirectory) {
+                    withContext(Dispatchers.Main) { onResult(false, "Invalid folder") }
+                    return@launch
+                }
+                val skillDirs = findSkillDirs(tree)
+                if (skillDirs.isEmpty()) {
+                    withContext(Dispatchers.Main) { onResult(false, "No SKILL.md found in folder") }
+                    return@launch
+                }
+                val importedNames = mutableListOf<String>()
+                for (skillDir in skillDirs) {
+                    val files = LinkedHashMap<String, ByteArray>()
+                    collectFilesRecursive(appContext, skillDir, "", files)
+                    val skillMdBytes = files["SKILL.md"]
+                        ?: files.entries.firstOrNull { it.key.endsWith("/SKILL.md") }?.value
+                    if (skillMdBytes == null) continue
+                    val content = skillMdBytes.toString(Charsets.UTF_8)
+                    val frontmatter = SkillFrontmatterParser.parse(content)
+                    val name = frontmatter["name"]?.trim()
+                    if (name.isNullOrBlank()) continue
+                    if (frontmatter["description"].isNullOrBlank()) continue
+                    val normalizedFiles = LinkedHashMap<String, ByteArray>()
+                    for ((path, bytes) in files) {
+                        val normalizedPath = if (path.equals("SKILL.md", ignoreCase = true)) {
+                            "SKILL.md"
+                        } else {
+                            path
+                        }
+                        normalizedFiles[normalizedPath] = bytes
+                    }
+                    val saved = skillManager.saveSkillFileBytesAtomically(name, normalizedFiles)
+                    if (saved) importedNames += name
+                }
+                _skills.value = skillManager.listSkills()
+                withContext(Dispatchers.Main) {
+                    if (importedNames.isEmpty()) {
+                        onResult(false, "No valid skills found")
+                    } else {
+                        onResult(true, importedNames.joinToString())
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("SkillsVM", "importSkillFromFolder failed", e)
+                withContext(Dispatchers.Main) { onResult(false, e.message ?: "Import failed") }
+            }
+        }
+    }
+
+    private fun findSkillDirs(root: DocumentFile): List<DocumentFile> {
+        val result = mutableListOf<DocumentFile>()
+        if (root.findChild("SKILL.md") != null) {
+            result.add(root)
+        }
+        for (child in root.listFiles()) {
+            if (child.isDirectory) {
+                if (child.findChild("SKILL.md") != null) {
+                    result.add(child)
+                }
+            }
+        }
+        return result
+    }
+
+    private fun collectFilesRecursive(
+        context: Context,
+        dir: DocumentFile,
+        relativePath: String,
+        result: LinkedHashMap<String, ByteArray>,
+    ) {
+        for (child in dir.listFiles()) {
+            val name = child.name ?: continue
+            val childPath = if (relativePath.isBlank()) name else "$relativePath/$name"
+            if (child.isDirectory) {
+                collectFilesRecursive(context, child, childPath, result)
+            } else {
+                val bytes = runCatching {
+                    context.contentResolver.openInputStream(child.uri)?.use { it.readBytes() }
+                }.getOrNull() ?: continue
+                result[childPath] = bytes
             }
         }
     }

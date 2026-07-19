@@ -60,6 +60,7 @@ import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Download01
 import me.rerere.hugeicons.stroke.FileImport
+import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
@@ -94,6 +95,18 @@ fun SkillsPage() {
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         vm.importSkillFromFile(context, uri) { success, message ->
+            if (success) {
+                toaster.show(context.getString(R.string.skills_page_import_success, message))
+            } else {
+                toaster.show(context.getString(R.string.skills_page_import_failed, message))
+            }
+        }
+    }
+    val folderImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        vm.importSkillFromFolder(context, uri) { success, message ->
             if (success) {
                 toaster.show(context.getString(R.string.skills_page_import_success, message))
             } else {
@@ -185,6 +198,10 @@ fun SkillsPage() {
                         "application/octet-stream",
                     )
                 )
+            },
+            onImportFromFolder = {
+                showImportSheet = false
+                folderImportLauncher.launch(null)
             },
             onImportFromGitHub = {
                 showImportSheet = false
@@ -323,6 +340,7 @@ private fun SkillImportSheet(
     onDismiss: () -> Unit,
     onAddManually: () -> Unit,
     onImportFromFile: () -> Unit,
+    onImportFromFolder: () -> Unit,
     onImportFromGitHub: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -349,6 +367,11 @@ private fun SkillImportSheet(
                 icon = { Icon(HugeIcons.FileImport, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_file),
                 onClick = onImportFromFile,
+            )
+            SkillImportSheetItem(
+                icon = { Icon(HugeIcons.Folder01, contentDescription = null) },
+                text = "Import from Folder",
+                onClick = onImportFromFolder,
             )
             SkillImportSheetItem(
                 icon = { Icon(HugeIcons.Download01, contentDescription = null) },
