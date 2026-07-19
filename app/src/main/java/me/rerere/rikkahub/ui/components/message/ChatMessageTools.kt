@@ -345,17 +345,27 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                                 selected = answers[q.question] == option.label,
                                                 onClick = {
                                                     answers[q.question] = option.label
+                                                    otherSelected[q.question] = false
                                                     focusedOption = q.question to option
                                                 },
                                             )
                                         }
                                         AskOtherRow(
                                             selected = otherSelected[q.question] == true,
-                                            onToggle = { otherSelected[q.question] = !(otherSelected[q.question] ?: false) },
+                                            onToggle = {
+                                                val nowSelected = !(otherSelected[q.question] ?: false)
+                                                otherSelected[q.question] = nowSelected
+                                                if (nowSelected) {
+                                                    answers.remove(q.question)
+                                                    focusedOption = null
+                                                }
+                                            },
                                             text = otherText[q.question] ?: "",
                                             onTextChange = {
                                                 otherText[q.question] = it
                                                 otherSelected[q.question] = true
+                                                answers.remove(q.question)
+                                                focusedOption = null
                                             },
                                         )
                                     }
@@ -394,17 +404,27 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = option.label,
                                             description = option.description,
                                             selected = answers[q.question] == option.label,
-                                            onClick = { answers[q.question] = option.label },
+                                            onClick = {
+                                                answers[q.question] = option.label
+                                                otherSelected[q.question] = false
+                                            },
                                         )
                                     }
                                 }
                                 AskOtherRow(
                                     selected = otherSelected[q.question] == true,
-                                    onToggle = { otherSelected[q.question] = !(otherSelected[q.question] ?: false) },
+                                    onToggle = {
+                                        val nowSelected = !(otherSelected[q.question] ?: false)
+                                        otherSelected[q.question] = nowSelected
+                                        if (nowSelected) {
+                                            answers.remove(q.question)
+                                        }
+                                    },
                                     text = otherText[q.question] ?: "",
                                     onTextChange = {
                                         otherText[q.question] = it
                                         otherSelected[q.question] = true
+                                        answers.remove(q.question)
                                     },
                                 )
                             }
@@ -431,6 +451,16 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
+                            val note = answerJson?.jsonObject?.get("annotations")
+                                ?.jsonObject?.get(q.question)?.jsonObject?.get("notes")?.jsonPrimitive?.contentOrNull
+                            if (!note.isNullOrBlank()) {
+                                Text(
+                                    text = note,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
                         }
                     }
                 }
