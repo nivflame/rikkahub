@@ -5,6 +5,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.LinkOption
 
 class WorkspaceManager(
     private val baseDir: File,
@@ -36,7 +38,8 @@ class WorkspaceManager(
 
     fun tempDir(root: String): File = File(workspaceDir(root), TEMP_DIR)
 
-    fun hasRootfs(root: String): Boolean = File(linuxDir(root), "bin/sh").isFile
+    fun hasRootfs(root: String): Boolean =
+        Files.exists(File(linuxDir(root), "bin/sh").toPath(), LinkOption.NOFOLLOW_LINKS)
 
     fun deleteWorkspace(root: String): Boolean = workspaceDir(root).deleteRecursively()
 
