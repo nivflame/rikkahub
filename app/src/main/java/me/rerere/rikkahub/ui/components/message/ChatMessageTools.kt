@@ -26,6 +26,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.SheetValue
@@ -343,6 +344,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = option.label,
                                             description = option.description,
                                             selected = answers[q.question] == option.label,
+                                            multiSelect = false,
                                             onClick = {
                                                 answers[q.question] = option.label
                                                 otherSelected[q.question] = false
@@ -396,6 +398,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = option.label,
                                             description = option.description,
                                             selected = selectedSet.contains(option.label),
+                                            multiSelect = true,
                                             onClick = {
                                                 val current = selectedSet.toMutableSet()
                                                 if (current.contains(option.label)) current.remove(option.label) else current.add(option.label)
@@ -407,6 +410,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                             label = option.label,
                                             description = option.description,
                                             selected = answers[q.question] == option.label,
+                                            multiSelect = false,
                                             onClick = {
                                                 answers[q.question] = option.label
                                                 otherSelected[q.question] = false
@@ -546,6 +550,7 @@ private fun AskOptionRow(
     label: String,
     description: String,
     selected: Boolean,
+    multiSelect: Boolean = false,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -559,11 +564,19 @@ private fun AskOptionRow(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Checkbox(
-                checked = selected,
-                onCheckedChange = null,
-                modifier = Modifier.size(20.dp),
-            )
+            if (multiSelect) {
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            } else {
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
             Spacer(Modifier.width(4.dp))
             Column {
                 Text(text = label, style = MaterialTheme.typography.labelMedium)
