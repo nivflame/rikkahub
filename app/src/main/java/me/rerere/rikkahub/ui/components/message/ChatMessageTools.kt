@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -372,7 +373,9 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                     Surface(
                                         tonalElevation = 1.dp,
                                         shape = MaterialTheme.shapes.small,
-                                        modifier = Modifier.weight(1f),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(max = 200.dp),
                                     ) {
                                         Text(
                                             text = (focusedOption?.takeIf { it.first == q.question }?.second?.preview)
