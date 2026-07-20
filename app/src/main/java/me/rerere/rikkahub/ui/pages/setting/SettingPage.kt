@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.AiBrain01
+import me.rerere.hugeicons.stroke.ShieldKey
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.hugeicons.stroke.AiMagic
 import me.rerere.hugeicons.stroke.Alert01
@@ -210,7 +211,7 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingToolApproval) },
-                        leadingContent = { Icon(HugeIcons.Tools, null) },
+                        leadingContent = { Icon(HugeIcons.ShieldKey, null) },
                         supportingContent = { Text("Toggle which tools require approval before execution") },
                         headlineContent = { Text("Tools Approval") },
                     )

@@ -17,7 +17,6 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.Puzzle
-import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
@@ -71,12 +70,6 @@ fun SettingToolsPage() {
                 leadingContent = { Icon(HugeIcons.Puzzle, null) },
                 supportingContent = { Text("Manage skills") },
                 headlineContent = { Text("Skills") },
-            )
-            item(
-                onClick = { navController.navigate(Screen.SettingToolApproval) },
-                leadingContent = { Icon(HugeIcons.Tools, null) },
-                supportingContent = { Text("Toggle which tools require approval before execution") },
-                headlineContent = { Text("Tools Approval") },
             )
         }
     }

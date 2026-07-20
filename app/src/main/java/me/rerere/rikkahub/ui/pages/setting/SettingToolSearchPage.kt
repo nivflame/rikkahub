@@ -33,7 +33,6 @@ import me.rerere.hugeicons.stroke.FileAdd
 import me.rerere.hugeicons.stroke.FileView
 import me.rerere.hugeicons.stroke.Puzzle
 import me.rerere.hugeicons.stroke.Search01
-import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
@@ -56,7 +55,6 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
         "Skill",
         "WebSearch",
         "WebFetch",
-        "ToolSearch",
     )
 
     val allToolNames = remember(settings.mcpServers) {
@@ -166,6 +164,5 @@ private fun toolIcon(name: String) = when (name) {
     "Skill" -> HugeIcons.Puzzle
     "WebSearch" -> HugeIcons.Search01
     "WebFetch" -> HugeIcons.Earth
-    "ToolSearch" -> HugeIcons.Tools
     else -> HugeIcons.Earth
 }
