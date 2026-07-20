@@ -700,6 +700,13 @@ class ChatService(
                     } else {
                         allTools
                     }
+                }.map { tool ->
+                    val override = settings.toolApprovalOverrides[tool.name]
+                    if (override != null) {
+                        tool.copy(needsApproval = { override })
+                    } else {
+                        tool
+                    }
                 },
             ).onCompletion {
                 // 取消 Live Update 通知

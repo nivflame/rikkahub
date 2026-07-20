@@ -41,6 +41,8 @@ import me.rerere.rikkahub.data.ai.transformers.transforms
 import me.rerere.rikkahub.data.ai.transformers.visualTransforms
 import me.rerere.rikkahub.data.ai.tools.buildMemoryTools
 import me.rerere.rikkahub.data.datastore.Settings
+import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.data.datastore.ToolCallRecord
 import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.model.Assistant
@@ -67,6 +69,7 @@ class GenerationHandler(
     private val providerManager: ProviderManager,
     private val json: Json,
     private val memoryRepo: MemoryRepository,
+    private val settingsStore: SettingsStore? = null,
 ) {
     fun generateText(
         settings: Settings,
@@ -257,6 +260,7 @@ class GenerationHandler(
                                 )
                             )
                         )
+                        recordToolCall(tool, "Denied")
                     }
 
                     is ToolApprovalState.Answered -> {
@@ -267,6 +271,7 @@ class GenerationHandler(
                                 UIMessagePart.Text(answer)
                             )
                         )
+                        recordToolCall(tool, "Answered")
                     }
 
                     is ToolApprovalState.Pending -> {
@@ -289,6 +294,7 @@ class GenerationHandler(
                             executedTools += tool.copy(
                                 output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
                             )
+                            recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                         }.onFailure {
                             // 取消必须向上传播，否则停止生成会被误报为工具执行错误
                             if (it is CancellationException) throw it
@@ -453,6 +459,19 @@ class GenerationHandler(
             }
             onUpdateMessages(messages)
         }
+    }
+
+    private suspend fun recordToolCall(tool: UIMessagePart.Tool, approvalState: String) {
+        val store = settingsStore ?: return
+        val outputText = tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+        val record = ToolCallRecord(
+            toolName = tool.toolName,
+            arguments = tool.input,
+            output = outputText.take(10_000),
+            approvalState = approvalState,
+            timestamp = System.currentTimeMillis(),
+        )
+        store.addToolCallRecord(record)
     }
 
     private fun maybeTruncateToolOutput(

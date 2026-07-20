@@ -164,6 +164,12 @@ class SettingsStore(
 
         // 赞助提醒
         val SPONSOR_ALERT_DISMISSED_AT = intPreferencesKey("sponsor_alert_dismissed_at")
+
+        // 工具审批覆盖
+        val TOOL_APPROVALS = stringPreferencesKey("tool_approvals")
+
+        // 工具调用历史
+        val TOOL_CALL_HISTORY = stringPreferencesKey("tool_call_history")
     }
 
     private val dataStore = context.settingsStore
@@ -278,6 +284,12 @@ class SettingsStore(
                 } ?: BackupReminderConfig(),
                 launchCount = preferences[LAUNCH_COUNT] ?: 0,
                 sponsorAlertDismissedAt = preferences[SPONSOR_ALERT_DISMISSED_AT] ?: 0,
+                toolApprovalOverrides = preferences[TOOL_APPROVALS]?.let {
+                    JsonInstant.decodeFromString<Map<String, Boolean>>(it)
+                } ?: DEFAULT_TOOL_APPROVAL_OVERRIDES,
+                toolCallHistory = preferences[TOOL_CALL_HISTORY]?.let {
+                    JsonInstant.decodeFromString<List<ToolCallRecord>>(it)
+                } ?: emptyList(),
             )
         }
         .map {
@@ -441,11 +453,21 @@ class SettingsStore(
             preferences[BACKUP_REMINDER_CONFIG] = JsonInstant.encodeToString(settings.backupReminderConfig)
             preferences[LAUNCH_COUNT] = settings.launchCount
             preferences[SPONSOR_ALERT_DISMISSED_AT] = settings.sponsorAlertDismissedAt
+            preferences[TOOL_APPROVALS] = JsonInstant.encodeToString(settings.toolApprovalOverrides)
+            preferences[TOOL_CALL_HISTORY] = JsonInstant.encodeToString(settings.toolCallHistory)
         }
     }
 
     suspend fun update(fn: (Settings) -> Settings) {
         update(fn(settingsFlow.value))
+    }
+
+    suspend fun addToolCallRecord(record: ToolCallRecord) {
+        update { settings ->
+            val updated = (settings.toolCallHistory + record)
+                .takeLast(TOOL_CALL_HISTORY_MAX)
+            settings.copy(toolCallHistory = updated)
+        }
     }
 
     suspend fun updateAssistant(assistantId: Uuid) {
@@ -580,12 +602,32 @@ data class Settings(
     val backupReminderConfig: BackupReminderConfig = BackupReminderConfig(),
     val launchCount: Int = 0,
     val sponsorAlertDismissedAt: Int = 0,
+    val toolApprovalOverrides: Map<String, Boolean> = DEFAULT_TOOL_APPROVAL_OVERRIDES,
+    val toolCallHistory: List<ToolCallRecord> = emptyList(),
 ) {
     companion object {
         // 构造一个用于初始化的settings, 但它不能用于保存，防止使用初始值存储
         fun dummy() = Settings(init = true)
     }
 }
+
+@Serializable
+data class ToolCallRecord(
+    val toolName: String,
+    val arguments: String,
+    val output: String,
+    val approvalState: String,
+    val timestamp: Long,
+    val conversationId: String? = null,
+)
+
+val DEFAULT_TOOL_APPROVAL_OVERRIDES: Map<String, Boolean> = mapOf(
+    "Bash" to true,
+    "Write" to true,
+    "Edit" to true,
+)
+
+const val TOOL_CALL_HISTORY_MAX = 200
 
 @Serializable
 enum class ChatFontFamily {

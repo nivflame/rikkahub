@@ -123,6 +123,8 @@ import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
+import me.rerere.rikkahub.ui.pages.setting.SettingToolApprovalPage
+import me.rerere.rikkahub.ui.pages.setting.ToolCallHistoryPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSpeechPage
 import me.rerere.rikkahub.ui.pages.setting.SettingWebPage
 import me.rerere.rikkahub.ui.pages.share.handler.ShareHandlerPage
@@ -475,6 +477,14 @@ class RouteActivity : ComponentActivity() {
                                 SettingToolsPage()
                             }
 
+                            entry<Screen.SettingToolApproval> {
+                                SettingToolApprovalPage()
+                            }
+
+                            entry<Screen.ToolCallHistory> {
+                                ToolCallHistoryPage()
+                            }
+
                             entry<Screen.SettingDonate> {
                                 SettingDonatePage()
                             }
@@ -742,4 +752,10 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingToolSearch : Screen
+
+    @Serializable
+    data object SettingToolApproval : Screen
+
+    @Serializable
+    data object ToolCallHistory : Screen
 }

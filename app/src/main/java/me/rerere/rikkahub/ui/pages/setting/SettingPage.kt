@@ -208,6 +208,12 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         supportingContent = { Text("Browser, Subagent, ToolSearch and Skills settings") },
                         headlineContent = { Text("Tools") },
                     )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingToolApproval) },
+                        leadingContent = { Icon(HugeIcons.Tools, null) },
+                        supportingContent = { Text("Toggle which tools require approval before execution") },
+                        headlineContent = { Text("Tools Approval") },
+                    )
                 }
             }
 

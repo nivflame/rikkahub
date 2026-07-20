@@ -71,6 +71,12 @@ fun SettingToolsPage() {
                 supportingContent = { Text("Manage skills") },
                 headlineContent = { Text("Skills") },
             )
+            item(
+                onClick = { navController.navigate(Screen.SettingToolApproval) },
+                leadingContent = { Icon(HugeIcons.Tools, null) },
+                supportingContent = { Text("Toggle which tools require approval before execution") },
+                headlineContent = { Text("Tools Approval") },
+            )
         }
     }
 }
