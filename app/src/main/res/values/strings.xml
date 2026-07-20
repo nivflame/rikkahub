@@ -848,7 +848,7 @@
   <string name="setting_page_dynamic_color">Dynamic Color</string>
   <string name="setting_page_dynamic_color_desc">Generate the app theme colors dynamically from your wallpaper</string>
   <string name="setting_page_extensions">Extensions</string>
-  <string name="setting_page_extensions_desc">Manage prompt injections, skills and more</string>
+  <string name="setting_page_extensions_desc">Manage prompt injections and more</string>
   <string name="setting_page_general_settings">General Settings</string>
   <string name="setting_page_interaction_notification_settings">Interaction &amp;amp; Notifications</string>
   <string name="setting_page_mcp">MCP</string>
