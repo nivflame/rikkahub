@@ -17,6 +17,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.Puzzle
+import me.rerere.hugeicons.stroke.Tools
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup

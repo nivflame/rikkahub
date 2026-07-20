@@ -1,11 +1,11 @@
 package me.rerere.rikkahub.ui.pages.setting
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +36,6 @@ import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.rikkahub.data.datastore.ToolCallRecord
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.ui.components.nav.BackButton
-import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
@@ -80,7 +79,7 @@ fun ToolCallHistoryPage() {
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = innerPadding + androidx.compose.foundation.layout.PaddingValues(
+                contentPadding = innerPadding + PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
                     top = 16.dp,
@@ -206,10 +205,8 @@ private fun ToolCallRecordCard(record: ToolCallRecord) {
 
 private fun String.prettify(): String {
     return runCatching {
-        val parsed = kotlinx.serialization.json.Json.parseToJsonElement(this)
-        kotlinx.serialization.json.Json {
-            prettyPrint = true
-            indent = "  "
-        }.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), parsed as kotlinx.serialization.json.JsonObject)
+        val json = kotlinx.serialization.json.Json { prettyPrint = true }
+        val parsed = json.parseToJsonElement(this)
+        json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), parsed)
     }.getOrDefault(this)
 }
