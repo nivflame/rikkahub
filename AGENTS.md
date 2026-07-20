@@ -26,6 +26,28 @@
 
 命名习惯：模块名为小写目录（如 `ai/`、`speech/`），Kotlin 类遵循 PascalCase，测试类以 `*Test` 结尾。
 
+## Icons
+
+本项目使用 [HugeIcons](https://hugeicons.com/) 的 Jetpack Compose 封装库（`com.github.rikkahub:hugeicons-compose`，定义在 `gradle/libs.versions.toml` 中）。
+
+### 挑选图标
+
+1. 在 [hugeicons.com/icons](https://hugeicons.com/icons) 上搜索和浏览免费 Stroke Rounded 风格的图标
+2. 找到所需图标后，将它的 kebab-case 名称转换为 PascalCase（例如 `shield-key` 变成 `ShieldKey`）
+3. 通过验证 GitHub 上库的源文件来确认图标是否存在：
+   `https://raw.githubusercontent.com/rikkahub/hugeicons-compose/main/library/src/main/java/me/rerere/hugeicons/stroke/<PascalCaseName>.kt`
+4. 在 Kotlin 文件中导入并使用：
+   ```kotlin
+   import me.rerere.hugeicons.stroke.ShieldKey
+   // ...
+   Icon(HugeIcons.ShieldKey, null)
+   ```
+
+### 注意事项
+
+- 同一页面或设置列表中的不同条目应使用不同的图标，避免视觉混淆
+- 不要将元工具（如 ToolSearch）列在需要审批的工具列表中，也不要将 ToolSearch 本身列为可延迟（deferred）的工具
+
 ## Testing Guidelines
 
 测试框架以 JUnit/AndroidX Test 为主。未设定强制覆盖率门槛，但新逻辑应配套新增/更新测试。测试文件命名建议：
