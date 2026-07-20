@@ -37,6 +37,7 @@ import me.rerere.rikkahub.data.datastore.ToolCallRecord
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
+import me.rerere.rikkahub.utils.plus
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
