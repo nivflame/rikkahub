@@ -29,7 +29,7 @@ import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.compose.koinInject
 
-private val ALL_KNOWN_TOOL_NAMES: List<String> = listOf(
+private val CORE_TOOL_NAMES: List<String> = listOf(
     "Bash",
     "Read",
     "Write",
@@ -38,8 +38,7 @@ private val ALL_KNOWN_TOOL_NAMES: List<String> = listOf(
     "WebSearch",
     "WebFetch",
     "Subagent",
-    "ToolSearch",
-) + ALL_BROWSER_TOOL_NAMES
+)
 
 @Composable
 fun SettingToolApprovalPage() {
@@ -61,48 +60,98 @@ fun SettingToolApprovalPage() {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
-        CardGroup(
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ALL_KNOWN_TOOL_NAMES.forEach { toolName ->
+            Text(
+                text = "Toggle which tools require approval before execution. When enabled, the agent must ask before running the tool.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            CardGroup(
+                title = { Text("Audit") },
+            ) {
                 item(
-                    headlineContent = { Text(toolName) },
-                    supportingContent = {
-                        val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
-                        Text(
-                            if (needsApproval) "Requires approval"
-                            else "Auto-executed",
-                        )
-                    },
-                    trailingContent = {
-                        val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
-                        Switch(
-                            checked = needsApproval,
-                            onCheckedChange = { newValue ->
-                                scope.launch {
-                                    settingsStore.update { current ->
-                                        val updated = if (newValue) {
-                                            current.toolApprovalOverrides + (toolName to true)
-                                        } else {
-                                            current.toolApprovalOverrides - toolName
-                                        }
-                                        current.copy(toolApprovalOverrides = updated)
-                                    }
-                                }
-                            },
-                        )
-                    },
+                    onClick = { navController.navigate(Screen.ToolCallHistory) },
+                    headlineContent = { Text("Tool Call History") },
+                    supportingContent = { Text("View all recorded tool calls for security audit") },
                 )
             }
-            item(
-                onClick = { navController.navigate(Screen.ToolCallHistory) },
-                headlineContent = { Text("Tool Call History") },
-                supportingContent = { Text("View all recorded tool calls for security audit") },
-            )
+
+            CardGroup(
+                title = { Text("Core") },
+            ) {
+                CORE_TOOL_NAMES.forEach { toolName ->
+                    val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
+                    item(
+                        headlineContent = { Text(toolName) },
+                        supportingContent = {
+                            Text(
+                                if (needsApproval) "Requires approval"
+                                else "Auto-executed",
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = needsApproval,
+                                onCheckedChange = { newValue ->
+                                    scope.launch {
+                                        settingsStore.update { current ->
+                                            val updated = if (newValue) {
+                                                current.toolApprovalOverrides + (toolName to true)
+                                            } else {
+                                                current.toolApprovalOverrides - toolName
+                                            }
+                                            current.copy(toolApprovalOverrides = updated)
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+
+            CardGroup(
+                title = { Text("Browser") },
+            ) {
+                ALL_BROWSER_TOOL_NAMES.forEach { toolName ->
+                    val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
+                    item(
+                        headlineContent = { Text(toolName) },
+                        supportingContent = {
+                            Text(
+                                if (needsApproval) "Requires approval"
+                                else "Auto-executed",
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = needsApproval,
+                                onCheckedChange = { newValue ->
+                                    scope.launch {
+                                        settingsStore.update { current ->
+                                            val updated = if (newValue) {
+                                                current.toolApprovalOverrides + (toolName to true)
+                                            } else {
+                                                current.toolApprovalOverrides - toolName
+                                            }
+                                            current.copy(toolApprovalOverrides = updated)
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }
