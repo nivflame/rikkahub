@@ -17,12 +17,26 @@ data class SubagentPrompt(
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
+    "Subagent",
+    "Bash",
+    "Read",
+    "Write",
+    "Edit",
     "AskQuestion",
+    "Skill",
+    "WebSearch",
+    "WebFetch",
+    "ToolSearch",
 )
 
-private val SUBAGENT_READ_ONLY_DISABLE: List<String> = listOf(
-    "browser_interact",
-    "browser_execute_script",
+private val GENERAL_PURPOSE_EXCLUDE: Set<String> = setOf(
+    "Subagent",
+)
+
+private val READ_ONLY_EXCLUDE: Set<String> = setOf(
+    "Subagent",
+    "Edit",
+    "Write",
 )
 
 private val ALL_SUBAGENT_TOOLS: List<String> = SUBAGENT_LOCAL_TOOL_NAMES + ALL_BROWSER_TOOL_NAMES
@@ -36,7 +50,8 @@ fun loadDefaultSubagentPrompts(assets: android.content.res.AssetManager): List<S
         val (frontmatter, body) = parseSubagentFrontmatter(content)
         val name = frontmatter["name"] ?: ""
         val description = frontmatter["description"] ?: ""
-        val enabledTools = if (name == "general-purpose") ALL_SUBAGENT_TOOLS else ALL_SUBAGENT_TOOLS - SUBAGENT_READ_ONLY_DISABLE.toSet()
+        val exclude = if (name == "general-purpose") GENERAL_PURPOSE_EXCLUDE else READ_ONLY_EXCLUDE
+        val enabledTools = ALL_SUBAGENT_TOOLS - exclude
         SubagentPrompt(
             name = name,
             description = description,
