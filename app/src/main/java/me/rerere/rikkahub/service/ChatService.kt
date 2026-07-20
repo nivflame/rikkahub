@@ -71,6 +71,7 @@ import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
+import me.rerere.rikkahub.data.ai.tools.WorkspaceToolState
 import me.rerere.rikkahub.data.ai.tools.createWorkspaceTools
 import me.rerere.rikkahub.data.files.SkillManager
 import me.rerere.rikkahub.data.ai.transformers.Base64ImageToLocalFileTransformer
@@ -174,6 +175,9 @@ class ChatService(
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
     private val _sessionsVersion = MutableStateFlow(0L)
 
+    // 工作区工具状态 (workspaceId -> state), 跨生成保持, 使 Read 记录在后续 Write 中可用
+    private val workspaceToolStates = ConcurrentHashMap<String, WorkspaceToolState>()
+
     // 错误状态
     private val _errors = MutableStateFlow<List<ChatError>>(emptyList())
     val errors: StateFlow<List<ChatError>> = _errors.asStateFlow()
@@ -223,6 +227,7 @@ class ChatService(
         ProcessLifecycleOwner.get().lifecycle.removeObserver(lifecycleObserver)
         sessions.values.forEach { it.cleanup() }
         sessions.clear()
+        workspaceToolStates.clear()
     }
 
     // ---- Session 管理 ----
@@ -791,7 +796,8 @@ class ChatService(
             )
             return emptyList()
         }
-        val allTools = createWorkspaceTools(workspaceId, workspaceRepository, cwd)
+        val state = workspaceToolStates.getOrPut(workspaceId) { WorkspaceToolState() }
+        val allTools = createWorkspaceTools(workspaceId, workspaceRepository, cwd, state)
         return allTools.filter { tool ->
             when (tool.name) {
                 "Bash" -> LocalToolOption.Bash in localTools

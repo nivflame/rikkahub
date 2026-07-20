@@ -35,7 +35,7 @@ val WorkspaceToolDefaultApprovals: Map<String, Boolean> = mapOf(
 fun resolveWorkspaceToolApproval(name: String, overrides: Map<String, Boolean>): Boolean =
     overrides[name] ?: WorkspaceToolDefaultApprovals[name] ?: false
 
-private class WorkspaceToolState {
+class WorkspaceToolState {
     val readFiles = mutableSetOf<String>()
     var cwd: String = ""
 }
@@ -44,12 +44,12 @@ suspend fun createWorkspaceTools(
     workspaceId: String?,
     workspaceRepository: WorkspaceRepository,
     cwd: String? = null,
+    state: WorkspaceToolState = WorkspaceToolState(),
 ): List<Tool> {
     if (workspaceId.isNullOrBlank()) return emptyList()
     val approvalOverrides = workspaceRepository.getById(workspaceId)?.toolApprovalOverrides().orEmpty()
     fun needsApproval(name: String) = resolveWorkspaceToolApproval(name, approvalOverrides)
 
-    val state = WorkspaceToolState()
     if (!cwd.isNullOrBlank()) {
         state.cwd = cwd.removePrefix("/workspace/").removePrefix("/workspace")
     }
