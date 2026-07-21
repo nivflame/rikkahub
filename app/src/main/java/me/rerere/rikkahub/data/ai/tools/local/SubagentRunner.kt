@@ -7,6 +7,8 @@ import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.data.ai.GenerationChunk
 import me.rerere.rikkahub.data.ai.GenerationHandler
+import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
+import me.rerere.rikkahub.data.ai.transformers.PromptInjectionTransformer
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.findModelById
@@ -64,6 +66,7 @@ class SubagentRunner(
             name = def.name,
             systemPrompt = def.systemPrompt,
             enableMemory = false,
+            modeInjectionIds = def.modeInjectionIds,
         )
         val messages = listOf(
             UIMessage(
@@ -72,10 +75,16 @@ class SubagentRunner(
             )
         )
         var lastMessages: List<UIMessage> = emptyList()
+        val inputTransformers = if (def.modeInjectionIds.isNotEmpty()) {
+            listOf<InputMessageTransformer>(PromptInjectionTransformer)
+        } else {
+            emptyList()
+        }
         generationHandler.generateText(
             settings = settings,
             model = model,
             messages = messages,
+            inputTransformers = inputTransformers,
             assistant = subAssistant,
             tools = subTools,
             maxSteps = 25,

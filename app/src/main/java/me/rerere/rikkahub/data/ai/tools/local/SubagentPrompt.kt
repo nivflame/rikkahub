@@ -14,6 +14,7 @@ data class SubagentPrompt(
     val enabled: Boolean = true,
     val modelId: Uuid? = null,
     val isBuiltIn: Boolean = false,
+    val modeInjectionIds: Set<Uuid> = emptySet(),
 )
 
 internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(

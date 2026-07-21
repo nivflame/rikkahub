@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -26,7 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,8 +41,6 @@ import me.rerere.ai.provider.ModelType
 import kotlin.uuid.Uuid
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
-import me.rerere.hugeicons.stroke.ArrowDown01
-import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
@@ -175,6 +175,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                     prompt = prompt,
                     toolGroups = toolGroups,
                     providers = settings.providers,
+                    modeInjections = settings.modeInjections,
                     onChange = { updated ->
                         vm.updateSettings(
                             settings.copy(
@@ -265,12 +266,13 @@ private fun SubagentPromptItem(
     prompt: SubagentPrompt,
     toolGroups: Map<String, List<String>>,
     providers: List<me.rerere.ai.provider.ProviderSetting>,
+    modeInjections: List<me.rerere.rikkahub.data.model.PromptInjection.ModeInjection>,
     onChange: (SubagentPrompt) -> Unit,
     onRemove: () -> Unit,
     onEdit: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val categoryExpanded = remember { mutableStateMapOf<String, Boolean>() }
+    var selectedToolCategory by remember { mutableStateOf("All") }
     Surface(
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.medium,
@@ -332,48 +334,79 @@ private fun SubagentPromptItem(
                 }
                 HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
                 Text(
+                    text = "Prompt Injections",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                )
+                if (modeInjections.isNotEmpty()) {
+                    modeInjections.forEach { injection ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = injection.name.ifBlank { "(unnamed)" },
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Switch(
+                                checked = injection.id in prompt.modeInjectionIds,
+                                onCheckedChange = { enabled ->
+                                    val next = if (enabled) prompt.modeInjectionIds + injection.id else prompt.modeInjectionIds - injection.id
+                                    onChange(prompt.copy(modeInjectionIds = next))
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No mode injections configured",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+                Text(
                     text = "Tools",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                 )
-                toolGroups.forEach { (category, names) ->
-                    val isExpanded = categoryExpanded[category] ?: (category == "Core")
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .clickable { categoryExpanded[category] = !isExpanded },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = category,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            imageVector = if (isExpanded) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
-                            contentDescription = "Expand category",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                val toolCategories = listOf("All") + toolGroups.keys.toList()
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                ) {
+                    items(toolCategories) { category ->
+                        FilterChip(
+                            selected = selectedToolCategory == category,
+                            onClick = { selectedToolCategory = category },
+                            label = { Text(category) },
                         )
                     }
-                    if (isExpanded) {
-                        names.forEach { name ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                Switch(
-                                    checked = name in prompt.enabledTools,
-                                    onCheckedChange = { enabled ->
-                                        val next = if (enabled) prompt.enabledTools + name else prompt.enabledTools - name
-                                        onChange(prompt.copy(enabledTools = next))
-                                    }
-                                )
-                            }
+                }
+                val visibleToolGroups = if (selectedToolCategory == "All") toolGroups else linkedMapOf(selectedToolCategory to (toolGroups[selectedToolCategory] ?: emptyList()))
+                visibleToolGroups.forEach { (category, names) ->
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                    )
+                    names.forEach { name ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = name in prompt.enabledTools,
+                                onCheckedChange = { enabled ->
+                                    val next = if (enabled) prompt.enabledTools + name else prompt.enabledTools - name
+                                    onChange(prompt.copy(enabledTools = next))
+                                }
+                            )
                         }
                     }
                 }
