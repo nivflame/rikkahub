@@ -663,13 +663,21 @@ class ChatService(
                         // Build the full tool set for subagents, not just the parent's enabled tools.
                         // The subagent's enabledTools config in SubagentRunner handles filtering.
                         val allLocalForSubagent = localTools.getTools(
-                            LocalToolOption.entries,
+                            listOf(
+                                LocalToolOption.AskQuestion,
+                                LocalToolOption.Browser,
+                                LocalToolOption.WebSearch,
+                                LocalToolOption.WebFetch,
+                                LocalToolOption.Subagent,
+                                LocalToolOption.Skill,
+                                LocalToolOption.ToolSearch,
+                            ),
                             settings.enabledBrowserTools,
                             settings.browserToolDescriptions,
                             settings.askQuestionDescription,
                         )
                         val allSearchForSubagent = if (settings.enableWebSearch) createSearchTools(settings).toList() else emptyList()
-                        val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, LocalToolOption.entries.toList())
+                        val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, listOf(LocalToolOption.Bash, LocalToolOption.Read, LocalToolOption.Write, LocalToolOption.Edit))
                         val allSkillForSubagent = if (settings.subagentPrompts.any { p -> p.enabledTools.any { it == "Skill" } }) {
                             createSkillTools(
                                 allSkills = skillManager.listSkills(),
