@@ -57,9 +57,9 @@ internal fun transformMessages(
         return messages
     }
 
-    // 按位置和优先级分组
+    // 按位置和顺序分组 (lower order = inserted first)
     val byPosition = injections
-        .sortedByDescending { it.priority }
+        .sortedBy { it.priority }
         .groupBy { it.position }
 
     // 应用注入

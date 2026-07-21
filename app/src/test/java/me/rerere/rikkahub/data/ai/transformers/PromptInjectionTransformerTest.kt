@@ -618,14 +618,14 @@ class PromptInjectionTransformerTest {
                 position = InjectionPosition.AT_DEPTH,
                 injectDepth = 2,
                 priority = 10,
-                content = "Higher priority"
+                content = "Higher order"
             ),
             createModeInjection(
                 id = id2,
                 position = InjectionPosition.AT_DEPTH,
                 injectDepth = 2,
                 priority = 5,
-                content = "Lower priority"
+                content = "Lower order"
             )
         )
 
@@ -645,24 +645,24 @@ class PromptInjectionTransformerTest {
         // Same depth injections should be merged into one message
         assertEquals(4, result.size)
         val injectedText = getMessageText(result[1])
-        assertTrue(injectedText.contains("Higher priority"))
-        assertTrue(injectedText.contains("Lower priority"))
-        // Higher priority should come first
-        assertTrue(injectedText.indexOf("Higher priority") < injectedText.indexOf("Lower priority"))
+        assertTrue(injectedText.contains("Higher order"))
+        assertTrue(injectedText.contains("Lower order"))
+        // Lower order should come first
+        assertTrue(injectedText.indexOf("Lower order") < injectedText.indexOf("Higher order"))
     }
     // endregion
 
-    // region Priority tests
+    // region Order tests
     @Test
-    fun `injections should be ordered by priority descending`() {
+    fun `injections should be ordered by order ascending`() {
         val id1 = Uuid.random()
         val id2 = Uuid.random()
         val id3 = Uuid.random()
 
         val injections = listOf(
-            createModeInjection(id = id1, priority = 1, content = "Priority 1"),
-            createModeInjection(id = id2, priority = 3, content = "Priority 3"),
-            createModeInjection(id = id3, priority = 2, content = "Priority 2")
+            createModeInjection(id = id1, priority = 1, content = "Order 1"),
+            createModeInjection(id = id2, priority = 3, content = "Order 3"),
+            createModeInjection(id = id3, priority = 2, content = "Order 2")
         )
 
         val messages = listOf(
@@ -678,10 +678,10 @@ class PromptInjectionTransformerTest {
         )
 
         val systemText = getMessageText(result[0])
-        // Higher priority should come first when joining
-        assertTrue(systemText.contains("Priority 3"))
-        assertTrue(systemText.indexOf("Priority 3") < systemText.indexOf("Priority 2"))
-        assertTrue(systemText.indexOf("Priority 2") < systemText.indexOf("Priority 1"))
+        // Lower order should come first when joining
+        assertTrue(systemText.contains("Order 1"))
+        assertTrue(systemText.indexOf("Order 1") < systemText.indexOf("Order 2"))
+        assertTrue(systemText.indexOf("Order 2") < systemText.indexOf("Order 3"))
     }
     // endregion
 

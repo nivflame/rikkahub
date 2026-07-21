@@ -251,5 +251,5 @@ fun getTriggeredInjections(
 ): List<PromptInjection.RegexInjection> {
     return injections
         .filter { it.isTriggered(context) }
-        .sortedByDescending { it.priority }
+        .sortedBy { it.priority }
 }
