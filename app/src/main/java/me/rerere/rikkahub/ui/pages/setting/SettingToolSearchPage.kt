@@ -36,7 +36,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val deferred = settings.deferredTools
-    var selectedCategory by remember { mutableStateOf("All") }
+    var selectedCategory by remember { mutableStateOf("Core") }
 
     val coreToolNames = listOf(
         "Subagent",
@@ -97,7 +97,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
-            val categories = listOf("All") + grouped.keys.toList()
+            val categories = grouped.keys.toList()
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -111,7 +111,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
                 }
             }
 
-            val visibleGroups = if (selectedCategory == "All") grouped else linkedMapOf(selectedCategory to (grouped[selectedCategory] ?: emptyList()))
+            val visibleGroups = linkedMapOf(selectedCategory to (grouped[selectedCategory] ?: emptyList()))
             visibleGroups.forEach { (category, names) ->
                 CardGroup(
                     title = { Text(category) },

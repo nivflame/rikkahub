@@ -53,7 +53,7 @@ fun SettingToolApprovalPage() {
     val settingsStore = koinInject<SettingsStore>()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    var selectedCategory by remember { mutableStateOf("All") }
+    var selectedCategory by remember { mutableStateOf("Core") }
 
     val toolGroups = remember(settings.mcpServers) {
         val mcpGroups = settings.mcpServers.associate { server ->
@@ -94,7 +94,7 @@ fun SettingToolApprovalPage() {
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
-            val categories = remember(toolGroups) { listOf("All") + toolGroups.keys.toList() }
+            val categories = remember(toolGroups) { toolGroups.keys.toList() }
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -119,7 +119,7 @@ fun SettingToolApprovalPage() {
                 )
             }
 
-            val visibleGroups = if (selectedCategory == "All") toolGroups else linkedMapOf(selectedCategory to (toolGroups[selectedCategory] ?: emptyList()))
+            val visibleGroups = linkedMapOf(selectedCategory to (toolGroups[selectedCategory] ?: emptyList()))
             visibleGroups.forEach { (category, toolNames) ->
                 CardGroup(
                     title = { Text(category) },

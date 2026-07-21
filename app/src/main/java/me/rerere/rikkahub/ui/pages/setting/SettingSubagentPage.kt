@@ -272,7 +272,7 @@ private fun SubagentPromptItem(
     onEdit: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedToolCategory by remember { mutableStateOf("All") }
+    var selectedToolCategory by remember { mutableStateOf("Core") }
     Surface(
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.medium,
@@ -373,7 +373,7 @@ private fun SubagentPromptItem(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                 )
-                val toolCategories = listOf("All") + toolGroups.keys.toList()
+                val toolCategories = toolGroups.keys.toList()
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
@@ -386,7 +386,7 @@ private fun SubagentPromptItem(
                         )
                     }
                 }
-                val visibleToolGroups = if (selectedToolCategory == "All") toolGroups else linkedMapOf(selectedToolCategory to (toolGroups[selectedToolCategory] ?: emptyList()))
+                val visibleToolGroups = linkedMapOf(selectedToolCategory to (toolGroups[selectedToolCategory] ?: emptyList()))
                 visibleToolGroups.forEach { (category, names) ->
                     Text(
                         text = category,
