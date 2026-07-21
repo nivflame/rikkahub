@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,14 +33,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.rikkahub.data.datastore.ToolCallRecord
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
+import me.rerere.rikkahub.utils.toLocalString
 import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 
@@ -48,7 +54,22 @@ fun ToolCallHistoryPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val settingsStore = koinInject<SettingsStore>()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
-    val history = settings.toolCallHistory.asReversed()
+    val history = remember(settings.toolCallHistory) { settings.toolCallHistory.asReversed() }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filtered = remember(history, searchQuery) {
+        if (searchQuery.isBlank()) history
+        else history.filter { it.toolName.contains(searchQuery, ignoreCase = true) }
+    }
+
+    val grouped = remember(filtered) {
+        val map = linkedMapOf<String, MutableList<ToolCallRecord>>()
+        filtered.forEach { record ->
+            val label = getDateLabel(record.timestamp)
+            map.getOrPut(label) { mutableListOf() }.add(record)
+        }
+        map
+    }
 
     Scaffold(
         topBar = {
@@ -86,13 +107,81 @@ fun ToolCallHistoryPage() {
                     top = 16.dp,
                     bottom = 16.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(history, key = { "${it.timestamp}_${it.toolName}_${it.arguments.hashCode()}" }) { record ->
-                    ToolCallRecordCard(record)
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by tool name") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = HugeIcons.Search01,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = HugeIcons.Cancel01,
+                                        contentDescription = "Clear search",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (filtered.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No tool calls matching \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 24.dp),
+                        )
+                    }
+                } else {
+                    grouped.forEach { (dateLabel, records) ->
+                        stickyHeader {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surface,
+                            ) {
+                                Text(
+                                    text = dateLabel,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
+                            }
+                        }
+                        items(records.size) { index ->
+                            val record = records[index]
+                            ToolCallRecordCard(record)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+private fun getDateLabel(timestamp: Long): String {
+    val zoneId = ZoneId.systemDefault()
+    val date = Instant.ofEpochMilli(timestamp).atZone(zoneId).toLocalDate()
+    val today = LocalDate.now()
+    val yesterday = today.minusDays(1)
+    return when (date) {
+        today -> "Today"
+        yesterday -> "Yesterday"
+        else -> date.toLocalString(date.year != today.year)
     }
 }
 

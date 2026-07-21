@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -47,6 +48,18 @@ fun SettingToolApprovalPage() {
     val settingsStore = koinInject<SettingsStore>()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+
+    val toolGroups = remember(settings.mcpServers) {
+        val mcpGroups = settings.mcpServers.associate { server ->
+            "MCP: ${server.commonOptions.name}" to server.commonOptions.tools.map {
+                "mcp__${server.commonOptions.name}__${it.name}"
+            }
+        }
+        linkedMapOf(
+            "Core" to CORE_TOOL_NAMES,
+            "Browser" to ALL_BROWSER_TOOL_NAMES,
+        ).apply { putAll(mcpGroups) }
+    }
 
     Scaffold(
         topBar = {
@@ -85,71 +98,39 @@ fun SettingToolApprovalPage() {
                 )
             }
 
-            CardGroup(
-                title = { Text("Core") },
-            ) {
-                CORE_TOOL_NAMES.forEach { toolName ->
-                    val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
-                    item(
-                        headlineContent = { Text(toolName) },
-                        supportingContent = {
-                            Text(
-                                if (needsApproval) "Requires approval"
-                                else "Auto-executed",
-                            )
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = needsApproval,
-                                onCheckedChange = { newValue ->
-                                    scope.launch {
-                                        settingsStore.update { current ->
-                                            val updated = if (newValue) {
-                                                current.toolApprovalOverrides + (toolName to true)
-                                            } else {
-                                                current.toolApprovalOverrides - toolName
+            toolGroups.forEach { (category, toolNames) ->
+                CardGroup(
+                    title = { Text(category) },
+                ) {
+                    toolNames.forEach { toolName ->
+                        val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
+                        item(
+                            headlineContent = { Text(toolName) },
+                            supportingContent = {
+                                Text(
+                                    if (needsApproval) "Requires approval"
+                                    else "Auto-executed",
+                                )
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = needsApproval,
+                                    onCheckedChange = { newValue ->
+                                        scope.launch {
+                                            settingsStore.update { current ->
+                                                val updated = if (newValue) {
+                                                    current.toolApprovalOverrides + (toolName to true)
+                                                } else {
+                                                    current.toolApprovalOverrides - toolName
+                                                }
+                                                current.copy(toolApprovalOverrides = updated)
                                             }
-                                            current.copy(toolApprovalOverrides = updated)
                                         }
-                                    }
-                                },
-                            )
-                        },
-                    )
-                }
-            }
-
-            CardGroup(
-                title = { Text("Browser") },
-            ) {
-                ALL_BROWSER_TOOL_NAMES.forEach { toolName ->
-                    val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
-                    item(
-                        headlineContent = { Text(toolName) },
-                        supportingContent = {
-                            Text(
-                                if (needsApproval) "Requires approval"
-                                else "Auto-executed",
-                            )
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = needsApproval,
-                                onCheckedChange = { newValue ->
-                                    scope.launch {
-                                        settingsStore.update { current ->
-                                            val updated = if (newValue) {
-                                                current.toolApprovalOverrides + (toolName to true)
-                                            } else {
-                                                current.toolApprovalOverrides - toolName
-                                            }
-                                            current.copy(toolApprovalOverrides = updated)
-                                        }
-                                    }
-                                },
-                            )
-                        },
-                    )
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
