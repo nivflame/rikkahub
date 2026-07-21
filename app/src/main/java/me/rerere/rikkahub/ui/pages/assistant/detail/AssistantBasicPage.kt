@@ -210,6 +210,31 @@ internal fun AssistantBasicContent(
             FormItem(
                 modifier = Modifier.padding(8.dp),
                 label = {
+                    Text("Inject AGENTS.md")
+                },
+                description = {
+                    Text("Read AGENTS.md from the workspace and inject it after the system prompt")
+                },
+                tail = {
+                    Switch(
+                        checked = assistant.enableAgentsMdInjection,
+                        enabled = assistant.workspaceId != null,
+                        onCheckedChange = {
+                            onUpdate(
+                                assistant.copy(
+                                    enableAgentsMdInjection = it
+                                )
+                            )
+                        }
+                    )
+                }
+            )
+
+            HorizontalDivider()
+
+            FormItem(
+                modifier = Modifier.padding(8.dp),
+                label = {
                     Text(stringResource(R.string.assistant_page_use_assistant_avatar))
                 },
                 description = {
