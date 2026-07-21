@@ -660,10 +660,26 @@ class ChatService(
                         )
                     }
                     if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.any { it.enabled }) {
-                        val parentTools = this.toList()
-                        val existingToolNames = parentTools.map { it.name }.toSet()
+                        // Build the full tool set for subagents, not just the parent's enabled tools.
+                        // The subagent's enabledTools config in SubagentRunner handles filtering.
+                        val allLocalForSubagent = localTools.getTools(
+                            LocalToolOption.entries,
+                            settings.enabledBrowserTools,
+                            settings.browserToolDescriptions,
+                            settings.askQuestionDescription,
+                        )
+                        val allSearchForSubagent = if (settings.enableWebSearch) createSearchTools(settings).toList() else emptyList()
+                        val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, LocalToolOption.entries.toList())
+                        val allSkillForSubagent = if (settings.subagentPrompts.any { p -> p.enabledTools.any { it == "Skill" } }) {
+                            createSkillTools(
+                                allSkills = skillManager.listSkills(),
+                                skillManager = skillManager,
+                            )
+                        } else emptyList()
+                        val subagentFullTools = (allLocalForSubagent + allSearchForSubagent + allWorkspaceForSubagent + allSkillForSubagent).distinctBy { it.name }
+                        val existingToolNames = subagentFullTools.map { it.name }.toSet()
                         val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
-                        val subagentParentTools = parentTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
+                        val subagentParentTools = subagentFullTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
                             val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
                                 ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
                             val toolName = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}"
