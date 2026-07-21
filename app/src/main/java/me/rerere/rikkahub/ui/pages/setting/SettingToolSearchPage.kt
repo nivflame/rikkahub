@@ -2,13 +2,14 @@ package me.rerere.rikkahub.ui.pages.setting
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -17,22 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.AiBrain01
-import me.rerere.hugeicons.stroke.Bash
-import me.rerere.hugeicons.stroke.BubbleChatQuestion
-import me.rerere.hugeicons.stroke.Earth
-import me.rerere.hugeicons.stroke.Edit01
-import me.rerere.hugeicons.stroke.FileAdd
-import me.rerere.hugeicons.stroke.FileView
-import me.rerere.hugeicons.stroke.Puzzle
-import me.rerere.hugeicons.stroke.Search01
 import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
@@ -44,6 +36,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val deferred = settings.deferredTools
+    var selectedCategory by remember { mutableStateOf("All") }
 
     val coreToolNames = listOf(
         "Subagent",
@@ -64,6 +57,19 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
         coreToolNames + ALL_BROWSER_TOOL_NAMES + mcpNames
     }
 
+    val grouped = remember(allToolNames) {
+        val map = linkedMapOf(
+            "Core" to coreToolNames,
+            "Browser" to ALL_BROWSER_TOOL_NAMES,
+        )
+        allToolNames.filter { it.startsWith("mcp__") }.groupBy { name ->
+            name.substringAfter("mcp__").substringBefore("__")
+        }.forEach { (server, names) ->
+            map["MCP: $server"] = names
+        }
+        map
+    }
+
     Scaffold(
         topBar = {
             LargeFlexibleTopAppBar(
@@ -79,6 +85,7 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -90,48 +97,27 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
                 modifier = Modifier.padding(bottom = 8.dp),
             )
 
-            val grouped = linkedMapOf(
-                "Core" to coreToolNames,
-                "Browser" to ALL_BROWSER_TOOL_NAMES,
-            )
-            val mcpGrouped = allToolNames.filter { it.startsWith("mcp__") }.groupBy { name ->
-                name.substringAfter("mcp__").substringBefore("__")
-            }
-            mcpGrouped.forEach { (server, names) ->
-                grouped["MCP: $server"] = names
-            }
-
-            val categoryDescriptions = mapOf(
-                "Core" to "Tools available to all assistants",
-                "Browser" to "Browser automation tools",
-            )
-
-            grouped.forEach { (category, names) ->
-                Text(
-                    text = category,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-                )
-                categoryDescriptions[category]?.let { desc ->
-                    Text(
-                        text = desc,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp),
+            val categories = listOf("All") + grouped.keys.toList()
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
+            ) {
+                items(categories) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category) },
                     )
                 }
-                CardGroup {
+            }
+
+            val visibleGroups = if (selectedCategory == "All") grouped else linkedMapOf(selectedCategory to (grouped[selectedCategory] ?: emptyList()))
+            visibleGroups.forEach { (category, names) ->
+                CardGroup(
+                    title = { Text(category) },
+                ) {
                     names.forEach { name ->
                         item(
-                            leadingContent = {
-                                Icon(
-                                    imageVector = toolIcon(name),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
                             headlineContent = { Text(name) },
                             trailingContent = {
                                 Switch(
@@ -152,17 +138,4 @@ fun SettingToolSearchPage(vm: SettingVM = koinViewModel()) {
             }
         }
     }
-}
-
-private fun toolIcon(name: String) = when (name) {
-    "Subagent" -> HugeIcons.AiBrain01
-    "Bash" -> HugeIcons.Bash
-    "Read" -> HugeIcons.FileView
-    "Write" -> HugeIcons.FileAdd
-    "Edit" -> HugeIcons.Edit01
-    "AskQuestion" -> HugeIcons.BubbleChatQuestion
-    "Skill" -> HugeIcons.Puzzle
-    "WebSearch" -> HugeIcons.Search01
-    "WebFetch" -> HugeIcons.Earth
-    else -> HugeIcons.Earth
 }
