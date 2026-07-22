@@ -163,8 +163,8 @@ private fun createWriteFileTool(
 
         val content = params.string("content") ?: error("content is required")
         state.readFiles.add(path)
-        val entry = workspaceRepository.writeTextInRootfs(workspaceId, path, content, overwrite = true)
-        listOf(UIMessagePart.Text(entry.toJson().toString()))
+        workspaceRepository.writeTextInRootfs(workspaceId, path, content, overwrite = true)
+        listOf(UIMessagePart.Text("Successfully wrote to $path"))
     },
 )
 
@@ -472,11 +472,3 @@ private fun String.shellQuote(): String =
     "'" + replace("'", "'\"'\"'") + "'"
 
 private fun Boolean.shellFlag(): Int = if (this) 1 else 0
-
-private fun WorkspaceFileEntry.toJson() = buildJsonObject {
-    put("path", path)
-    put("name", name)
-    put("isDirectory", isDirectory)
-    put("sizeBytes", sizeBytes)
-    put("updatedAt", updatedAt)
-}

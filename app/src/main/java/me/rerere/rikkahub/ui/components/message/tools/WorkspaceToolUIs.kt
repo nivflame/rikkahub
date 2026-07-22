@@ -209,7 +209,7 @@ object WriteFileToolUI : ToolUIRenderer {
     }
 
     private fun textOf(context: ToolUIContext): String? =
-        context.arguments.getStringContent("text")
+        context.arguments.getStringContent("content")
 
     override fun hasSummary(context: ToolUIContext): Boolean = textOf(context) != null
 
