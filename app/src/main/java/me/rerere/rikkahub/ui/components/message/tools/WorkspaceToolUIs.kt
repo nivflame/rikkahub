@@ -63,45 +63,63 @@ object EditFileToolUI : ToolUIRenderer {
 
     @Composable
     override fun title(context: ToolUIContext): String {
-        val path = context.arguments.getStringContent("path")
+        val path = context.arguments.getStringContent("file_path")
         return if (path != null) stringResource(R.string.tool_ui_edit_file, path) else stringResource(R.string.tool_ui_edit_file_default)
     }
 
+    private fun pathOf(context: ToolUIContext): String? =
+        context.arguments.getStringContent("file_path")
+
+    private fun displayName(path: String?): String? =
+        path?.substringAfterLast('/')?.ifBlank { null }
+
     /**
      * 执行后读取输出部件 metadata 中的全文件 diff;
-     * 未执行 (如等待审批) 时基于入参的 old_text/new_text 片段生成预览 diff
+     * 未执行 (如等待审批) 时基于入参的 old_string/new_string 片段生成预览 diff
      */
     private fun diffOf(context: ToolUIContext): String? {
         if (context.tool.isExecuted) {
             return context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff
         }
-        val path = context.arguments.getStringContent("path") ?: return null
-        val oldText = context.arguments.getStringContent("old_text") ?: return null
-        val newText = context.arguments.getStringContent("new_text") ?: return null
+        val path = context.arguments.getStringContent("file_path") ?: return null
+        val oldText = context.arguments.getStringContent("old_string") ?: return null
+        val newText = context.arguments.getStringContent("new_string") ?: return null
         return generateUnifiedDiff(oldText, newText, path)
+    }
+
+    private fun statsOf(context: ToolUIContext): DiffStats? {
+        val diff = diffOf(context) ?: return null
+        return parseDiffStats(diff)
     }
 
     override fun hasSummary(context: ToolUIContext): Boolean = diffOf(context) != null
 
     @Composable
-    override fun Summary(context: ToolUIContext) {
-        val diff = remember(context) { diffOf(context) } ?: return
-        val stats = remember(diff) { parseDiffStats(diff) }
+    override fun Label(context: ToolUIContext) {
+        val name = displayName(pathOf(context))
+        val stats = remember(context) { statsOf(context) }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.shimmer(isLoading = context.loading),
         ) {
             Text(
-                text = "+${stats.additions}",
-                style = MaterialTheme.typography.labelSmall,
-                color = DiffAddedColor,
+                text = if (name != null) stringResource(R.string.tool_ui_edit_file, name) else stringResource(R.string.tool_ui_edit_file_default),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            Text(
-                text = "-${stats.deletions}",
-                style = MaterialTheme.typography.labelSmall,
-                color = DiffRemovedColor,
-            )
+            if (stats != null) {
+                DiffStatsCapsule(additions = stats.additions, deletions = stats.deletions)
+            }
         }
+    }
+
+    @Composable
+    override fun Summary(context: ToolUIContext) {
+        val diff = remember(context) { diffOf(context) } ?: return
         DiffView(
             diff = diff,
             modifier = Modifier.fillMaxWidth(),
@@ -131,22 +149,13 @@ object EditFileToolUI : ToolUIRenderer {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = context.arguments.getStringContent("path") ?: toolName,
+                    text = pathOf(context) ?: toolName,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = "+${stats.additions}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DiffAddedColor,
-                )
-                Text(
-                    text = "-${stats.deletions}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DiffRemovedColor,
-                )
+                DiffStatsCapsule(additions = stats.additions, deletions = stats.deletions)
             }
             DiffView(
                 diff = diff,
@@ -223,9 +232,8 @@ object WriteFileToolUI : ToolUIRenderer {
         path?.substringAfterLast('/')?.ifBlank { null }
 
     private fun diffOf(context: ToolUIContext): String? {
-        if (context.tool.isExecuted) {
-            return context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff
-        }
+        context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff?.let { return it }
+        context.tool.metadataAs<DiffMetadata>()?.diff?.let { return it }
         val text = textOf(context) ?: return null
         val path = pathOf(context) ?: return null
         return generateUnifiedDiff("", text, path)

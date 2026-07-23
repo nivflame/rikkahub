@@ -13,6 +13,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import me.rerere.ai.core.MessageRole
@@ -200,7 +201,17 @@ class GenerationHandler(
                         toolDef?.needsApproval(tool.inputAsJson()) == true &&
                             tool.approvalState is ToolApprovalState.Auto -> {
                             hasPendingApproval = true
-                            tool.copy(approvalState = ToolApprovalState.Pending)
+                            val preMeta = toolDef?.preExecute?.invoke(tool.inputAsJson())
+                            val mergedMetadata = if (preMeta != null) {
+                                val existing = tool.metadata ?: JsonObject(emptyMap())
+                                JsonObject(existing + preMeta)
+                            } else {
+                                tool.metadata
+                            }
+                            tool.copy(
+                                approvalState = ToolApprovalState.Pending,
+                                metadata = mergedMetadata,
+                            )
                         }
                         // State is Pending -> keep waiting
                         tool.approvalState is ToolApprovalState.Pending -> {

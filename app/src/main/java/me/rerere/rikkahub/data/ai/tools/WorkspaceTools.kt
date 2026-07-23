@@ -1,5 +1,7 @@
 package me.rerere.rikkahub.data.ai.tools
 
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.JsonObjectBuilder
@@ -153,6 +155,15 @@ private fun createWriteFileTool(
         )
     },
     needsApproval = { needsApproval("Write") || it.pathOutsideWritableRoots("file_path") },
+    preExecute = { input ->
+        val path = input.jsonObject.absolutePath("file_path")
+        val content = input.jsonObject.string("content") ?: return@preExecute null
+        val oldContent = runCatching {
+            workspaceRepository.readTextInRootfs(workspaceId, path)
+        }.getOrNull()
+        val diff = generateUnifiedDiff(oldContent ?: "", content, path) ?: return@preExecute null
+        mapOf("diff" to JsonPrimitive(diff))
+    },
     execute = {
         val params = it.jsonObject
         val path = params.absolutePath("file_path")
