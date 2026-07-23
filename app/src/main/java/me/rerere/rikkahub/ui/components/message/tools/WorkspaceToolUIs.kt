@@ -75,12 +75,14 @@ object EditFileToolUI : ToolUIRenderer {
 
     /**
      * 执行后读取输出部件 metadata 中的全文件 diff;
-     * 未执行 (如等待审批) 时基于入参的 old_string/new_string 片段生成预览 diff
+     * 未执行 (如等待审批) 时优先读取 preExecute 写入的 metadata,
+     * 退回到基于入参的 old_string/new_string 片段生成预览 diff
      */
     private fun diffOf(context: ToolUIContext): String? {
         if (context.tool.isExecuted) {
             return context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff
         }
+        context.tool.metadataAs<DiffMetadata>()?.diff?.let { return it }
         val path = context.arguments.getStringContent("file_path") ?: return null
         val oldText = context.arguments.getStringContent("old_string") ?: return null
         val newText = context.arguments.getStringContent("new_string") ?: return null

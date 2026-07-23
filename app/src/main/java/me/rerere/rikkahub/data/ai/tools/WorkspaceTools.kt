@@ -219,6 +219,20 @@ private fun createEditFileTool(
         )
     },
     needsApproval = { needsApproval("Edit") || it.pathOutsideWritableRoots("file_path") },
+    preExecute = preExecuteEdit@{ input ->
+        val path = input.jsonObject.absolutePath("file_path")
+        val oldString = input.jsonObject.string("old_string") ?: return@preExecuteEdit null
+        val newString = input.jsonObject.string("new_string") ?: return@preExecuteEdit null
+        val replaceAll = input.jsonObject["replace_all"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false
+        val original = runCatching {
+            workspaceRepository.readTextInRootfs(workspaceId, path)
+        }.getOrNull() ?: return@preExecuteEdit null
+        val result = runCatching {
+            replaceText(original, oldString, newString, replaceAll)
+        }.getOrNull() ?: return@preExecuteEdit null
+        val diff = generateUnifiedDiff(original, result.updated, path) ?: return@preExecuteEdit null
+        mapOf("diff" to JsonPrimitive(diff))
+    },
     execute = {
         val params = it.jsonObject
         val path = params.absolutePath("file_path")
