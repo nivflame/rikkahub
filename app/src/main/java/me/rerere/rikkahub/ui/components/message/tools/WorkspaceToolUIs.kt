@@ -219,23 +219,28 @@ object WriteFileToolUI : ToolUIRenderer {
     private fun pathOf(context: ToolUIContext): String? =
         context.arguments.getStringContent("file_path")
 
+    private fun displayName(path: String?): String? =
+        path?.substringAfterLast('/')?.ifBlank { null }
+
     private fun diffOf(context: ToolUIContext): String? {
+        if (context.tool.isExecuted) {
+            return context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff
+        }
         val text = textOf(context) ?: return null
         val path = pathOf(context) ?: return null
         return generateUnifiedDiff("", text, path)
     }
 
     private fun statsOf(context: ToolUIContext): DiffStats? {
-        val text = textOf(context) ?: return null
-        val additions = text.lineSequence().count { it.isNotBlank() }
-        return DiffStats(additions = additions, deletions = 0)
+        val diff = diffOf(context) ?: return null
+        return parseDiffStats(diff)
     }
 
     override fun hasSummary(context: ToolUIContext): Boolean = textOf(context) != null
 
     @Composable
     override fun Label(context: ToolUIContext) {
-        val path = pathOf(context)
+        val name = displayName(pathOf(context))
         val stats = remember(context) { statsOf(context) }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -243,7 +248,7 @@ object WriteFileToolUI : ToolUIRenderer {
             modifier = Modifier.shimmer(isLoading = context.loading),
         ) {
             Text(
-                text = if (path != null) stringResource(R.string.tool_ui_write_file, path) else stringResource(R.string.tool_ui_write_file_default),
+                text = if (name != null) stringResource(R.string.tool_ui_write_file, name) else stringResource(R.string.tool_ui_write_file_default),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 maxLines = 1,

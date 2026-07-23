@@ -162,9 +162,18 @@ private fun createWriteFileTool(
         }
 
         val content = params.string("content") ?: error("content is required")
+        val oldContent = runCatching {
+            workspaceRepository.readTextInRootfs(workspaceId, path)
+        }.getOrNull()
         state.readFiles.add(path)
         workspaceRepository.writeTextInRootfs(workspaceId, path, content, overwrite = true)
-        listOf(UIMessagePart.Text("Successfully wrote to $path"))
+        val diff = generateUnifiedDiff(oldContent ?: "", content, path)
+        listOf(
+            UIMessagePart.Text(
+                text = "Successfully wrote to $path",
+                metadata = diff?.let { d -> DiffMetadata(diff = d).toMetadata() },
+            )
+        )
     },
 )
 
