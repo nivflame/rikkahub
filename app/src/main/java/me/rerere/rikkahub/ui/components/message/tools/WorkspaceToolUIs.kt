@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,6 +43,7 @@ import me.rerere.hugeicons.stroke.FileView
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.richtext.DiffAddedColor
 import me.rerere.rikkahub.ui.components.richtext.DiffRemovedColor
+import me.rerere.rikkahub.ui.components.richtext.DiffStats
 import me.rerere.rikkahub.ui.components.richtext.DiffView
 import me.rerere.rikkahub.ui.components.richtext.HighlightCodeBlock
 import me.rerere.rikkahub.ui.components.richtext.parseDiffStats
@@ -195,31 +198,81 @@ object ReadFileToolUI : ToolUIRenderer {
 }
 
 /**
- * 工作空间写入文件: 内容取自入参 (未执行也可预览), 摘要为内容首部, 详情为完整内容
+ * 工作空间写入文件: 标题带增删统计胶囊, 摘要为 diff 视图, 详情为完整 diff
  */
 object WriteFileToolUI : ToolUIRenderer {
+    private const val SUMMARY_MAX_LINES = 10
+
     override val toolName: String = "Write"
 
     override fun icon(context: ToolUIContext): ImageVector = HugeIcons.FileAdd
 
     @Composable
     override fun title(context: ToolUIContext): String {
-        val path = context.arguments.getStringContent("path")
+        val path = context.arguments.getStringContent("file_path")
         return if (path != null) stringResource(R.string.tool_ui_write_file, path) else stringResource(R.string.tool_ui_write_file_default)
     }
 
     private fun textOf(context: ToolUIContext): String? =
         context.arguments.getStringContent("content")
 
+    private fun pathOf(context: ToolUIContext): String? =
+        context.arguments.getStringContent("file_path")
+
+    private fun diffOf(context: ToolUIContext): String? {
+        val text = textOf(context) ?: return null
+        val path = pathOf(context) ?: return null
+        return generateUnifiedDiff("", text, path)
+    }
+
+    private fun statsOf(context: ToolUIContext): DiffStats? {
+        val text = textOf(context) ?: return null
+        val additions = text.lineSequence().count { it.isNotBlank() }
+        return DiffStats(additions = additions, deletions = 0)
+    }
+
     override fun hasSummary(context: ToolUIContext): Boolean = textOf(context) != null
 
     @Composable
+    override fun Label(context: ToolUIContext) {
+        val path = pathOf(context)
+        val stats = remember(context) { statsOf(context) }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.shimmer(isLoading = context.loading),
+        ) {
+            Text(
+                text = if (path != null) stringResource(R.string.tool_ui_write_file, path) else stringResource(R.string.tool_ui_write_file_default),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (stats != null) {
+                DiffStatsCapsule(additions = stats.additions, deletions = stats.deletions)
+            }
+        }
+    }
+
+    @Composable
     override fun Summary(context: ToolUIContext) {
-        val text = remember(context) { textOf(context) } ?: return
-        FileContentSummary(
-            text = text,
-            path = context.arguments.getStringContent("path"),
-            loading = context.loading,
+        val diff = remember(context) { diffOf(context) }
+        if (diff == null) {
+            val text = remember(context) { textOf(context) } ?: return
+            FileContentSummary(
+                text = text,
+                path = pathOf(context),
+                loading = context.loading,
+            )
+            return
+        }
+        DiffView(
+            diff = diff,
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = SUMMARY_MAX_LINES,
+            showFileHeader = false,
         )
     }
 
@@ -230,7 +283,45 @@ object WriteFileToolUI : ToolUIRenderer {
             DefaultToolPreview(context = context)
             return
         }
-        FileContentPreview(path = context.arguments.getStringContent("path"), code = text)
+        val path = pathOf(context)
+        val diff = remember(context) { diffOf(context) }
+        val stats = remember(context) { statsOf(context) }
+        Column(
+            modifier = Modifier
+                .fillMaxHeight(0.8f)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = if (path != null) stringResource(R.string.tool_ui_write_file, path) else stringResource(R.string.tool_ui_write_file_default),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (stats != null) {
+                    DiffStatsCapsule(additions = stats.additions, deletions = stats.deletions)
+                }
+            }
+            if (diff != null) {
+                DiffView(
+                    diff = diff,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                HighlightCodeBlock(
+                    code = text,
+                    language = languageOf(path),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 
@@ -466,4 +557,29 @@ private fun languageOf(path: String?): String = when (
     "sql" -> "sql"
     "gradle" -> "groovy"
     else -> "plaintext"
+}
+
+@Composable
+private fun DiffStatsCapsule(additions: Int, deletions: Int) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "+$additions",
+                style = MaterialTheme.typography.labelSmall,
+                color = DiffAddedColor,
+            )
+            Text(
+                text = "-$deletions",
+                style = MaterialTheme.typography.labelSmall,
+                color = DiffRemovedColor,
+            )
+        }
+    }
 }

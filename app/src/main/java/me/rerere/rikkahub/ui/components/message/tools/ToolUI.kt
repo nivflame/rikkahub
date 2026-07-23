@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
@@ -64,6 +65,18 @@ interface ToolUIRenderer {
     @Composable
     fun title(context: ToolUIContext): String =
         stringResource(R.string.chat_message_tool_call_generic, context.tool.toolName)
+
+    /** 折叠步骤的标签 (标题 + 附加元素), 默认渲染 [title] */
+    @Composable
+    fun Label(context: ToolUIContext) {
+        Text(
+            text = title(context),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 
     /** 步骤展开时是否显示内联摘要 */
     fun hasSummary(context: ToolUIContext): Boolean = false

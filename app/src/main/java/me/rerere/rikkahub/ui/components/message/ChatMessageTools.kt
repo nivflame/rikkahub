@@ -125,14 +125,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
             }
         },
         label = {
-            Text(
-                text = renderer.title(context),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.shimmer(isLoading = loading),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            renderer.Label(context)
         },
         extra = if (isPending && onToolApproval != null) {
             {
