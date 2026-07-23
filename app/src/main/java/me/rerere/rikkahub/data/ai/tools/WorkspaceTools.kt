@@ -155,7 +155,7 @@ private fun createWriteFileTool(
         )
     },
     needsApproval = { needsApproval("Write") || it.pathOutsideWritableRoots("file_path") },
-    preExecute = { input ->
+    preExecute = preExecute@{ input ->
         val path = input.jsonObject.absolutePath("file_path")
         val content = input.jsonObject.string("content") ?: return@preExecute null
         val oldContent = runCatching {
