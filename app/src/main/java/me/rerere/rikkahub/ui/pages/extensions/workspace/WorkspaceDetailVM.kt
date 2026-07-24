@@ -1,7 +1,11 @@
 package me.rerere.rikkahub.ui.pages.extensions.workspace
 
+import android.content.Context
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
@@ -9,6 +13,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -140,6 +145,48 @@ class WorkspaceDetailVM(
                 refresh()
             }.onFailure { error ->
                 _state.update { it.copy(error = error.message ?: "创建文件夹失败") }
+            }
+        }
+    }
+
+    fun importFolder(treeUri: Uri, context: Context) {
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val tree = DocumentFile.fromTreeUri(context, treeUri) ?: return@withContext
+                    val basePath = state.value.path
+                    importDocumentTree(tree, basePath, context)
+                }
+            }.onSuccess {
+                refresh()
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "导入文件夹失败") }
+            }
+        }
+    }
+
+    private suspend fun importDocumentTree(dir: DocumentFile, currentPath: String, context: Context) {
+        for (child in dir.listFiles()) {
+            if (child.isDirectory) {
+                val dirPath = if (currentPath.isBlank()) child.name ?: "folder" else "$currentPath/${child.name}"
+                try {
+                    repository.createDirectory(id = id, area = state.value.area, path = dirPath)
+                } catch (_: Throwable) {
+                    // Directory may already exist, continue
+                }
+                importDocumentTree(child, dirPath, context)
+            } else if (child.isFile) {
+                val fileName = child.name ?: "file"
+                val inputStream = context.contentResolver.openInputStream(child.uri) ?: continue
+                inputStream.use { stream ->
+                    repository.importFile(
+                        id = id,
+                        area = state.value.area,
+                        destinationPath = currentPath,
+                        fileName = fileName,
+                        inputStream = stream,
+                    )
+                }
             }
         }
     }
