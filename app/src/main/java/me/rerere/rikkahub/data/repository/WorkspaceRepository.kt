@@ -39,9 +39,14 @@ class WorkspaceRepository(
     private val _installProgress = MutableStateFlow<RootfsInstallProgress?>(null)
     val installProgress = _installProgress.asStateFlow()
 
+    private val _installError = MutableStateFlow<String?>(null)
+    val installError = _installError.asStateFlow()
+
     private var installJob: Job? = null
 
     fun listFlow(): Flow<List<WorkspaceEntity>> = dao.listFlow()
+
+    fun getByIdFlow(id: String): Flow<WorkspaceEntity?> = dao.getByIdFlow(id)
 
     suspend fun checkIntegrity() = withContext(Dispatchers.IO) {
         val workspaces = dao.getAll()
@@ -82,6 +87,7 @@ class WorkspaceRepository(
         )
         manager.ensureWorkspace(workspace.root)
         dao.upsert(workspace)
+        installRootfs(id, DEFAULT_ROOTFS_URL)
         return workspace
     }
 
@@ -123,6 +129,7 @@ class WorkspaceRepository(
         url: String,
     ): Job {
         installJob?.cancel()
+        _installError.value = null
         _installProgress.value = RootfsInstallProgress(stage = RootfsInstallStage.DOWNLOADING)
         installJob = appScope.launch(Dispatchers.IO) {
             val workspace = dao.getById(id)
@@ -149,12 +156,17 @@ class WorkspaceRepository(
                 }
             } catch (e: Throwable) {
                 Log.e(TAG, "installRootfs failed: workspace=${workspace.id}, root=${workspace.root}, url=$url", e)
+                _installError.value = e.message ?: "Rootfs install failed"
                 updateShellState(workspace, WorkspaceShellStatus.BROKEN.name)
             } finally {
                 _installProgress.value = null
             }
         }
         return installJob!!
+    }
+
+    fun dismissInstallError() {
+        _installError.value = null
     }
 
     suspend fun listFiles(
@@ -304,5 +316,7 @@ class WorkspaceRepository(
 
     companion object {
         private const val TAG = "WorkspaceRepository"
+        private const val DEFAULT_ROOTFS_URL =
+            "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/aarch64/alpine-minirootfs-3.23.4-aarch64.tar.gz"
     }
 }

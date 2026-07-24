@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -27,12 +29,12 @@ class WorkspaceDetailVM(
     val terminalState = _terminalState.asStateFlow()
 
     val installProgress = repository.installProgress
-
-    private val _installError = MutableStateFlow<String?>(null)
-    val installError = _installError.asStateFlow()
+    val installError = repository.installError
 
     init {
-        loadWorkspace()
+        repository.getByIdFlow(id)
+            .onEach { workspace -> _state.update { it.copy(workspace = workspace) } }
+            .launchIn(viewModelScope)
         refresh()
     }
 
@@ -160,16 +162,8 @@ class WorkspaceDetailVM(
         }
     }
 
-    fun installRootfs(url: String) {
-        _installError.value = null
-        val workspace = state.value.workspace ?: return
-        repository.installRootfs(workspace.id, url)
-        loadWorkspace()
-        refresh()
-    }
-
     fun dismissInstallError() {
-        _installError.value = null
+        repository.dismissInstallError()
     }
 
     fun executeTerminalCommand(command: String) {
@@ -215,13 +209,6 @@ class WorkspaceDetailVM(
 
     fun clearTerminal() {
         _terminalState.update { it.copy(history = emptyList()) }
-    }
-
-    private fun loadWorkspace() {
-        viewModelScope.launch {
-            val workspace = repository.getById(id)
-            _state.update { it.copy(workspace = workspace) }
-        }
     }
 }
 
