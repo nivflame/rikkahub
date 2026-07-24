@@ -5,11 +5,13 @@ import java.io.EOFException
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
 import java.util.Locale
 import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 import org.tukaani.xz.XZInputStream
 
 class RootfsInstaller(
@@ -43,6 +45,248 @@ class RootfsInstaller(
         } finally {
             archive.delete()
             stagingDir.deleteRecursively()
+        }
+    }
+
+    fun export(
+        root: String,
+        outputStream: OutputStream,
+        onProgress: (RootfsInstallProgress) -> Unit = {},
+    ) {
+        val linuxDir = manager.linuxDir(root)
+        require(linuxDir.exists()) { "Rootfs not found: $root" }
+        GZIPOutputStream(outputStream).use { gzip ->
+            val tarWriter = TarWriter(gzip)
+            val basePath = linuxDir.canonicalFile
+            val totalEntries = countEntries(basePath)
+            var entries = 0
+            basePath.walkTopDown().forEach { file ->
+                checkInterrupted()
+                val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
+                if (relativePath.isBlank()) return@forEach
+
+                val isDir = file.isDirectory
+                tarWriter.writeEntry(
+                    name = if (isDir) "$relativePath/" else relativePath,
+                    size = if (isDir) 0L else file.length(),
+                    mode = if (isDir) 0b111_101_101 else 0b110_100_100,
+                    type = if (isDir) TarEntryType.DIRECTORY else TarEntryType.FILE,
+                    isSymlink = false,
+                    linkName = "",
+                ) { }
+                entries++
+                onProgress(
+                    RootfsInstallProgress(
+                        stage = RootfsInstallStage.EXTRACTING,
+                        entriesExtracted = totalEntries,
+                        currentEntry = "$entries/$totalEntries",
+                    )
+                )
+            }
+            // Handle symlinks
+            val symlinks = mutableListOf<Pair<File, String>>()
+            basePath.walkTopDown().forEach { file ->
+                val attrs = try {
+                    java.nio.file.Files.readAttributes(
+                        file.toPath(),
+                        java.nio.file.attribute.BasicFileAttributes::class.java,
+                        java.nio.file.LinkOption.NOFOLLOW_LINKS,
+                    )
+                } catch (_: Throwable) {
+                    null
+                }
+                if (attrs?.isSymbolicLink == true) {
+                    val linkTarget = java.nio.file.Files.readSymbolicLink(file.toPath()).toString()
+                    symlinks.add(file to linkTarget)
+                }
+            }
+            for ((file, linkTarget) in symlinks) {
+                checkInterrupted()
+                val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
+                tarWriter.writeEntry(
+                    name = relativePath,
+                    size = 0L,
+                    mode = 0b111_101_101,
+                    type = TarEntryType.SYMLINK,
+                    isSymlink = true,
+                    linkName = linkTarget,
+                ) { }
+            }
+            tarWriter.finish()
+        }
+    }
+
+    fun importFromStream(
+        root: String,
+        inputStream: InputStream,
+        onProgress: (RootfsInstallProgress) -> Unit = {},
+    ) {
+        manager.ensureWorkspace(root)
+        val tempDir = manager.tempDir(root)
+        val stagingDir = File(tempDir, "rootfs-import-staging")
+        val linuxDir = manager.linuxDir(root)
+
+        try {
+            stagingDir.deleteRecursively()
+            stagingDir.mkdirs()
+            extractTarFromStream(inputStream, stagingDir, onProgress)
+            linuxDir.deleteRecursively()
+            require(stagingDir.renameTo(linuxDir)) {
+                "Failed to move imported rootfs into workspace"
+            }
+            patcher.patch(linuxDir)
+            onProgress(RootfsInstallProgress(stage = RootfsInstallStage.INSTALLED))
+        } finally {
+            stagingDir.deleteRecursively()
+        }
+    }
+
+    private fun countEntries(dir: File): Int {
+        var count = 0
+        dir.walkTopDown().forEach { count++ }
+        return count
+    }
+
+    private fun extractTarFromStream(
+        inputStream: InputStream,
+        targetDir: File,
+        onProgress: (RootfsInstallProgress) -> Unit,
+    ) {
+        GZIPInputStream(BufferedInputStream(inputStream)).use { input ->
+            var entries = 0
+            var pendingName: String? = null
+            var pendingLinkName: String? = null
+            while (true) {
+                checkInterrupted()
+                val rawHeader = input.readTarHeader() ?: break
+                val header = rawHeader.copy(
+                    name = pendingName ?: rawHeader.name,
+                    linkName = pendingLinkName ?: rawHeader.linkName,
+                )
+                pendingName = null
+                pendingLinkName = null
+                if (header.name.isBlank()) {
+                    input.skipFully(header.size.paddedTarSize())
+                    continue
+                }
+                if (header.type == TarEntryType.LONG_NAME) {
+                    pendingName = input.readExactly(header.size).toString(Charsets.UTF_8).trimEnd('\u0000', '\n')
+                    input.skipFully(header.size.paddingSize())
+                    continue
+                }
+                if (header.type == TarEntryType.LONG_LINK) {
+                    pendingLinkName = input.readExactly(header.size).toString(Charsets.UTF_8).trimEnd('\u0000', '\n')
+                    input.skipFully(header.size.paddingSize())
+                    continue
+                }
+                if (header.type == TarEntryType.PAX) {
+                    val pax = parsePax(input.readExactly(header.size).toString(Charsets.UTF_8))
+                    pendingName = pax["path"]
+                    pendingLinkName = pax["linkpath"]
+                    input.skipFully(header.size.paddingSize())
+                    continue
+                }
+                val target = targetDir.safeResolve(header.name)
+                target.parentFile?.mkdirs()
+                when (header.type) {
+                    TarEntryType.DIRECTORY -> target.mkdirs()
+                    TarEntryType.SYMLINK -> createSymlink(targetDir, target, header.linkName)
+                    TarEntryType.HARDLINK -> createHardLink(targetDir, target, header.linkName)
+                    TarEntryType.FILE -> {
+                        target.outputStream().use { output ->
+                            input.copyExactly(output, header.size)
+                        }
+                        target.applyMode(header.mode)
+                    }
+                    TarEntryType.LONG_NAME,
+                    TarEntryType.LONG_LINK,
+                    TarEntryType.PAX,
+                    TarEntryType.OTHER -> Unit
+                }
+                if (header.type != TarEntryType.FILE) {
+                    input.skipFully(header.size)
+                }
+                input.skipFully(header.size.paddingSize())
+                if (header.modTime > 0 && header.type != TarEntryType.SYMLINK) {
+                    target.setLastModified(header.modTime * 1000)
+                }
+                entries++
+                onProgress(
+                    RootfsInstallProgress(
+                        stage = RootfsInstallStage.EXTRACTING,
+                        entriesExtracted = entries,
+                        currentEntry = header.name,
+                    )
+                )
+            }
+        }
+    }
+
+    private class TarWriter(private val output: OutputStream) {
+        fun writeEntry(
+            name: String,
+            size: Long,
+            mode: Int,
+            type: TarEntryType,
+            isSymlink: Boolean,
+            linkName: String,
+            data: (OutputStream) -> Unit,
+        ) {
+            val header = ByteArray(TAR_BLOCK_SIZE)
+            writeString(header, 0, 100, name)
+            writeOctal(header, 100, 8, mode.toLong())
+            writeOctal(header, 108, 8, 0L) // uid
+            writeOctal(header, 116, 8, 0L) // gid
+            writeOctal(header, 124, 12, size)
+            writeOctal(header, 136, 12, System.currentTimeMillis() / 1000) // mtime
+            header[156] = when (type) {
+                TarEntryType.FILE -> '0'.code.toByte()
+                TarEntryType.DIRECTORY -> '5'.code.toByte()
+                TarEntryType.SYMLINK -> '2'.code.toByte()
+                TarEntryType.HARDLINK -> '1'.code.toByte()
+                else -> '0'.code.toByte()
+            }
+            writeString(header, 157, 100, linkName)
+            // ustar magic
+            writeString(header, 257, 6, "ustar")
+            header[263] = ' '.code.toByte() // version
+            // type flag already set
+            // zero out remaining fields (uid/gid names etc)
+            // checksum: fill spaces first, compute later
+            for (i in 148..155) header[i] = ' '.code.toByte()
+            var checksum = 0
+            for (b in header) checksum += (b.toInt() and 0xFF)
+            writeOctal(header, 148, 8, checksum.toLong())
+            output.write(header)
+            data(output)
+            // pad to block size
+            val padding = (TAR_BLOCK_SIZE - (size % TAR_BLOCK_SIZE)).let { if (it == TAR_BLOCK_SIZE.toLong()) 0L else it }
+            if (padding > 0) {
+                output.write(ByteArray(padding.toInt()))
+            }
+        }
+
+        fun finish() {
+            // Two zero blocks mark end of archive
+            output.write(ByteArray(TAR_BLOCK_SIZE * 2))
+        }
+
+        private fun writeString(buf: ByteArray, offset: Int, maxLen: Int, value: String) {
+            val bytes = value.toByteArray(Charsets.UTF_8)
+            val len = minOf(bytes.size, maxLen - 1)
+            System.arraycopy(bytes, 0, buf, offset, len)
+            buf[offset + len] = 0
+        }
+
+        private fun writeOctal(buf: ByteArray, offset: Int, length: Int, value: Long) {
+            val str = String.format(Locale.US, "%0${length - 1}o", value)
+            val bytes = str.toByteArray(Charsets.US_ASCII)
+            System.arraycopy(bytes, 0, buf, offset, minOf(bytes.size, length - 1))
+            buf[offset + length - 1] = 0
+        }
+
+        companion object {
+            private const val TAR_BLOCK_SIZE = 512
         }
     }
 

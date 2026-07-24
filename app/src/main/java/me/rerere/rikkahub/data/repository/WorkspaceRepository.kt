@@ -169,6 +169,52 @@ class WorkspaceRepository(
         _installError.value = null
     }
 
+    suspend fun exportRootfs(id: String, outputStream: OutputStream) = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        rootfsInstaller.export(workspace.root, outputStream) { progress ->
+            _installProgress.value = progress
+        }
+        _installProgress.value = null
+    }
+
+    fun importRootfs(id: String, inputStream: InputStream): Job {
+        installJob?.cancel()
+        _installError.value = null
+        _installProgress.value = RootfsInstallProgress(stage = RootfsInstallStage.EXTRACTING)
+        installJob = appScope.launch(Dispatchers.IO) {
+            val workspace = dao.getById(id)
+            if (workspace == null) {
+                _installProgress.value = null
+                return@launch
+            }
+            WorkspaceTerminalSessionHolder.remove(workspace.root)
+            updateShellState(workspace, WorkspaceShellStatus.INSTALLING.name)
+            try {
+                runInterruptible(Dispatchers.IO) {
+                    rootfsInstaller.importFromStream(workspace.root, inputStream) { progress ->
+                        _installProgress.value = progress
+                    }
+                }
+                updateShellState(workspace, WorkspaceShellStatus.READY.name)
+            } catch (e: CancellationException) {
+                withContext(NonCancellable) {
+                    restoreShellState(workspace)
+                }
+            } catch (e: InterruptedException) {
+                withContext(NonCancellable) {
+                    restoreShellState(workspace)
+                }
+            } catch (e: Throwable) {
+                Log.e(TAG, "importRootfs failed: workspace=${workspace.id}", e)
+                _installError.value = e.message ?: "Rootfs import failed"
+                updateShellState(workspace, WorkspaceShellStatus.BROKEN.name)
+            } finally {
+                _installProgress.value = null
+            }
+        }
+        return installJob!!
+    }
+
     suspend fun listFiles(
         id: String,
         area: WorkspaceStorageArea,

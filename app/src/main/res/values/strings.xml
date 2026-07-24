@@ -1171,6 +1171,8 @@
   <string name="workspace_detail_import_folder">Import Folder</string>
   <string name="workspace_detail_new_folder">New Folder</string>
   <string name="workspace_detail_folder_name">Folder name</string>
+  <string name="workspace_detail_export_rootfs">Export Rootfs</string>
+  <string name="workspace_detail_import_rootfs">Import Rootfs</string>
   <string name="workspace_detail_rootfs_install_failed">Rootfs Installation Failed</string>
   <string name="workspace_detail_delete_directory">Delete Directory</string>
   <string name="workspace_detail_delete_file">Delete File</string>

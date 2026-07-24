@@ -230,6 +230,20 @@ class WorkspaceDetailVM(
         repository.dismissInstallError()
     }
 
+    fun exportRootfs(outputStream: OutputStream) {
+        viewModelScope.launch {
+            runCatching {
+                repository.exportRootfs(id, outputStream)
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "导出 rootfs 失败") }
+            }
+        }
+    }
+
+    fun importRootfs(inputStream: InputStream) {
+        repository.importRootfs(id, inputStream)
+    }
+
     fun executeTerminalCommand(command: String) {
         val trimmed = command.trim()
         if (trimmed.isBlank()) return

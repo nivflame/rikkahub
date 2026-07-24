@@ -116,6 +116,22 @@ fun WorkspaceDetailPage(id: String) {
     }
     var showFabMenu by remember { mutableStateOf(false) }
     var showNewFolderDialog by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    val rootfsReady = state.workspace?.shellStatus == WorkspaceShellStatus.READY.name
+    val rootfsExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/gzip"),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val outputStream = context.contentResolver.openOutputStream(uri) ?: return@rememberLauncherForActivityResult
+        vm.exportRootfs(outputStream)
+    }
+    val rootfsImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return@rememberLauncherForActivityResult
+        vm.importRootfs(inputStream)
+    }
 
     BackHandler(enabled = state.path.isNotBlank()) {
         vm.goUp()
@@ -136,9 +152,35 @@ fun WorkspaceDetailPage(id: String) {
                     IconButton(onClick = { vm.refresh() }) {
                         Icon(HugeIcons.Refresh01, contentDescription = null)
                     }
-                    if (state.workspace?.shellStatus == WorkspaceShellStatus.READY.name) {
+                    if (rootfsReady) {
                         IconButton(onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }) {
                             Icon(HugeIcons.ComputerTerminal01, contentDescription = null)
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(HugeIcons.MoreVertical, contentDescription = null)
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                        ) {
+                            if (rootfsReady) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.workspace_detail_export_rootfs)) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        rootfsExportLauncher.launch("rootfs.tar.gz")
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.workspace_detail_import_rootfs)) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    rootfsImportLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "*/*"))
+                                },
+                            )
                         }
                     }
                 },
