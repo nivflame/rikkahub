@@ -177,11 +177,11 @@ fun WorkspaceDetailPage(id: String) {
                     entry = entry,
                     onOpen = { vm.open(entry) },
                     onDelete = { deleteTarget = entry },
-                    onExport = { entry ->
+                    onExport = {
                         exportTarget = entry
                         exportLauncher.launch(entry.name)
                     },
-                    onShare = { entry ->
+                    onShare = {
                         vm.shareFile(entry, context.cacheDir) { file ->
                             val uri = FileProvider.getUriForFile(
                                 context,
