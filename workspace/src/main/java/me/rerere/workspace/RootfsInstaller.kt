@@ -65,15 +65,48 @@ class RootfsInstaller(
                 val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
                 if (relativePath.isBlank()) return@forEach
 
-                val isDir = file.isDirectory
-                tarWriter.writeEntry(
-                    name = if (isDir) "$relativePath/" else relativePath,
-                    size = if (isDir) 0L else file.length(),
-                    mode = if (isDir) 0b111_101_101 else 0b110_100_100,
-                    type = if (isDir) TarEntryType.DIRECTORY else TarEntryType.FILE,
-                    isSymlink = false,
-                    linkName = "",
-                ) { }
+                val isSymlink = Files.isSymbolicLink(file.toPath())
+                val isDir = file.isDirectory && !isSymlink
+
+                if (isSymlink) {
+                    val linkTarget = Files.readSymbolicLink(file.toPath()).toString()
+                    tarWriter.writeEntry(
+                        name = relativePath,
+                        size = 0L,
+                        mode = 0b111_101_101,
+                        type = TarEntryType.SYMLINK,
+                        isSymlink = true,
+                        linkName = linkTarget,
+                    ) { }
+                } else if (isDir) {
+                    tarWriter.writeEntry(
+                        name = "$relativePath/",
+                        size = 0L,
+                        mode = 0b111_101_101,
+                        type = TarEntryType.DIRECTORY,
+                        isSymlink = false,
+                        linkName = "",
+                    ) { }
+                } else {
+                    tarWriter.writeEntry(
+                        name = relativePath,
+                        size = file.length(),
+                        mode = 0b110_100_100,
+                        type = TarEntryType.FILE,
+                        isSymlink = false,
+                        linkName = "",
+                    ) { output ->
+                        file.inputStream().use { input ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            while (true) {
+                                checkInterrupted()
+                                val read = input.read(buffer)
+                                if (read < 0) break
+                                output.write(buffer, 0, read)
+                            }
+                        }
+                    }
+                }
                 entries++
                 onProgress(
                     RootfsInstallProgress(
@@ -82,35 +115,6 @@ class RootfsInstaller(
                         currentEntry = "$entries/$totalEntries",
                     )
                 )
-            }
-            // Handle symlinks
-            val symlinks = mutableListOf<Pair<File, String>>()
-            basePath.walkTopDown().forEach { file ->
-                val attrs = try {
-                    java.nio.file.Files.readAttributes(
-                        file.toPath(),
-                        java.nio.file.attribute.BasicFileAttributes::class.java,
-                        java.nio.file.LinkOption.NOFOLLOW_LINKS,
-                    )
-                } catch (_: Throwable) {
-                    null
-                }
-                if (attrs?.isSymbolicLink == true) {
-                    val linkTarget = java.nio.file.Files.readSymbolicLink(file.toPath()).toString()
-                    symlinks.add(file to linkTarget)
-                }
-            }
-            for ((file, linkTarget) in symlinks) {
-                checkInterrupted()
-                val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
-                tarWriter.writeEntry(
-                    name = relativePath,
-                    size = 0L,
-                    mode = 0b111_101_101,
-                    type = TarEntryType.SYMLINK,
-                    isSymlink = true,
-                    linkName = linkTarget,
-                ) { }
             }
             tarWriter.finish()
         }
