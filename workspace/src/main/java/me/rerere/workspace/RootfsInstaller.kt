@@ -88,10 +88,11 @@ class RootfsInstaller(
                         linkName = "",
                     ) { }
                 } else {
+                    val mode = getFileMode(file)
                     tarWriter.writeEntry(
                         name = relativePath,
                         size = file.length(),
-                        mode = 0b110_100_100,
+                        mode = mode,
                         type = TarEntryType.FILE,
                         isSymlink = false,
                         linkName = "",
@@ -149,6 +150,25 @@ class RootfsInstaller(
         var count = 0
         dir.walkTopDown().forEach { count++ }
         return count
+    }
+
+    private fun getFileMode(file: File): Int {
+        return try {
+            val perms = Files.getPosixFilePermissions(file.toPath())
+            var mode = 0
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OWNER_READ)) mode = mode or 0b100_000_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OWNER_WRITE)) mode = mode or 0b010_000_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE)) mode = mode or 0b001_000_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.GROUP_READ)) mode = mode or 0b000_100_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.GROUP_WRITE)) mode = mode or 0b000_010_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE)) mode = mode or 0b000_001_000
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_READ)) mode = mode or 0b000_000_100
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE)) mode = mode or 0b000_000_010
+            if (perms.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE)) mode = mode or 0b000_000_001
+            mode
+        } catch (_: Throwable) {
+            0b100_100_100
+        }
     }
 
     private fun extractTarFromStream(
