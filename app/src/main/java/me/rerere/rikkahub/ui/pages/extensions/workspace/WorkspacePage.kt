@@ -230,6 +230,7 @@ private fun WorkspaceCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                         SuggestionChip(
+                            onClick = {},
                             label = {
                                 Text(
                                     text = formatBytes(sizeBytes),

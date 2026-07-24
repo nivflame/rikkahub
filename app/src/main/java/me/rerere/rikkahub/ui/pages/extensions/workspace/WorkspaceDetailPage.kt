@@ -423,6 +423,7 @@ private fun ImportDialog(
                 )
             }
         },
+        confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.common_cancel))
