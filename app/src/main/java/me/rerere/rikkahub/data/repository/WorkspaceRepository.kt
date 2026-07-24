@@ -46,6 +46,11 @@ class WorkspaceRepository(
 
     fun listFlow(): Flow<List<WorkspaceEntity>> = dao.listFlow()
 
+    suspend fun getWorkspaceSize(id: String): Long = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: return@withContext 0L
+        manager.workspaceSize(workspace.root)
+    }
+
     fun getByIdFlow(id: String): Flow<WorkspaceEntity?> = dao.getByIdFlow(id)
 
     suspend fun checkIntegrity() = withContext(Dispatchers.IO) {
@@ -265,6 +270,16 @@ class WorkspaceRepository(
         val workspace = dao.getById(id) ?: error("Workspace not found: $id")
         manager.ensureWorkspace(workspace.root)
         manager.createDirectory(workspace.root, path, area)
+    }
+
+    suspend fun createFile(
+        id: String,
+        area: WorkspaceStorageArea,
+        path: String,
+    ): WorkspaceFileEntry = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        manager.ensureWorkspace(workspace.root)
+        manager.writeText(workspace.root, path, "", overwrite = false)
     }
 
     suspend fun fileSize(

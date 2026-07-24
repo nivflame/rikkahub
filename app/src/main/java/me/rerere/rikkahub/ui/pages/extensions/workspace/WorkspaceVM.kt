@@ -2,7 +2,9 @@ package me.rerere.rikkahub.ui.pages.extensions.workspace
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
@@ -13,6 +15,21 @@ class WorkspaceVM(
 ) : ViewModel() {
     val workspaces = repository.listFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    private val _workspaceSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
+    val workspaceSizes = _workspaceSizes.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.listFlow().collect { list ->
+                val sizes = mutableMapOf<String, Long>()
+                for (workspace in list) {
+                    sizes[workspace.id] = repository.getWorkspaceSize(workspace.id)
+                }
+                _workspaceSizes.value = sizes
+            }
+        }
+    }
 
     fun create(name: String) {
         viewModelScope.launch {

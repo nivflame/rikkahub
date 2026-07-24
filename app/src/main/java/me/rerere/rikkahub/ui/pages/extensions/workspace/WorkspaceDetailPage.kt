@@ -25,6 +25,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -55,7 +56,6 @@ import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.File02
 import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.Folder01
-import me.rerere.hugeicons.stroke.FolderAdd
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Refresh01
 import me.rerere.hugeicons.stroke.Share08
@@ -115,8 +115,9 @@ fun WorkspaceDetailPage(id: String) {
         vm.exportFile(entry, outputStream)
     }
     var showFabMenu by remember { mutableStateOf(false) }
-    var showNewFolderDialog by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
     val rootfsReady = state.workspace?.shellStatus == WorkspaceShellStatus.READY.name
     val rootfsExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/gzip"),
@@ -199,27 +200,19 @@ fun WorkspaceDetailPage(id: String) {
                     onDismissRequest = { showFabMenu = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.workspace_detail_import_file)) },
+                        text = { Text(stringResource(R.string.workspace_detail_create)) },
+                        leadingIcon = { Icon(HugeIcons.Add01, contentDescription = null) },
+                        onClick = {
+                            showFabMenu = false
+                            showCreateDialog = true
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.workspace_detail_import)) },
                         leadingIcon = { Icon(HugeIcons.FileImport, contentDescription = null) },
                         onClick = {
                             showFabMenu = false
-                            filePicker.launch(arrayOf("*/*"))
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.workspace_detail_new_folder)) },
-                        leadingIcon = { Icon(HugeIcons.FolderAdd, contentDescription = null) },
-                        onClick = {
-                            showFabMenu = false
-                            showNewFolderDialog = true
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.workspace_detail_import_folder)) },
-                        leadingIcon = { Icon(HugeIcons.Folder01, contentDescription = null) },
-                        onClick = {
-                            showFabMenu = false
-                            folderPicker.launch(null)
+                            showImportDialog = true
                         },
                     )
                 }
@@ -319,43 +312,115 @@ fun WorkspaceDetailPage(id: String) {
         }
     }
 
-    if (showNewFolderDialog) {
-        NewFolderDialog(
-            onDismiss = { showNewFolderDialog = false },
-            onConfirm = { name ->
+    if (showCreateDialog) {
+        CreateDialog(
+            onDismiss = { showCreateDialog = false },
+            onCreateFile = { name ->
+                vm.createFile(name)
+                showCreateDialog = false
+            },
+            onCreateFolder = { name ->
                 vm.createDirectory(name)
-                showNewFolderDialog = false
+                showCreateDialog = false
+            },
+        )
+    }
+
+    if (showImportDialog) {
+        ImportDialog(
+            onDismiss = { showImportDialog = false },
+            onImportFile = {
+                showImportDialog = false
+                filePicker.launch(arrayOf("*/*"))
+            },
+            onImportFolder = {
+                showImportDialog = false
+                folderPicker.launch(null)
             },
         )
     }
 }
 
 @Composable
-private fun NewFolderDialog(
+private fun CreateDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onCreateFile: (String) -> Unit,
+    onCreateFolder: (String) -> Unit,
 ) {
+    var isFile by rememberSaveable { mutableStateOf(false) }
     var name by rememberSaveable { mutableStateOf("") }
     val trimmed = name.trim()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.workspace_detail_new_folder)) },
+        title = { Text(stringResource(R.string.workspace_detail_create)) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.workspace_detail_folder_name)) },
-                singleLine = true,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !isFile,
+                        onClick = { isFile = false },
+                        shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    ) {
+                        Text(stringResource(R.string.workspace_detail_create_folder))
+                    }
+                    SegmentedButton(
+                        selected = isFile,
+                        onClick = { isFile = true },
+                        shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    ) {
+                        Text(stringResource(R.string.workspace_detail_create_file))
+                    }
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.workspace_detail_enter_name)) },
+                    singleLine = true,
+                    isError = trimmed.contains('/'),
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(trimmed) },
+                onClick = {
+                    if (isFile) onCreateFile(trimmed) else onCreateFolder(trimmed)
+                },
                 enabled = trimmed.isNotBlank() && !trimmed.contains('/'),
             ) {
                 Text(stringResource(R.string.common_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun ImportDialog(
+    onDismiss: () -> Unit,
+    onImportFile: () -> Unit,
+    onImportFolder: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workspace_detail_import)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.workspace_detail_import_file)) },
+                    leadingContent = { Icon(HugeIcons.FileImport, contentDescription = null) },
+                    modifier = Modifier.clickable { onImportFile() },
+                )
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.workspace_detail_import_folder)) },
+                    leadingContent = { Icon(HugeIcons.Folder01, contentDescription = null) },
+                    modifier = Modifier.clickable { onImportFolder() },
+                )
             }
         },
         dismissButton = {

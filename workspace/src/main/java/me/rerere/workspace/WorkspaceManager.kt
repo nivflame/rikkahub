@@ -43,6 +43,16 @@ class WorkspaceManager(
 
     fun deleteWorkspace(root: String): Boolean = workspaceDir(root).deleteRecursively()
 
+    fun workspaceSize(root: String): Long {
+        val dir = workspaceDir(root)
+        if (!dir.exists()) return 0L
+        var total = 0L
+        dir.walkTopDown().forEach { file ->
+            if (file.isFile) total += file.length()
+        }
+        return total
+    }
+
     fun listFiles(
         root: String,
         path: String = "",

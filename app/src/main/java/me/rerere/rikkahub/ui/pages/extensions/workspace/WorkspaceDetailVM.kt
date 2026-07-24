@@ -149,6 +149,23 @@ class WorkspaceDetailVM(
         }
     }
 
+    fun createFile(name: String) {
+        viewModelScope.launch {
+            runCatching {
+                val destinationPath = if (state.value.path.isBlank()) name else "${state.value.path}/$name"
+                repository.createFile(
+                    id = id,
+                    area = state.value.area,
+                    path = destinationPath,
+                )
+            }.onSuccess {
+                refresh()
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "创建文件失败") }
+            }
+        }
+    }
+
     fun importFolder(treeUri: Uri, context: Context) {
         viewModelScope.launch {
             runCatching {
