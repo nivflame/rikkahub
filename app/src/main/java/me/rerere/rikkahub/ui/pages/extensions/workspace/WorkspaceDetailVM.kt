@@ -127,6 +127,23 @@ class WorkspaceDetailVM(
         }
     }
 
+    fun createDirectory(name: String) {
+        viewModelScope.launch {
+            runCatching {
+                val destinationPath = if (state.value.path.isBlank()) name else "${state.value.path}/$name"
+                repository.createDirectory(
+                    id = id,
+                    area = state.value.area,
+                    path = destinationPath,
+                )
+            }.onSuccess {
+                refresh()
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "创建文件夹失败") }
+            }
+        }
+    }
+
     fun exportFile(entry: WorkspaceFileEntry, outputStream: OutputStream) {
         viewModelScope.launch {
             runCatching {

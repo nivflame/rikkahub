@@ -76,6 +76,16 @@ class WorkspaceManager(
         return fileSystem.importBytes(areaRoot, targetPath, inputStream)
     }
 
+    fun createDirectory(
+        root: String,
+        path: String,
+        area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
+    ): WorkspaceFileEntry {
+        val areaRoot = areaDir(root, area)
+        val fullPath = if (path.isBlank()) error("Directory name is required") else path
+        return fileSystem.createDirectory(areaRoot, fullPath)
+    }
+
     fun fileSize(
         root: String,
         path: String,

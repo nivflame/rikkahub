@@ -211,6 +211,16 @@ class WorkspaceRepository(
         manager.importFile(workspace.root, destinationPath, area, fileName, inputStream)
     }
 
+    suspend fun createDirectory(
+        id: String,
+        area: WorkspaceStorageArea,
+        path: String,
+    ): WorkspaceFileEntry = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        manager.ensureWorkspace(workspace.root)
+        manager.createDirectory(workspace.root, path, area)
+    }
+
     suspend fun fileSize(
         id: String,
         area: WorkspaceStorageArea,

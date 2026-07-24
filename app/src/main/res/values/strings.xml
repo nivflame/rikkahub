@@ -1168,6 +1168,8 @@
   <string name="workspace_detail_tab_basic">Basic</string>
   <string name="workspace_detail_tab_files">Files</string>
   <string name="workspace_detail_import_file">Import File</string>
+  <string name="workspace_detail_new_folder">New Folder</string>
+  <string name="workspace_detail_folder_name">Folder name</string>
   <string name="workspace_detail_rootfs_install_failed">Rootfs Installation Failed</string>
   <string name="workspace_detail_delete_directory">Delete Directory</string>
   <string name="workspace_detail_delete_file">Delete File</string>
