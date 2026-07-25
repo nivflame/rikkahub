@@ -111,7 +111,7 @@ class RootfsInstaller(
                 entries++
                 onProgress(
                     RootfsInstallProgress(
-                        stage = RootfsInstallStage.EXTRACTING,
+                        stage = RootfsInstallStage.ARCHIVING,
                         entriesExtracted = totalEntries,
                         currentEntry = "$entries/$totalEntries",
                     )

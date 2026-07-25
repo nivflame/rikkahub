@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -25,12 +26,12 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -410,16 +411,24 @@ private fun ImportDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.workspace_detail_import)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.workspace_detail_import_file)) },
-                    leadingContent = { Icon(HugeIcons.FileImport, contentDescription = null) },
-                    modifier = Modifier.clickable { onImportFile() },
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ImportOptionCard(
+                    icon = HugeIcons.FileImport,
+                    title = stringResource(R.string.workspace_detail_import_file),
+                    description = stringResource(R.string.workspace_detail_import_file_desc),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    onClick = onImportFile,
                 )
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.workspace_detail_import_folder)) },
-                    leadingContent = { Icon(HugeIcons.Folder01, contentDescription = null) },
-                    modifier = Modifier.clickable { onImportFolder() },
+                ImportOptionCard(
+                    icon = HugeIcons.Folder01,
+                    title = stringResource(R.string.workspace_detail_import_folder),
+                    description = stringResource(R.string.workspace_detail_import_folder_desc),
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    textColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    onClick = onImportFolder,
                 )
             }
         },
@@ -430,6 +439,57 @@ private fun ImportDialog(
             }
         },
     )
+}
+
+@Composable
+private fun ImportOptionCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    containerColor: androidx.compose.ui.graphics.Color,
+    iconColor: androidx.compose.ui.graphics.Color,
+    textColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = androidx.compose.ui.graphics.Color.Transparent,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = iconColor,
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = textColor,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = textColor.copy(alpha = 0.8f),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -465,6 +525,11 @@ private fun RootfsProgressCard(progress: RootfsInstallProgress) {
                     RootfsInstallStage.EXTRACTING -> {
                         val entry = progress.currentEntry?.let { " · $it" }.orEmpty()
                         stringResource(R.string.workspace_detail_extracting, progress.entriesExtracted, entry)
+                    }
+
+                    RootfsInstallStage.ARCHIVING -> {
+                        val entry = progress.currentEntry?.let { " · $it" }.orEmpty()
+                        stringResource(R.string.workspace_detail_archiving, progress.entriesExtracted, entry)
                     }
 
                     RootfsInstallStage.INSTALLED -> stringResource(R.string.workspace_detail_install_complete)

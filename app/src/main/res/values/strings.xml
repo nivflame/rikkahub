@@ -1169,6 +1169,8 @@
   <string name="workspace_detail_tab_files">Files</string>
   <string name="workspace_detail_import_file">Import File</string>
   <string name="workspace_detail_import_folder">Import Folder</string>
+  <string name="workspace_detail_import_file_desc">Pick one or more files from your device</string>
+  <string name="workspace_detail_import_folder_desc">Pick an entire folder with its contents</string>
   <string name="workspace_detail_import">Import</string>
   <string name="workspace_detail_new_folder">New Folder</string>
   <string name="workspace_detail_folder_name">Folder name</string>
@@ -1211,6 +1213,7 @@
   <string name="workspace_detail_shell_broken">Error</string>
   <string name="workspace_detail_downloading">Downloading %1$s%2$s</string>
   <string name="workspace_detail_extracting">Extracting %1$d items%2$s</string>
+  <string name="workspace_detail_archiving">Archiving %1$d items%2$s</string>
   <string name="workspace_detail_install_complete">Installation complete</string>
   <string name="workspace_terminal_title">Terminal</string>
   <string name="workspace_terminal_title_with_name">%s · Terminal</string>
