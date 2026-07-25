@@ -35,6 +35,7 @@ import me.rerere.ai.ui.limitContext
 import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.MessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.OutputMessageTransformer
+import me.rerere.rikkahub.data.ai.tools.local.currentToolCallId
 import me.rerere.rikkahub.data.files.FileFolders
 import java.io.File
 import me.rerere.rikkahub.data.ai.transformers.onGenerationFinish
@@ -300,13 +301,16 @@ class GenerationHandler(
                                 error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
                             }
                             Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
+                            currentToolCallId.set(tool.toolCallId)
                             val result = toolDef.execute(args)
+                            currentToolCallId.set(null)
                             val hasShellAccess = toolsInternal.any { it.name == "Bash" }
                             executedTools += tool.copy(
                                 output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
                             )
                             recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                         }.onFailure {
+                            currentToolCallId.set(null)
                             // 取消必须向上传播，否则停止生成会被误报为工具执行错误
                             if (it is CancellationException) throw it
                             it.printStackTrace()

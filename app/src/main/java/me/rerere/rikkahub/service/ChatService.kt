@@ -66,8 +66,10 @@ import me.rerere.rikkahub.data.ai.mcp.McpManager
 import me.rerere.rikkahub.data.ai.tools.createConversationTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
+import me.rerere.rikkahub.data.ai.tools.local.SubagentProgressStore
 import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
 import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
+import me.rerere.rikkahub.data.ai.tools.local.currentToolCallId
 import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
@@ -170,8 +172,9 @@ class ChatService(
     private val skillManager: SkillManager,
     private val workspaceRepository: WorkspaceRepository,
     private val folderRepository: FolderRepository,
+    private val subagentProgressStore: SubagentProgressStore,
 ) {
-    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore) }
+    private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore, subagentProgressStore) }
 
     // 统一会话管理
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
@@ -713,7 +716,7 @@ class ChatService(
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task)))
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = currentToolCallId.get() ?: "")))
                                 }
                             )
                         )

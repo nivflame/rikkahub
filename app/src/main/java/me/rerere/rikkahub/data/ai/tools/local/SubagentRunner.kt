@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class SubagentRunner(
     private val generationHandler: GenerationHandler,
     private val settingsStore: SettingsStore,
+    private val progressStore: SubagentProgressStore,
 ) {
     private val running = AtomicInteger(0)
 
@@ -25,6 +26,7 @@ class SubagentRunner(
         parentTools: List<Tool>,
         subagentType: String,
         prompt: String,
+        toolCallId: String,
     ): String {
         val settings = settingsStore.settingsFlow.value
         val def = settings.subagentPrompts.firstOrNull { it.name == subagentType }
@@ -39,11 +41,12 @@ class SubagentRunner(
 
         running.incrementAndGet()
         try {
-            return runSubagent(def, prompt, model, parentTools, settings)
+            return runSubagent(def, prompt, model, parentTools, settings, toolCallId)
         } catch (e: Exception) {
             return "error: ${e.message}"
         } finally {
             running.decrementAndGet()
+            progressStore.remove(toolCallId)
         }
     }
 
@@ -53,6 +56,7 @@ class SubagentRunner(
         model: Model,
         parentTools: List<Tool>,
         settings: Settings,
+        toolCallId: String,
     ): String {
         val subTools = parentTools.filter { tool ->
             val toggleableNames = SUBAGENT_LOCAL_TOOL_NAMES.toSet() + ALL_BROWSER_TOOL_NAMES.toSet() +
@@ -75,6 +79,7 @@ class SubagentRunner(
             )
         )
         var lastMessages: List<UIMessage> = emptyList()
+        var step = 0
         val inputTransformers = if (def.modeInjectionIds.isNotEmpty()) {
             listOf<InputMessageTransformer>(PromptInjectionTransformer)
         } else {
@@ -89,7 +94,28 @@ class SubagentRunner(
             tools = subTools,
             maxSteps = 25,
         ).collect { chunk ->
-            if (chunk is GenerationChunk.Messages) lastMessages = chunk.messages
+            if (chunk is GenerationChunk.Messages) {
+                lastMessages = chunk.messages
+                step++
+                val lastAssistant = chunk.messages.lastOrNull { it.role == MessageRole.ASSISTANT }
+                val latestText = lastAssistant
+                    ?.parts?.filterIsInstance<UIMessagePart.Text>()
+                    ?.joinToString("") { it.text }
+                    ?.takeIf { it.isNotBlank() }
+                    ?: ""
+                val currentTool = lastAssistant
+                    ?.getTools()
+                    ?.lastOrNull { !it.isExecuted }
+                    ?.toolName
+                progressStore.update(
+                    toolCallId,
+                    SubagentProgress(
+                        currentTool = currentTool,
+                        latestText = latestText,
+                        step = step,
+                    ),
+                )
+            }
         }
         return lastMessages.lastOrNull { it.role == MessageRole.ASSISTANT }
             ?.parts?.filterIsInstance<UIMessagePart.Text>()

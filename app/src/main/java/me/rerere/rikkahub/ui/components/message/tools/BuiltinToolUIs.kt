@@ -23,7 +23,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +66,7 @@ import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.event.AppEvent
 import me.rerere.rikkahub.data.event.AppEventBus
+import me.rerere.rikkahub.data.ai.tools.local.SubagentProgressStore
 import me.rerere.rikkahub.data.repository.MemoryRepository
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.ui.Favicon
@@ -298,21 +302,69 @@ object SubagentToolUI : ToolUIRenderer {
     private fun responseText(context: ToolUIContext): String =
         context.tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
 
-    override fun hasSummary(context: ToolUIContext): Boolean =
-        context.tool.isExecuted && responseText(context).isNotBlank()
+    override fun hasSummary(context: ToolUIContext): Boolean {
+        if (context.tool.isExecuted && responseText(context).isNotBlank()) return true
+        if (context.loading) return true
+        return false
+    }
 
     @Composable
     override fun Summary(context: ToolUIContext) {
-        val text = responseText(context)
-        if (text.isBlank()) return
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.shimmer(isLoading = context.loading),
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (context.tool.isExecuted) {
+            val text = responseText(context)
+            if (text.isBlank()) return
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = context.loading),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+            return
+        }
+        if (!context.loading) return
+        val progressStore: SubagentProgressStore = koinInject()
+        val active by progressStore.active.collectAsStateWithLifecycle()
+        val progress = remember(active, context.tool.toolCallId) {
+            active[context.tool.toolCallId]
+        }
+        if (progress == null) {
+            Text(
+                text = "Working...",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = true),
+                maxLines = 1,
+            )
+            return
+        }
+        if (progress.currentTool != null) {
+            Text(
+                text = "Using ${progress.currentTool}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else if (progress.latestText.isNotBlank()) {
+            Text(
+                text = progress.latestText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = true),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            Text(
+                text = "Working...",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = true),
+                maxLines = 1,
+            )
+        }
     }
 }
 
