@@ -42,7 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,7 +59,7 @@ import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.workspace.WorkspaceShellStatus
 import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.detectReorderAfterLongPress
+import sh.calvin.reorderable.longPressDraggableHandle
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.res.stringResource
 import me.rerere.rikkahub.R
@@ -76,6 +79,7 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
+    val haptic = LocalHapticFeedback.current
 
     Scaffold(
         topBar = {
@@ -100,9 +104,7 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
         }
         LazyColumn(
             state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .detectReorderAfterLongPress(reorderableState),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -116,13 +118,21 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
                 ReorderableItem(
                     state = reorderableState,
                     key = workspace.id,
-                ) {
+                ) { isDragging ->
                     WorkspaceCard(
                         workspace = workspace,
                         sizeBytes = workspaceSizes[workspace.id] ?: 0L,
                         onRename = { editTarget = workspace },
                         onDelete = { deleteTarget = workspace },
                         onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
+                        modifier = Modifier
+                            .longPressDraggableHandle(
+                                onDragStarted = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                },
+                            )
+                            .scale(if (isDragging) 0.95f else 1f)
+                            .animateItem(),
                     )
                 }
             }
@@ -205,6 +215,7 @@ private fun WorkspaceCard(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val shellStatus = workspace.shellStatus.toShellStatusLabel()
@@ -216,7 +227,7 @@ private fun WorkspaceCard(
     }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         colors = CardDefaults.cardColors(

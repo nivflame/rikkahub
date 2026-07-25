@@ -60,6 +60,8 @@ class WorkspaceVM(
         val reordered = current.toMutableList().apply {
             add(toIndex, removeAt(fromIndex))
         }
-        settingsStore.setWorkspaceOrder(reordered.map { it.id })
+        viewModelScope.launch {
+            settingsStore.setWorkspaceOrder(reordered.map { it.id })
+        }
     }
 }
