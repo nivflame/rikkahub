@@ -170,6 +170,9 @@ class SettingsStore(
 
         // 工具调用历史
         val TOOL_CALL_HISTORY = stringPreferencesKey("tool_call_history")
+
+        // 工作空间排序
+        val WORKSPACE_ORDER = stringPreferencesKey("workspace_order")
     }
 
     private val dataStore = context.settingsStore
@@ -460,6 +463,15 @@ class SettingsStore(
 
     suspend fun update(fn: (Settings) -> Settings) {
         update(fn(settingsFlow.value))
+    }
+
+    val workspaceOrderFlow = dataStore.data
+        .map { preferences -> preferences[WORKSPACE_ORDER]?.let { JsonInstant.decodeFromString<List<String>>(it) } ?: emptyList() }
+
+    suspend fun setWorkspaceOrder(ids: List<String>) {
+        dataStore.edit { preferences ->
+            preferences[WORKSPACE_ORDER] = JsonInstant.encodeToString(ids)
+        }
     }
 
     suspend fun addToolCallRecord(record: ToolCallRecord) {

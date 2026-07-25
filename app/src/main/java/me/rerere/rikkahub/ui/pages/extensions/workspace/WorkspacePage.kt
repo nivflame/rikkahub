@@ -1,7 +1,8 @@
 package me.rerere.rikkahub.ui.pages.extensions.workspace
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -30,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -49,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
-import me.rerere.hugeicons.stroke.Circle
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Edit01
 import me.rerere.hugeicons.stroke.File02
@@ -57,6 +55,9 @@ import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.workspace.WorkspaceShellStatus
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.detectReorderAfterLongPress
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.res.stringResource
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.nav.BackButton
@@ -93,8 +94,15 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
+        val lazyListState = rememberLazyListState()
+        val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+            vm.reorder(from.index, to.index)
+        }
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .detectReorderAfterLongPress(reorderableState),
             contentPadding = innerPadding + PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -105,13 +113,18 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
             }
 
             items(workspaces, key = { it.id }) { workspace ->
-                WorkspaceCard(
-                    workspace = workspace,
-                    sizeBytes = workspaceSizes[workspace.id] ?: 0L,
-                    onRename = { editTarget = workspace },
-                    onDelete = { deleteTarget = workspace },
-                    onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
-                )
+                ReorderableItem(
+                    state = reorderableState,
+                    key = workspace.id,
+                ) {
+                    WorkspaceCard(
+                        workspace = workspace,
+                        sizeBytes = workspaceSizes[workspace.id] ?: 0L,
+                        onRename = { editTarget = workspace },
+                        onDelete = { deleteTarget = workspace },
+                        onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
+                    )
+                }
             }
         }
     }
@@ -195,6 +208,12 @@ private fun WorkspaceCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val shellStatus = workspace.shellStatus.toShellStatusLabel()
+    val statusColor = when (workspace.shellStatus) {
+        WorkspaceShellStatus.READY.name -> MaterialTheme.colorScheme.primary
+        WorkspaceShellStatus.INSTALLING.name -> MaterialTheme.colorScheme.tertiary
+        WorkspaceShellStatus.BROKEN.name -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
+    }
 
     Card(
         modifier = Modifier
@@ -207,19 +226,19 @@ private fun WorkspaceCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
-            verticalAlignment = Alignment.Top,
+                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(36.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = HugeIcons.File02,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
@@ -228,7 +247,7 @@ private fun WorkspaceCard(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = workspace.name,
@@ -236,43 +255,32 @@ private fun WorkspaceCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = shellStatus,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = HugeIcons.Circle,
-                                contentDescription = null,
-                                modifier = Modifier.size(8.dp),
-                                tint = when (workspace.shellStatus) {
-                                    WorkspaceShellStatus.READY.name -> MaterialTheme.colorScheme.primary
-                                    WorkspaceShellStatus.INSTALLING.name -> MaterialTheme.colorScheme.tertiary
-                                    WorkspaceShellStatus.BROKEN.name -> MaterialTheme.colorScheme.error
-                                    else -> MaterialTheme.colorScheme.outline
-                                },
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ),
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(statusColor),
                     )
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = formatBytes(sizeBytes),
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
+                    Text(
+                        text = shellStatus,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "·",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatBytes(sizeBytes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                 }
             }
