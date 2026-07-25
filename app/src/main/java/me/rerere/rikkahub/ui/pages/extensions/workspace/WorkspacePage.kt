@@ -125,13 +125,16 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
                         onDelete = { deleteTarget = workspace },
                         onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
                         modifier = Modifier
+                            .scale(if (isDragging) 0.95f else 1f)
+                            .animateItem()
                             .longPressDraggableHandle(
                                 onDragStarted = {
                                     haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                                 },
-                            )
-                            .scale(if (isDragging) 0.95f else 1f)
-                            .animateItem(),
+                                onDragStopped = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                },
+                            ),
                     )
                 }
             }

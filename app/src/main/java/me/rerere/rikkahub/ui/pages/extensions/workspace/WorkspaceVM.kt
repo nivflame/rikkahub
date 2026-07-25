@@ -16,11 +16,21 @@ class WorkspaceVM(
     private val repository: WorkspaceRepository,
     private val settingsStore: SettingsStore,
 ) : ViewModel() {
-    val workspaces = combine(repository.listFlow(), settingsStore.workspaceOrderFlow) { list, order ->
-        if (order.isEmpty()) return@combine list
-        val orderMap = order.withIndex().associate { it.value to it.index }
-        list.sortedBy { orderMap[it.id] ?: Int.MAX_VALUE }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    private val _workspaces = MutableStateFlow<List<WorkspaceEntity>>(emptyList())
+
+    init {
+        viewModelScope.launch {
+            combine(repository.listFlow(), settingsStore.workspaceOrderFlow) { list, order ->
+                if (order.isEmpty()) return@combine list
+                val orderMap = order.withIndex().associate { it.value to it.index }
+                list.sortedBy { orderMap[it.id] ?: Int.MAX_VALUE }
+            }.collect { ordered ->
+                _workspaces.value = ordered
+            }
+        }
+    }
+
+    val workspaces = _workspaces.asStateFlow()
 
     private val _workspaceSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
     val workspaceSizes = _workspaceSizes.asStateFlow()
@@ -56,10 +66,11 @@ class WorkspaceVM(
     }
 
     fun reorder(fromIndex: Int, toIndex: Int) {
-        val current = workspaces.value
+        val current = _workspaces.value
         val reordered = current.toMutableList().apply {
             add(toIndex, removeAt(fromIndex))
         }
+        _workspaces.value = reordered
         viewModelScope.launch {
             settingsStore.setWorkspaceOrder(reordered.map { it.id })
         }
