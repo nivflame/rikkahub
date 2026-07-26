@@ -72,6 +72,7 @@ import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.ui.Favicon
 import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.modifier.shimmer
+import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.utils.JsonInstantPretty
 import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 import me.rerere.rikkahub.utils.openUrl
@@ -299,8 +300,13 @@ object SubagentToolUI : ToolUIRenderer {
         return "Subagent: $type"
     }
 
-    private fun responseText(context: ToolUIContext): String =
-        context.tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+    private fun responseText(context: ToolUIContext): String {
+        val raw = context.tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
+        return runCatching {
+            val json = JsonInstant.parseToJsonElement(raw).jsonObject
+            json["result"]?.jsonPrimitive?.contentOrNull ?: raw
+        }.getOrDefault(raw)
+    }
 
     override fun hasSummary(context: ToolUIContext): Boolean {
         if (context.tool.isExecuted && responseText(context).isNotBlank()) return true

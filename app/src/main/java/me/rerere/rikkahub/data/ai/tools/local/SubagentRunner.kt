@@ -1,5 +1,8 @@
 package me.rerere.rikkahub.data.ai.tools.local
 
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.Tool
 import me.rerere.ai.provider.Model
@@ -13,6 +16,7 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.model.Assistant
+import me.rerere.rikkahub.utils.JsonInstant
 import java.util.concurrent.atomic.AtomicInteger
 
 class SubagentRunner(
@@ -27,6 +31,7 @@ class SubagentRunner(
         subagentType: String,
         prompt: String,
         toolCallId: String,
+        sessionId: Int? = null,
     ): String {
         val settings = settingsStore.settingsFlow.value
         val def = settings.subagentPrompts.firstOrNull { it.name == subagentType }
@@ -41,7 +46,7 @@ class SubagentRunner(
 
         running.incrementAndGet()
         try {
-            return runSubagent(def, prompt, model, parentTools, settings, toolCallId)
+            return runSubagent(def, prompt, model, parentTools, settings, toolCallId, sessionId)
         } catch (e: Exception) {
             return "error: ${e.message}"
         } finally {
@@ -57,6 +62,7 @@ class SubagentRunner(
         parentTools: List<Tool>,
         settings: Settings,
         toolCallId: String,
+        sessionId: Int?,
     ): String {
         val subTools = parentTools.filter { tool ->
             val toggleableNames = SUBAGENT_LOCAL_TOOL_NAMES.toSet() + ALL_BROWSER_TOOL_NAMES.toSet() +
@@ -72,12 +78,20 @@ class SubagentRunner(
             enableMemory = false,
             modeInjectionIds = def.modeInjectionIds,
         )
-        val messages = listOf(
-            UIMessage(
+        val previousMessages = sessionId?.let { progressStore.getSession(it) }
+        val messages = if (previousMessages != null) {
+            previousMessages + UIMessage(
                 role = MessageRole.USER,
                 parts = listOf(UIMessagePart.Text(prompt)),
             )
-        )
+        } else {
+            listOf(
+                UIMessage(
+                    role = MessageRole.USER,
+                    parts = listOf(UIMessagePart.Text(prompt)),
+                )
+            )
+        }
         var lastMessages: List<UIMessage> = emptyList()
         var step = 0
         val inputTransformers = if (def.modeInjectionIds.isNotEmpty()) {
@@ -117,10 +131,17 @@ class SubagentRunner(
                 )
             }
         }
-        return lastMessages.lastOrNull { it.role == MessageRole.ASSISTANT }
+        val resultText = lastMessages.lastOrNull { it.role == MessageRole.ASSISTANT }
             ?.parts?.filterIsInstance<UIMessagePart.Text>()
             ?.joinToString("") { it.text }
             ?.takeIf { it.isNotBlank() }
             ?: "(subagent finished with no text output)"
+        val newSessionId = progressStore.saveSession(lastMessages)
+        return JsonInstant.encodeToString(
+            buildJsonObject {
+                put("result", JsonPrimitive(resultText))
+                put("session_id", JsonPrimitive(newSessionId))
+            }
+        )
     }
 }

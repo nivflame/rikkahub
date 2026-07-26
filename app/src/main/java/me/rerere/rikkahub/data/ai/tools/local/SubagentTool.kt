@@ -22,6 +22,10 @@ internal fun buildSubagentTool(settings: Settings): Tool = Tool(
                     put("description", "The type of specialized subagent to use for this task")
                     put("type", "string")
                 })
+                put("session_id", buildJsonObject {
+                    put("description", "Continue previous subagent conversation session. Pass the session_id returned from a previous Subagent call to continue with the same conversation context.")
+                    put("type", "number")
+                })
             },
             required = listOf("prompt")
         )
@@ -58,6 +62,9 @@ Brief the subagent like a smart colleague who just walked into the room it hasn'
 - Give enough context about the surrounding problem that the subagent can make judgment calls rather than just following a narrow instruction
 - If you need a short response, say so ("report in under 200 words")
 - Lookups: hand over the exact command. Investigations: hand over the question prescribed steps become dead weight when the premise is wrong
+
+## Session continuation
+The tool result includes a `session_id` field. To continue a previous subagent conversation (e.g., to ask a follow-up question or request changes based on the subagent's previous work), pass the `session_id` parameter. The subagent will resume with full context from the previous session
 
 Terse command-style prompts produce shallow, generic work
 

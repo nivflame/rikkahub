@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.IOException
@@ -716,7 +717,8 @@ class ChatService(
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
                                         ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = currentToolCallId.get() ?: "")))
+                                    val sessionId = it.jsonObject["session_id"]?.jsonPrimitive?.intOrNull
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = currentToolCallId.get() ?: "", sessionId = sessionId)))
                                 }
                             )
                         )
