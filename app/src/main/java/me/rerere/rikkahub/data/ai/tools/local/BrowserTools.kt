@@ -13,8 +13,6 @@ import me.rerere.ai.core.Tool
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.browser.BrowserController
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_navigate",
@@ -29,33 +27,6 @@ internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
 val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
-    Tool(
-        name = "browser_navigate",
-        description = "Allows you to search the web using Google Search\n\nUsage notes:\n- Set news to true for News search, false for regular web search\n- Keep queries short and specific (1-6 words). Start broad, then narrow\n- Make each query distinct. Repeating phrases yields the same results\n- Use the correct year in search queries:\n  - The current month is ${LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))}. You MUST use this year when searching for recent information, documentation, or current events\n  - Example: If the user asks for \"latest React docs\", search for \"React documentation\" with the current year ${LocalDate.now().year}, NOT last year\n- Use WebFetch to read full articles. WebSearch snippets are too brief to cite\n- Prioritize WebFetch on primary sources (company blogs, official announcements, peer-reviewed papers, first-hand reports) over aggregator roundups. When search results contain both official source URLs and aggregator URLs covering the same topic, ALWAYS fetch the official source first\n- If a source is not found, inform the user\n- Use the user's provided location for location-dependent queries\n- NEVER mention your knowledge cutoff or justify using search tools. Just search\n- Provide a substantive answer first. Do not reply with only a search offer or disclaimer\n- Trust search results even if surprising. Be skeptical of SEO-heavy results and conspiracy-prone topics\n- If results conflict or are incomplete, run more searches to clarify\n- This is more efficient than navigating to Google and using browser_dom_snapshot",
-        parameters = {
-            InputSchema.Obj(
-                properties = buildJsonObject {
-                    put("query", buildJsonObject {
-                        put("type", "string")
-                        put("description", "The search query")
-                    })
-                    put("news", buildJsonObject {
-                        put("type", "boolean")
-                        put("description", "Search Google News instead of regular web search. Defaults to false")
-                    })
-                },
-                required = listOf("query")
-            )
-        },
-        execute = {
-            val query = it.jsonObject["query"]?.jsonPrimitive?.contentOrNull ?: ""
-            val news = it.jsonObject["news"]?.jsonPrimitive?.contentOrNull == "true"
-            val result = HeadlessBrowserSession.withController(context) { controller ->
-                controller.search(query, news)
-            }
-            listOf(UIMessagePart.Text(result))
-        }
-    ),
     Tool(
         name = "browser_navigate",
         description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
