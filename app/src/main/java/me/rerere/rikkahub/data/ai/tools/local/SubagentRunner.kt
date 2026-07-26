@@ -136,12 +136,21 @@ class SubagentRunner(
             ?.joinToString("") { it.text }
             ?.takeIf { it.isNotBlank() }
             ?: "(subagent finished with no text output)"
-        val newSessionId = progressStore.saveSession(lastMessages)
-        return JsonInstant.encodeToString(
-            buildJsonObject {
-                put("result", JsonPrimitive(resultText))
-                put("session_id", JsonPrimitive(newSessionId))
-            }
-        )
+        return if (sessionId != null) {
+            progressStore.updateSession(sessionId, lastMessages)
+            JsonInstant.encodeToString(
+                buildJsonObject {
+                    put("result", JsonPrimitive(resultText))
+                }
+            )
+        } else {
+            val newSessionId = progressStore.saveSession(lastMessages)
+            JsonInstant.encodeToString(
+                buildJsonObject {
+                    put("result", JsonPrimitive(resultText))
+                    put("session_id", JsonPrimitive(newSessionId))
+                }
+            )
+        }
     }
 }

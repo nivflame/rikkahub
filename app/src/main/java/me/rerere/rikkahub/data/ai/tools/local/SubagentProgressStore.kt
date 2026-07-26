@@ -38,6 +38,10 @@ class SubagentProgressStore {
         return id
     }
 
+    fun updateSession(id: Int, messages: List<UIMessage>) {
+        sessions[id] = messages
+    }
+
     fun getSession(id: Int): List<UIMessage>? = sessions[id]
 
     fun clearSession(id: Int) {
