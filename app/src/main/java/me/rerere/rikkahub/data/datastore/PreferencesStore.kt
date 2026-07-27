@@ -188,7 +188,7 @@ class SettingsStore(
             Settings(
                 enableWebSearch = preferences[ENABLE_WEB_SEARCH] == true,
                 enabledBrowserTools = preferences[ENABLED_BROWSER_TOOLS]?.let {
-                    JsonInstant.decodeFromString<Set<String>>(it)
+                    JsonInstant.decodeFromString<Set<String>>(it).filter { it in ALL_BROWSER_TOOL_NAMES }.toSet()
                 } ?: DEFAULT_ENABLED_BROWSER_TOOLS,
                 browserLastUrl = preferences[BROWSER_LAST_URL]?.takeIf { it.isNotBlank() },
                 browserToolDescriptions = preferences[BROWSER_TOOL_DESCRIPTIONS]?.let {

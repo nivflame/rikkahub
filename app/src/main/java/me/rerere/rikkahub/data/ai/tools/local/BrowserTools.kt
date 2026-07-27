@@ -201,30 +201,6 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         }
     ),
     Tool(
-        name = "browser_logs",
-        description = "Return captured browser logs.\n\nUsage notes:\n- Use type \"console\" for console output, or \"network\" for network request URLs (no response bodies)",
-        parameters = {
-            InputSchema.Obj(
-                properties = buildJsonObject {
-                    put("type", buildJsonObject {
-                        put("type", "string")
-                        put("enum", buildJsonArray {
-                            add("console"); add("network")
-                        })
-                        put("description", "The log type to retrieve. Defaults to \"console\"")
-                    })
-                }
-            )
-        },
-        execute = {
-            val type = it.jsonObject["type"]?.jsonPrimitive?.contentOrNull ?: "console"
-            val logs = HeadlessBrowserSession.withController(context) {
-                it.logs(type)
-            }
-            listOf(UIMessagePart.Text(logs.ifBlank { "no logs" }))
-        }
-    ),
-    Tool(
         name = "browser_waitfor",
         description = "Wait for an element to appear on the current page. Supports both CSS selectors and text search.\n\n- If the selector contains CSS metacharacters (#.>[:*), it is treated as a CSS selector\n- Otherwise it is treated as a text search (e.g., \"Login\" finds a button with that text)\n- Returns whether the element was found within the timeout\n- Requires an active page (call browser_navigate or WebFetch first)\n- Useful for waiting for Cloudflare challenges to complete, dynamic content to load, or popups to appear",
         parameters = {

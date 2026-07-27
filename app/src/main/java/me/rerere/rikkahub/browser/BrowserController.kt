@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.RectF
 import android.view.View
-import android.webkit.ConsoleMessage
-import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -41,8 +39,6 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     @Volatile
     private var turndownInjected = false
     private var turndownScript: String? = null
-    private val consoleLogs = ArrayDeque<String>()
-    private val networkLogs = ArrayDeque<String>()
 
     @Volatile
     private var lastRequestAt = 0L
@@ -69,20 +65,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 request?.url?.let {
-                    networkLogs.addLast("${request.method} ${it.toString().take(500)}")
-                    if (networkLogs.size > MAX_LOG_LINES) networkLogs.removeFirst()
                     lastRequestAt = System.currentTimeMillis()
                 }
                 return null
-            }
-        }
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                consoleMessage?.let {
-                    consoleLogs.addLast("[${it.messageLevel()}] ${it.message()}".take(500))
-                    if (consoleLogs.size > MAX_LOG_LINES) consoleLogs.removeFirst()
-                }
-                return true
             }
         }
     }
@@ -400,14 +385,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         raw?.let { unquoteJsString(it) } ?: "null"
     }
 
-    suspend fun logs(type: String): String = withContext(Dispatchers.Main) {
-        val src = if (type == "network") networkLogs else consoleLogs
-        src.joinToString("\n").take(MAX_LOG_CHARS)
-    }
-
     fun close() {
-        consoleLogs.clear()
-        networkLogs.clear()
     }
 
     suspend fun screenshot(
@@ -498,8 +476,6 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val MAX_CONTENT_CHARS = 50 * 1024
         const val MAX_LINKS = 200
         const val MAX_DOM_NODES = 200
-        const val MAX_LOG_CHARS = 64 * 1024
-        const val MAX_LOG_LINES = 500
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
     }
 }
