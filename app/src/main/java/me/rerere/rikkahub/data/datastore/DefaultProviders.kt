@@ -28,8 +28,23 @@ val DEFAULT_PROVIDERS: List<ProviderSetting> = listOf(
         ),
     ),
     ProviderSetting.OpenAI(
-        id = Uuid.parse("d5e7f8a2-3b6c-4d8e-9f0a-1b2c3d4e5f6a"),
-        name = "Fireworks",
-        baseUrl = "https://api.fireworks.ai/inference/v1",
+        id = Uuid.parse("b448af34-f539-501d-9d93-59ff8a0b5761"),
+        name = "Ollama",
+        baseUrl = "https://ollama.com/v1",
+    ),
+    ProviderSetting.OpenAI(
+        id = Uuid.parse("51f03656-b929-542f-98f3-4abdfd2dc12e"),
+        name = "Nvidia",
+        baseUrl = "https://integrate.api.nvidia.com/v1",
+    ),
+    ProviderSetting.OpenAI(
+        id = Uuid.parse("0cba13e5-1072-5998-a122-b988f38c0067"),
+        name = "Kilo",
+        baseUrl = "https://api.kilo.ai/api/gateway",
+    ),
+    ProviderSetting.OpenAI(
+        id = Uuid.parse("e21ac69a-a6a4-5190-8198-45081bc92868"),
+        name = "OpenRouter",
+        baseUrl = "https://openrouter.ai/api/v1",
     ),
 )
