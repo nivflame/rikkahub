@@ -14,13 +14,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.uuid.Uuid
 
 /**
  * Wraps a single [WebView] and exposes the suspend operations backing the browser tools.
@@ -155,10 +160,10 @@ else{snippetParts.push(lines[k]);}
 }
 if(!title) continue;
 seen.add(href);
-results.push(title.slice(0,150)+' | '+snippetParts.join(' - ').slice(0,100)+' | '+href);
+results.push(JSON.stringify({title:title.slice(0,150),snippet:snippetParts.join(' - ').slice(0,100),url:href}));
 }
 }
-return results.join('\n');
+return '['+results.join(',')+']';
 })();
             """.trimIndent()
 
@@ -166,12 +171,12 @@ return results.join('\n');
             val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
 
             if (extractText.isNotBlank()) {
-                for (line in extractText.split('\n')) {
-                    if (line.isBlank()) continue
-                    val url = line.substringAfterLast(" | ").trim()
+                val jsonArray = Json.parseToJsonElement(extractText).jsonArray
+                for (item in jsonArray) {
+                    val url = item.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: continue
                     if (url.isNotEmpty() && url !in seenUrls) {
                         seenUrls.add(url)
-                        allResults.add(line)
+                        allResults.add(item.toString())
                     }
                 }
             }
@@ -193,7 +198,14 @@ return '';
             pagesRemaining--
         }
 
-        return allResults.take(20).joinToString("\n").ifBlank { "no results found" }
+        if (allResults.isEmpty()) return "no results found"
+
+        val jsonResults = allResults.take(20).map { raw ->
+            val obj = Json.parseToJsonElement(raw).jsonObject.toMutableMap()
+            obj["id"] = JsonPrimitive(Uuid.random().toString().take(6))
+            JsonObject(obj)
+        }
+        return JsonArray(jsonResults).toString()
     }
 
     private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
