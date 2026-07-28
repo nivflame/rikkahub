@@ -23,6 +23,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.uuid.Uuid
@@ -54,6 +55,8 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.blockNetworkImage = true
+        webView.settings.loadsImagesAutomatically = false
         webView.settings.userAgentString = webView.settings.userAgentString + " RikkaHubBrowser/1.0"
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -69,8 +72,28 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             }
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                request?.url?.let {
+                request?.url?.let { url ->
                     lastRequestAt = System.currentTimeMillis()
+                    val host = url.host ?: return@let
+                    val path = url.path ?: ""
+                    val lowerPath = path.lowercase()
+
+                    // Block analytics and ad domains
+                    if (host in BLOCKED_DOMAINS) {
+                        return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
+                    }
+
+                    // Block fonts
+                    if (lowerPath.endsWith(".woff") || lowerPath.endsWith(".woff2") ||
+                        lowerPath.endsWith(".ttf") || lowerPath.endsWith(".otf") || lowerPath.endsWith(".eot")
+                    ) {
+                        return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
+                    }
+
+                    // Block favicons
+                    if (lowerPath.endsWith(".ico") || lowerPath.contains("favicon")) {
+                        return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
+                    }
                 }
                 return null
             }
@@ -208,7 +231,7 @@ return '';
         return JsonArray(jsonResults).toString()
     }
 
-    private suspend fun awaitNetworkIdle(timeoutMs: Long = 8000, quietMs: Long = 500) {
+    private suspend fun awaitNetworkIdle(timeoutMs: Long = 3000, quietMs: Long = 300) {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             val now = System.currentTimeMillis()
@@ -489,5 +512,28 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val MAX_LINKS = 200
         const val MAX_DOM_NODES = 200
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
+
+        private val BLOCKED_DOMAINS = setOf(
+            "cdn.optimizely.com",
+            "cdn.tinypass.com",
+            "static.chartbeat.com",
+            "www.googletagmanager.com",
+            "www.googleadservices.com",
+            "www.googletagservices.com",
+            "www.google-analytics.com",
+            "ssl.google-analytics.com",
+            "doubleclick.net",
+            "ad.doubleclick.net",
+            "stats.g.doubleclick.net",
+            "connect.facebook.net",
+            "static.ads-twitter.com",
+            "analytics.twitter.com",
+            "bat.bing.com",
+            "pixel.adsafeprotected.com",
+            "sb.scorecardresearch.com",
+            "rum.staticOpera.com",
+            "cdn.branch.io",
+            "app.link",
+        )
     }
 }
