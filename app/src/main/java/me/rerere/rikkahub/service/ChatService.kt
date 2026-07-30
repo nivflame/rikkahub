@@ -265,6 +265,7 @@ class ChatService(
         }
         if (sessions.remove(conversationId, session)) {
             session.cleanup()
+            subagentProgressStore.clearConversationSessions(conversationId)
             _sessionsVersion.value++
             Log.i(TAG, "removeSession: $conversationId (remaining: ${sessions.size})")
         }
@@ -719,7 +720,7 @@ class ChatService(
                                         ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
                                     val sessionId = it.jsonObject["session_id"]?.jsonPrimitive?.intOrNull
-                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", sessionId = sessionId)))
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", conversationId = conversationId, sessionId = sessionId)))
                                 }
                             )
                         )

@@ -18,6 +18,7 @@ import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.utils.JsonInstant
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.uuid.Uuid
 
 class SubagentRunner(
     private val generationHandler: GenerationHandler,
@@ -31,6 +32,7 @@ class SubagentRunner(
         subagentType: String,
         prompt: String,
         toolCallId: String,
+        conversationId: Uuid,
         sessionId: Int? = null,
     ): String {
         val settings = settingsStore.settingsFlow.value
@@ -46,7 +48,7 @@ class SubagentRunner(
 
         running.incrementAndGet()
         try {
-            return runSubagent(def, prompt, model, parentTools, settings, toolCallId, sessionId)
+            return runSubagent(def, prompt, model, parentTools, settings, toolCallId, conversationId, sessionId)
         } catch (e: Exception) {
             return "error: ${e.message}"
         } finally {
@@ -62,6 +64,7 @@ class SubagentRunner(
         parentTools: List<Tool>,
         settings: Settings,
         toolCallId: String,
+        conversationId: Uuid,
         sessionId: Int?,
     ): String {
         val subTools = parentTools.filter { tool ->
@@ -78,7 +81,7 @@ class SubagentRunner(
             enableMemory = false,
             modeInjectionIds = def.modeInjectionIds,
         )
-        val previousMessages = sessionId?.let { progressStore.getSession(it) }
+        val previousMessages = sessionId?.let { progressStore.getSession(conversationId, it) }
         val messages = if (previousMessages != null) {
             previousMessages + UIMessage(
                 role = MessageRole.USER,
@@ -137,14 +140,14 @@ class SubagentRunner(
             ?.takeIf { it.isNotBlank() }
             ?: "(subagent finished with no text output)"
         return if (sessionId != null) {
-            progressStore.updateSession(sessionId, lastMessages)
+            progressStore.updateSession(conversationId, sessionId, lastMessages)
             JsonInstant.encodeToString(
                 buildJsonObject {
                     put("result", JsonPrimitive(resultText))
                 }
             )
         } else {
-            val newSessionId = progressStore.saveSession(lastMessages)
+            val newSessionId = progressStore.saveSession(conversationId, lastMessages)
             JsonInstant.encodeToString(
                 buildJsonObject {
                     put("result", JsonPrimitive(resultText))
