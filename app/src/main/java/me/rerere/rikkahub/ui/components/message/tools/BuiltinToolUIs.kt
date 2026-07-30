@@ -323,7 +323,6 @@ object SubagentToolUI : ToolUIRenderer {
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.shimmer(isLoading = context.loading),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -341,6 +340,15 @@ object SubagentToolUI : ToolUIRenderer {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = true),
+                maxLines = 1,
+            )
+            return
+        }
+        if (progress.finished) {
+            Text(
+                text = "Done",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 maxLines = 1,
             )
             return

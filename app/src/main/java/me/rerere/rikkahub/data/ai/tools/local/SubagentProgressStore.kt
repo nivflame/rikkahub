@@ -13,6 +13,7 @@ data class SubagentProgress(
     val currentTool: String? = null,
     val latestText: String = "",
     val step: Int = 0,
+    val finished: Boolean = false,
 )
 
 class SubagentProgressStore {
@@ -26,8 +27,17 @@ class SubagentProgressStore {
         _active.value = _active.value + (toolCallId to progress)
     }
 
+    fun markFinished(toolCallId: String) {
+        val current = _active.value[toolCallId] ?: return
+        _active.value = _active.value + (toolCallId to current.copy(finished = true, currentTool = null))
+    }
+
     fun remove(toolCallId: String) {
         _active.value = _active.value - toolCallId
+    }
+
+    fun clearAll() {
+        _active.value = emptyMap()
     }
 
     fun get(toolCallId: String): SubagentProgress? = _active.value[toolCallId]

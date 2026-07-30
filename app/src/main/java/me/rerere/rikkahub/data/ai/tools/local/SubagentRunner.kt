@@ -51,7 +51,7 @@ class SubagentRunner(
             return "error: ${e.message}"
         } finally {
             running.decrementAndGet()
-            progressStore.remove(toolCallId)
+            progressStore.markFinished(toolCallId)
         }
     }
 

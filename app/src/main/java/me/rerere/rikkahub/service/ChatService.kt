@@ -70,7 +70,7 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.ai.tools.local.SubagentProgressStore
 import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
 import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
-import me.rerere.rikkahub.data.ai.tools.local.currentToolCallId
+import me.rerere.rikkahub.data.ai.tools.local.toolCallId
 import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
@@ -112,6 +112,7 @@ import me.rerere.workspace.WorkspaceShellStatus
 import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
 
 private const val TAG = "ChatService"
@@ -718,7 +719,7 @@ class ChatService(
                                         ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
                                     val sessionId = it.jsonObject["session_id"]?.jsonPrimitive?.intOrNull
-                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = currentToolCallId.get() ?: "", sessionId = sessionId)))
+                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", sessionId = sessionId)))
                                 }
                             )
                         )
@@ -749,6 +750,7 @@ class ChatService(
                 // 取消 Live Update 通知
                 cancelLiveUpdateNotification(conversationId)
                 stopGenerationKeepAlive()
+                subagentProgressStore.clearAll()
 
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = getConversationFlow(conversationId).value.copy(

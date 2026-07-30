@@ -4,6 +4,9 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -35,7 +38,8 @@ import me.rerere.ai.ui.limitContext
 import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.MessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.OutputMessageTransformer
-import me.rerere.rikkahub.data.ai.tools.local.currentToolCallId
+import me.rerere.rikkahub.data.ai.tools.local.ToolCallIdContextElement
+import me.rerere.rikkahub.data.ai.tools.local.toolCallId
 import me.rerere.rikkahub.data.files.FileFolders
 import java.io.File
 import me.rerere.rikkahub.data.ai.transformers.onGenerationFinish
@@ -253,6 +257,7 @@ class GenerationHandler(
 
             // Handle tools (execute approved tools, handle denied tools)
             val executedTools = arrayListOf<UIMessagePart.Tool>()
+            val pendingExecution = mutableListOf<Pair<UIMessagePart.Tool, Tool>>()
             toolsToProcess.forEach { tool ->
                 when (tool.approvalState) {
                     is ToolApprovalState.Denied -> {
@@ -291,29 +296,9 @@ class GenerationHandler(
                     }
 
                     else -> {
-                        // Auto or Approved - execute the tool
-                        runCatching {
-                            val toolDef = toolsInternal.find { toolDef -> toolDef.name == tool.toolName }
-                                ?: error("Tool ${tool.toolName} not found")
-                            val args = runCatching {
-                                json.parseToJsonElement(tool.input.ifBlank { "{}" })
-                            }.getOrElse {
-                                error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
-                            }
-                            Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
-                            currentToolCallId.set(tool.toolCallId)
-                            val result = toolDef.execute(args)
-                            currentToolCallId.set(null)
-                            val hasShellAccess = toolsInternal.any { it.name == "Bash" }
-                            executedTools += tool.copy(
-                                output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
-                            )
-                            recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
-                        }.onFailure {
-                            currentToolCallId.set(null)
-                            // 取消必须向上传播，否则停止生成会被误报为工具执行错误
-                            if (it is CancellationException) throw it
-                            it.printStackTrace()
+                        // Auto or Approved - collect for parallel execution
+                        val toolDef = toolsInternal.find { toolDef -> toolDef.name == tool.toolName }
+                        if (toolDef == null) {
                             executedTools += tool.copy(
                                 output = listOf(
                                     UIMessagePart.Text(
@@ -321,17 +306,66 @@ class GenerationHandler(
                                             buildJsonObject {
                                                 put(
                                                     "error",
-                                                    JsonPrimitive(buildString {
-                                                        append("[${it.javaClass.name}] ${it.message}")
-                                                        append("\n${it.stackTraceToString()}")
-                                                    })
+                                                    JsonPrimitive("Tool ${tool.toolName} not found")
                                                 )
                                             }
                                         )
                                     )
                                 )
                             )
+                        } else {
+                            pendingExecution += tool to toolDef
                         }
+                    }
+                }
+            }
+
+            // Execute tools in parallel
+            if (pendingExecution.isNotEmpty()) {
+                val hasShellAccess = toolsInternal.any { it.name == "Bash" }
+                val results = coroutineScope {
+                    pendingExecution.map { (tool, toolDef) ->
+                        async(toolCallIdCtx(tool.toolCallId)) {
+                            runCatching {
+                                val args = runCatching {
+                                    json.parseToJsonElement(tool.input.ifBlank { "{}" })
+                                }.getOrElse {
+                                    error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
+                                }
+                                Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
+                                toolDef.execute(args)
+                            }
+                        }
+                    }.awaitAll()
+                }
+                pendingExecution.forEachIndexed { index, (tool, _) ->
+                    val result = results[index]
+                    if (result.isSuccess) {
+                        executedTools += tool.copy(
+                            output = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
+                        )
+                        recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
+                    } else {
+                        val ex = result.exceptionOrNull()
+                        if (ex is CancellationException) throw ex
+                        ex?.printStackTrace()
+                        executedTools += tool.copy(
+                            output = listOf(
+                                UIMessagePart.Text(
+                                    json.encodeToString(
+                                        buildJsonObject {
+                                            put(
+                                                "error",
+                                                JsonPrimitive(buildString {
+                                                    append("[${ex?.javaClass?.name}] ${ex?.message}")
+                                                    append("\n${ex?.stackTraceToString()}")
+                                                })
+                                            )
+                                        }
+                                    )
+                                )
+                            )
+                        )
                     }
                 }
             }
@@ -363,6 +397,8 @@ class GenerationHandler(
         }
 
     }.flowOn(Dispatchers.IO)
+
+    private fun toolCallIdCtx(toolCallId: String) = ToolCallIdContextElement(toolCallId)
 
     private suspend fun generateInternal(
         assistant: Assistant,
