@@ -1,5 +1,7 @@
 package me.rerere.workspace
 
+import com.github.luben.zstd.ZstdInputStream
+import com.github.luben.zstd.ZstdOutputStream
 import java.io.BufferedInputStream
 import java.io.EOFException
 import java.io.File
@@ -11,7 +13,6 @@ import java.net.URL
 import java.nio.file.Files
 import java.util.Locale
 import java.util.zip.GZIPInputStream
-import java.util.zip.GZIPOutputStream
 import org.tukaani.xz.XZInputStream
 
 class RootfsInstaller(
@@ -55,8 +56,13 @@ class RootfsInstaller(
     ) {
         val linuxDir = manager.linuxDir(root)
         require(linuxDir.exists()) { "Rootfs not found: $root" }
-        GZIPOutputStream(outputStream).use { gzip ->
-            val tarWriter = TarWriter(gzip)
+        ZstdOutputStream(outputStream).use { zstd ->
+            zstd.setLevel(-1)
+            val cores = Runtime.getRuntime().availableProcessors()
+            if (cores > 1) {
+                zstd.setWorkers(cores)
+            }
+            val tarWriter = TarWriter(zstd)
             val basePath = linuxDir.canonicalFile
             val totalEntries = countEntries(basePath)
             var entries = 0
@@ -171,12 +177,29 @@ class RootfsInstaller(
         }
     }
 
+    private fun detectCompressionStream(input: InputStream): InputStream {
+        val buffered = if (input.markSupported()) input else BufferedInputStream(input)
+        buffered.mark(4)
+        val magic = ByteArray(4)
+        val read = buffered.read(magic)
+        buffered.reset()
+        if (read >= 4 &&
+            magic[0] == 0x28.toByte() &&
+            magic[1] == 0xB5.toByte() &&
+            magic[2] == 0x2F.toByte() &&
+            magic[3] == 0xFD.toByte()
+        ) {
+            return ZstdInputStream(buffered)
+        }
+        return GZIPInputStream(buffered)
+    }
+
     private fun extractTarFromStream(
         inputStream: InputStream,
         targetDir: File,
         onProgress: (RootfsInstallProgress) -> Unit,
     ) {
-        GZIPInputStream(BufferedInputStream(inputStream)).use { input ->
+        detectCompressionStream(inputStream).use { input ->
             var entries = 0
             var pendingName: String? = null
             var pendingLinkName: String? = null
@@ -659,6 +682,9 @@ class RootfsInstaller(
         },
         TAR_XZ("tar.xz") {
             override fun wrapStream(input: InputStream): InputStream = XZInputStream(input)
+        },
+        TAR_ZST("tar.zst") {
+            override fun wrapStream(input: InputStream): InputStream = ZstdInputStream(input)
         };
 
         abstract fun wrapStream(input: InputStream): InputStream
@@ -667,6 +693,7 @@ class RootfsInstaller(
             fun fromUrl(url: String): ArchiveFormat {
                 val path = url.substringBefore('?').substringBefore('#')
                 return when {
+                    path.endsWith(".tar.zst") || path.endsWith(".tzst") -> TAR_ZST
                     path.endsWith(".tar.xz") || path.endsWith(".txz") -> TAR_XZ
                     else -> TAR_GZ
                 }

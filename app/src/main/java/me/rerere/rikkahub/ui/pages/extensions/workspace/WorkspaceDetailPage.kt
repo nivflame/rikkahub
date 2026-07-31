@@ -121,7 +121,7 @@ fun WorkspaceDetailPage(id: String) {
     var showImportDialog by remember { mutableStateOf(false) }
     val rootfsReady = state.workspace?.shellStatus == WorkspaceShellStatus.READY.name
     val rootfsExportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/gzip"),
+        contract = ActivityResultContracts.CreateDocument("application/zstd"),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val outputStream = context.contentResolver.openOutputStream(uri) ?: return@rememberLauncherForActivityResult
@@ -174,7 +174,7 @@ fun WorkspaceDetailPage(id: String) {
                                         showOverflowMenu = false
                                         val workspaceName = state.workspace?.name ?: "workspace"
                                         val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                                        rootfsExportLauncher.launch("rikkahub_${workspaceName}_$date.tar.gz")
+                                        rootfsExportLauncher.launch("rikkahub_${workspaceName}_$date.tar.zst")
                                     },
                                 )
                             }
@@ -182,7 +182,7 @@ fun WorkspaceDetailPage(id: String) {
                                 text = { Text(stringResource(R.string.workspace_detail_import_rootfs)) },
                                 onClick = {
                                     showOverflowMenu = false
-                                    rootfsImportLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "*/*"))
+                                    rootfsImportLauncher.launch(arrayOf("application/zstd", "application/x-zstd", "application/gzip", "application/x-gzip", "*/*"))
                                 },
                             )
                         }
