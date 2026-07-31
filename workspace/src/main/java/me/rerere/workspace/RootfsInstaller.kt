@@ -236,10 +236,20 @@ class RootfsInstaller(
                 val target = targetDir.safeResolve(header.name)
                 target.parentFile?.mkdirs()
                 when (header.type) {
-                    TarEntryType.DIRECTORY -> target.mkdirs()
+                    TarEntryType.DIRECTORY -> {
+                        if (Files.isSymbolicLink(target.toPath()) || (target.exists() && !target.isDirectory)) {
+                            target.delete()
+                        }
+                        target.mkdirs()
+                    }
                     TarEntryType.SYMLINK -> createSymlink(targetDir, target, header.linkName)
                     TarEntryType.HARDLINK -> createHardLink(targetDir, target, header.linkName)
                     TarEntryType.FILE -> {
+                        when {
+                            Files.isSymbolicLink(target.toPath()) -> target.delete()
+                            target.isDirectory -> target.deleteRecursively()
+                            target.exists() -> target.delete()
+                        }
                         target.outputStream().use { output ->
                             input.copyExactly(output, header.size)
                         }
@@ -432,10 +442,20 @@ class RootfsInstaller(
                 val target = targetDir.safeResolve(header.name)
                 target.parentFile?.mkdirs()
                 when (header.type) {
-                    TarEntryType.DIRECTORY -> target.mkdirs()
+                    TarEntryType.DIRECTORY -> {
+                        if (Files.isSymbolicLink(target.toPath()) || (target.exists() && !target.isDirectory)) {
+                            target.delete()
+                        }
+                        target.mkdirs()
+                    }
                     TarEntryType.SYMLINK -> createSymlink(targetDir, target, header.linkName)
                     TarEntryType.HARDLINK -> createHardLink(targetDir, target, header.linkName)
                     TarEntryType.FILE -> {
+                        when {
+                            Files.isSymbolicLink(target.toPath()) -> target.delete()
+                            target.isDirectory -> target.deleteRecursively()
+                            target.exists() -> target.delete()
+                        }
                         target.outputStream().use { output ->
                             input.copyExactly(output, header.size)
                         }
