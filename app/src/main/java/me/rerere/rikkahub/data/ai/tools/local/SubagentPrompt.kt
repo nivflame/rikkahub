@@ -85,3 +85,48 @@ private fun parseSubagentFrontmatter(content: String): Pair<Map<String, String>,
     }
     return map to body
 }
+
+fun mergeSubagentPrompts(
+    backup: List<SubagentPrompt>,
+    current: List<SubagentPrompt>,
+    defaults: List<SubagentPrompt>,
+): List<SubagentPrompt> {
+    val defaultByName = defaults.associateBy { it.name }
+    val currentEditedBuiltIns = current.filter { prompt ->
+        prompt.isBuiltIn && defaultByName[prompt.name]?.let { default ->
+            prompt.copy(id = default.id) != default
+        } ?: false
+    }.associateBy { it.name }
+
+    val result = mutableListOf<SubagentPrompt>()
+    val processedNames = mutableSetOf<String>()
+    val processedIds = mutableSetOf<Uuid>()
+
+    for (prompt in backup) {
+        if (prompt.isBuiltIn && prompt.name in currentEditedBuiltIns) {
+            result.add(currentEditedBuiltIns[prompt.name]!!)
+        } else {
+            result.add(prompt)
+        }
+        processedNames.add(prompt.name)
+        if (!prompt.isBuiltIn) {
+            processedIds.add(prompt.id)
+        }
+    }
+
+    for (default in defaults) {
+        if (default.name !in processedNames) {
+            result.add(default)
+            processedNames.add(default.name)
+        }
+    }
+
+    for (prompt in current) {
+        if (!prompt.isBuiltIn && prompt.id !in processedIds) {
+            result.add(prompt)
+            processedIds.add(prompt.id)
+        }
+    }
+
+    return result
+}

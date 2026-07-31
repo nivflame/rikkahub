@@ -12,6 +12,8 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.WebDavConfig
 import me.rerere.rikkahub.data.datastore.migration.SettingsJsonMigrator
+import me.rerere.rikkahub.data.ai.tools.local.loadDefaultSubagentPrompts
+import me.rerere.rikkahub.data.ai.tools.local.mergeSubagentPrompts
 import me.rerere.rikkahub.utils.fileSizeToString
 import java.io.File
 import java.io.FileInputStream
@@ -229,7 +231,14 @@ class WebDavSync(
                             try {
                                 val migratedJson = SettingsJsonMigrator.migrate(settingsJson)
                                 val settings = json.decodeFromString<Settings>(migratedJson)
-                                settingsStore.update(settings)
+                                val currentSettings = settingsStore.settingsFlow.value
+                                val defaults = loadDefaultSubagentPrompts(context.assets)
+                                val mergedSubagentPrompts = mergeSubagentPrompts(
+                                    backup = settings.subagentPrompts,
+                                    current = currentSettings.subagentPrompts,
+                                    defaults = defaults,
+                                )
+                                settingsStore.update(settings.copy(subagentPrompts = mergedSubagentPrompts))
                                 Log.i(TAG, "restoreFromBackupFile: Settings restored successfully")
                             } catch (e: Exception) {
                                 Log.e(TAG, "restoreFromBackupFile: Failed to restore settings", e)
