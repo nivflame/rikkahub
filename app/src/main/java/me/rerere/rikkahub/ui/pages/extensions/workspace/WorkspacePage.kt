@@ -48,6 +48,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -79,6 +80,11 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     val haptic = LocalHapticFeedback.current
+
+    LifecycleResumeEffect(Unit) {
+        vm.refreshSizes()
+        onPauseOrDispose { }
+    }
 
     Scaffold(
         topBar = {

@@ -26,6 +26,7 @@ class WorkspaceVM(
                 list.sortedBy { orderMap[it.id] ?: Int.MAX_VALUE }
             }.collect { ordered ->
                 _workspaces.value = ordered
+                refreshSizes()
             }
         }
     }
@@ -35,15 +36,13 @@ class WorkspaceVM(
     private val _workspaceSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
     val workspaceSizes = _workspaceSizes.asStateFlow()
 
-    init {
+    fun refreshSizes() {
         viewModelScope.launch {
-            repository.listFlow().collect { list ->
-                val sizes = mutableMapOf<String, Long>()
-                for (workspace in list) {
-                    sizes[workspace.id] = repository.getWorkspaceSize(workspace.id)
-                }
-                _workspaceSizes.value = sizes
+            val sizes = mutableMapOf<String, Long>()
+            for (workspace in _workspaces.value) {
+                sizes[workspace.id] = repository.getWorkspaceSize(workspace.id)
             }
+            _workspaceSizes.value = sizes
         }
     }
 
