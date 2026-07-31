@@ -174,7 +174,7 @@ fun WorkspaceDetailPage(id: String) {
                                         showOverflowMenu = false
                                         val workspaceName = state.workspace?.name ?: "workspace"
                                         val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-                                        rootfsExportLauncher.launch("rikkahub_${workspaceName}_$date.tar.zst")
+                                        rootfsExportLauncher.launch("rikkahub_workspace(${workspaceName})_${date}.tar.zst")
                                     },
                                 )
                             }
