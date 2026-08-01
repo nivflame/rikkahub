@@ -11,6 +11,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -142,19 +143,21 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.url ?: ""
     }
 
-    suspend fun search(query: String, news: Boolean): String {
+    suspend fun search(query: String, news: Boolean, resultCount: Int = 20): String {
+        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
         val baseUrl = if (news) {
-            "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8") + "&tbm=nws"
+            "https://www.google.com/search?q=$encodedQuery&tbm=nws"
         } else {
-            "https://www.google.com/search?q=" + java.net.URLEncoder.encode(query, "UTF-8")
+            "https://www.google.com/search?q=$encodedQuery"
         }
 
         val allResults = mutableListOf<String>()
         val seenUrls = mutableSetOf<String>()
-        var currentUrl = baseUrl
-        var pagesRemaining = 3
+        var start = 0
+        var pagesRemaining = (resultCount + 9) / 10
 
-        while (allResults.size < 20 && pagesRemaining > 0 && currentUrl.isNotEmpty()) {
+        while (allResults.size < resultCount && pagesRemaining > 0) {
+            val currentUrl = if (start > 0) "$baseUrl&start=$start" else baseUrl
             navigate(currentUrl)
 
             val extractJs = """
@@ -162,6 +165,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 var containers=document.querySelectorAll('[class*="Ww4FFb"]');
 var results=[];
 var seen=new Set();
+var siteNames=['YouTube','Reddit','Medium','Facebook','Twitter','X','Instagram','TikTok','LinkedIn','Pinterest','Quora'];
 for(var i=0;i<containers.length;i++){
 var links=containers[i].querySelectorAll('a[href]');
 for(var j=0;j<links.length;j++){
@@ -170,60 +174,154 @@ var href=link.href;
 if(!href||href.indexOf('google.')>=0) continue;
 if(seen.has(href)) continue;
 var text=(link.innerText||'').trim();
-if(!text||text.length<10) continue;
+if(!text||text.length<5) continue;
 var lines=text.split('\n').filter(function(s){return s.trim();});
 if(lines.length<2) continue;
 var title='';
-var maxLen=0;
-var snippetParts=[];
+var snippet='';
+var line1=lines[1].trim();
+if(line1.indexOf('http')===0||line1.indexOf('www.')===0){
+title=lines.length>=3?lines[2].trim():'';
+if(lines.length>=4){snippet=lines.slice(3).join(' ').trim().slice(0,200);}
+}else{
+var longest='';
 for(var k=0;k<lines.length;k++){
-if(lines[k].indexOf('http')===0||lines[k].indexOf('www.')===0) continue;
-if(lines[k].length>maxLen){if(title)snippetParts.push(title);maxLen=lines[k].length;title=lines[k];}
-else{snippetParts.push(lines[k]);}
+var l=lines[k].trim();
+if(l.indexOf('http')===0||l.indexOf('www.')===0) continue;
+if(l.match(/^\d+\s*(hour|day|week|month|year|ago|min)/i)) continue;
+if(l.match(/^\d{4}$/)) continue;
+if(siteNames.indexOf(l)>=0) continue;
+if(l.indexOf('\u00b7')>=0) continue;
+if(l.length>longest.length) longest=l;
 }
-if(!title) continue;
+title=longest;
+}
+if(!title||title.length<3) continue;
+if(!snippet){
+var descEl=containers[i].querySelector('.VwiC3b, .GI74Re');
+if(descEl) snippet=descEl.innerText.trim().slice(0,200);
+}
 seen.add(href);
-results.push(JSON.stringify({title:title.slice(0,150),snippet:snippetParts.join(' - ').slice(0,100),url:href}));
+results.push(JSON.stringify({title:title.slice(0,150),snippet:snippet,url:href}));
 }
 }
 return '['+results.join(',')+']';
 })();
             """.trimIndent()
 
-            val extractRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
-            val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
+            repeat(5) { attempt ->
+                if (attempt > 0) delay(500)
+                val extractRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
+                val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
 
-            if (extractText.isNotBlank()) {
-                val jsonArray = Json.parseToJsonElement(extractText).jsonArray
-                for (item in jsonArray) {
-                    val url = item.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: continue
-                    if (url.isNotEmpty() && url !in seenUrls) {
-                        seenUrls.add(url)
-                        allResults.add(item.toString())
+                if (extractText.isNotBlank()) {
+                    val jsonArray = Json.parseToJsonElement(extractText).jsonArray
+                    for (item in jsonArray) {
+                        val url = item.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: continue
+                        if (url.isNotEmpty() && url !in seenUrls) {
+                            seenUrls.add(url)
+                            allResults.add(item.toString())
+                        }
                     }
                 }
+
+                if (allResults.size > 0) return@repeat
             }
 
-            if (allResults.size >= 20) break
-
-            val nextJs = """
-(function(){
-var links=document.querySelectorAll('a[href]');
-for(var i=0;i<links.length;i++){
-if(links[i].href.indexOf('google.com/search')>=0&&links[i].href.indexOf('start=')>=0) return links[i].href;
-}
-return '';
-})();
-            """.trimIndent()
-
-            val nextRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(nextJs) }
-            currentUrl = nextRaw?.let { unquoteJsString(it) } ?: ""
+            if (allResults.size >= resultCount) break
+            start += 10
             pagesRemaining--
         }
 
-        if (allResults.isEmpty()) return "no results found"
+        if (allResults.isEmpty()) {
+            val noResultJs = "(function(){return document.body.innerText.indexOf('did not match any documents')>=0;})();"
+            val noResultRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(noResultJs) }
+            val isNoResults = noResultRaw?.let { unquoteJsString(it) } == "true"
+            if (isNoResults) return "{\"error\":\"Your search did not have any results. You MUST use different query.\"}"
+            return "{\"error\":\"RATE LIMITED: You MUST wait 60s before retrying. Run 'sleep 60' via Bash, then call WebSearch again with the same query\"}"
+        }
 
-        val jsonResults = allResults.take(20).map { raw ->
+        val jsonResults = allResults.take(resultCount).map { raw ->
+            val obj = Json.parseToJsonElement(raw).jsonObject.toMutableMap()
+            obj["id"] = JsonPrimitive(Uuid.random().toString().take(6))
+            JsonObject(obj)
+        }
+        return JsonArray(jsonResults).toString()
+    }
+
+    suspend fun searchBrave(query: String, news: Boolean, resultCount: Int = 10): String {
+        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+        val basePath = if (news) "search.brave.com/news" else "search.brave.com/search"
+
+        val allResults = mutableListOf<String>()
+        val seenUrls = mutableSetOf<String>()
+        var offset = 0
+        var pagesRemaining = (resultCount + 9) / 10
+
+        while (allResults.size < resultCount && pagesRemaining > 0) {
+            val url = "https://$basePath?q=$encodedQuery" +
+                if (offset > 0) "&offset=$offset&spellcheck=0" else ""
+            navigate(url)
+
+            val extractJs = """
+(function(){
+var selectors='#results .snippet[data-type="web"], main div.results .snippet[data-type="news"], #results .snippet[data-type="news"]';
+var snippets=document.querySelectorAll(selectors);
+var results=[];
+var seen=window.__seenUrls||new Set();
+window.__seenUrls=seen;
+for(var i=0;i<snippets.length;i++){
+var s=snippets[i];
+var dataType=s.getAttribute('data-type');
+if(dataType!=='web'&&dataType!=='news') continue;
+var titleEl=s.querySelector('.title, .search-snippet-title');
+var title=titleEl?titleEl.innerText.trim():'';
+var link=s.querySelector('a[href]');
+var url=link?link.href:'';
+if(!url||url.indexOf('search.brave.com')>=0) continue;
+if(seen.has(url)) continue;
+if(!title) continue;
+var descEls=s.querySelectorAll('.content, .description, .snippet-description');
+var descParts=[];
+for(var j=0;j<descEls.length;j++){
+var t=(descEls[j].innerText||'').trim();
+if(t&&t.length>5) descParts.push(t);
+}
+var desc=descParts.join(' ').slice(0,200);
+seen.add(url);
+results.push(JSON.stringify({title:title.slice(0,150),snippet:desc,url:url}));
+}
+return '['+results.join(',')+']';
+})();
+            """.trimIndent()
+
+            repeat(5) { attempt ->
+                if (attempt > 0) delay(500)
+                val extractRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
+                val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
+
+                if (extractText.isNotBlank()) {
+                    val jsonArray = Json.parseToJsonElement(extractText).jsonArray
+                    for (item in jsonArray) {
+                        val url = item.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: continue
+                        if (url.isNotEmpty() && url !in seenUrls) {
+                            seenUrls.add(url)
+                            allResults.add(item.toString())
+                        }
+                    }
+                }
+
+                if (allResults.size > 0) return@repeat
+            }
+
+            if (allResults.size >= resultCount) break
+            offset += 20
+            pagesRemaining--
+        }
+
+        if (allResults.isEmpty()) return "{\"error\":\"RATE LIMITED: You MUST wait 60s before retrying. Run 'sleep 60' via Bash, then call WebSearch again with the same query\"}"
+
+        val jsonResults = allResults.take(resultCount).map { raw ->
             val obj = Json.parseToJsonElement(raw).jsonObject.toMutableMap()
             obj["id"] = JsonPrimitive(Uuid.random().toString().take(6))
             JsonObject(obj)

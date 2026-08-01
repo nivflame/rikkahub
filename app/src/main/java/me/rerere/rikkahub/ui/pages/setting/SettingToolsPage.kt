@@ -17,6 +17,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.Puzzle
+import me.rerere.hugeicons.stroke.Search02
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
@@ -52,6 +53,12 @@ fun SettingToolsPage() {
                 leadingContent = { Icon(HugeIcons.Earth, null) },
                 supportingContent = { Text("Enable or disable individual browser tools") },
                 headlineContent = { Text("Browser") },
+            )
+            item(
+                onClick = { navController.navigate(Screen.SettingWebSearch) },
+                leadingContent = { Icon(HugeIcons.Search02, null) },
+                supportingContent = { Text("Search engine and result count for the WebSearch tool") },
+                headlineContent = { Text("WebSearch") },
             )
             item(
                 onClick = { navController.navigate(Screen.SettingSubagent) },

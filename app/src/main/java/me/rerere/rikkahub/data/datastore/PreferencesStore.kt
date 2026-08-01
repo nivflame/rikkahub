@@ -88,6 +88,9 @@ class SettingsStore(
 
         // 模型选择
         val ENABLE_WEB_SEARCH = booleanPreferencesKey("enable_web_search")
+        val WEB_SEARCH_ENGINE = stringPreferencesKey("web_search_engine")
+        val WEB_SEARCH_RESULT_COUNT = intPreferencesKey("web_search_result_count")
+        val WEB_SEARCH_DELAY = intPreferencesKey("web_search_delay")
         val ENABLED_BROWSER_TOOLS = stringPreferencesKey("enabled_browser_tools")
         val BROWSER_LAST_URL = stringPreferencesKey("browser_last_url")
         val BROWSER_TOOL_DESCRIPTIONS = stringPreferencesKey("browser_tool_descriptions")
@@ -187,6 +190,9 @@ class SettingsStore(
         }.map { preferences ->
             Settings(
                 enableWebSearch = preferences[ENABLE_WEB_SEARCH] == true,
+                webSearchEngine = preferences[WEB_SEARCH_ENGINE] ?: "google",
+                webSearchResultCount = preferences[WEB_SEARCH_RESULT_COUNT] ?: 10,
+                webSearchDelay = preferences[WEB_SEARCH_DELAY] ?: 3,
                 enabledBrowserTools = preferences[ENABLED_BROWSER_TOOLS]?.let {
                     JsonInstant.decodeFromString<Set<String>>(it).filter { it in ALL_BROWSER_TOOL_NAMES }.toSet()
                 } ?: DEFAULT_ENABLED_BROWSER_TOOLS,
@@ -394,6 +400,9 @@ class SettingsStore(
             preferences[DISPLAY_SETTING] = JsonInstant.encodeToString(settings.displaySetting)
 
             preferences[ENABLE_WEB_SEARCH] = settings.enableWebSearch
+            preferences[WEB_SEARCH_ENGINE] = settings.webSearchEngine
+            preferences[WEB_SEARCH_RESULT_COUNT] = settings.webSearchResultCount
+            preferences[WEB_SEARCH_DELAY] = settings.webSearchDelay
             preferences[ENABLED_BROWSER_TOOLS] = JsonInstant.encodeToString(settings.enabledBrowserTools)
             preferences[BROWSER_LAST_URL] = settings.browserLastUrl ?: ""
             preferences[BROWSER_TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.browserToolDescriptions)
@@ -564,6 +573,9 @@ data class Settings(
     val developerMode: Boolean = false,
     val displaySetting: DisplaySetting = DisplaySetting(),
     val enableWebSearch: Boolean = false,
+    val webSearchEngine: String = "google",
+    val webSearchResultCount: Int = 10,
+    val webSearchDelay: Int = 3,
     val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
     val browserLastUrl: String? = null,
     val browserToolDescriptions: Map<String, String> = emptyMap(),

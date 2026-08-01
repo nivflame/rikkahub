@@ -614,7 +614,7 @@ class ChatService(
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
-                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription))
+                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription, settings.webSearchEngine, settings.webSearchResultCount, settings.webSearchDelay.toLong() * 1000))
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
@@ -684,6 +684,9 @@ class ChatService(
                             settings.enabledBrowserTools,
                             settings.browserToolDescriptions,
                             settings.askQuestionDescription,
+                            settings.webSearchEngine,
+                            settings.webSearchResultCount,
+                            settings.webSearchDelay.toLong() * 1000,
                         )
                         val allSearchForSubagent = if (settings.enableWebSearch) createSearchTools(settings).toList() else emptyList()
                         val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, listOf(LocalToolOption.Bash, LocalToolOption.Read, LocalToolOption.Write, LocalToolOption.Edit))

@@ -6,13 +6,15 @@ import me.rerere.rikkahub.data.event.AppEventBus
 
 class LocalTools(private val context: Context, private val eventBus: AppEventBus) {
     val browserTools by lazy { buildBrowserTools(context) }
-    val webTools by lazy { buildWebTools(context) }
 
     fun getTools(
         options: List<LocalToolOption>,
         enabledBrowserTools: Set<String> = emptySet(),
         browserToolDescriptions: Map<String, String> = emptyMap(),
-        askQuestionDescription: String = ""
+        askQuestionDescription: String = "",
+        webSearchEngine: String = "google",
+        webSearchResultCount: Int = 10,
+        webSearchDelayMs: Long = 3000L,
     ): List<Tool> {
         val tools = mutableListOf<Tool>()
         if (options.contains(LocalToolOption.AskQuestion)) {
@@ -26,10 +28,10 @@ class LocalTools(private val context: Context, private val eventBus: AppEventBus
             )
         }
         if (options.contains(LocalToolOption.WebSearch)) {
-            tools.add(webTools.first { it.name == "WebSearch" })
+            tools.add(buildWebTools(context, webSearchEngine, webSearchResultCount, webSearchDelayMs).first { it.name == "WebSearch" })
         }
         if (options.contains(LocalToolOption.WebFetch)) {
-            tools.add(webTools.first { it.name == "WebFetch" })
+            tools.add(buildWebTools(context, webSearchEngine, webSearchResultCount, webSearchDelayMs).first { it.name == "WebFetch" })
         }
         return tools
     }
