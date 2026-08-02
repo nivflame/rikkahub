@@ -60,6 +60,7 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.common.android.appTempFolder
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.ComputerTerminal01
 import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
@@ -67,6 +68,7 @@ import me.rerere.hugeicons.stroke.Earth
 import android.content.Intent
 import me.rerere.rikkahub.browser.BrowserActivity
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
@@ -325,6 +327,7 @@ private fun ChatPageContent(
                     bigScreen = bigScreen,
                     drawerState = drawerState,
                     previewMode = previewMode,
+                    navController = navController,
                     onNewChat = {
                         navigateToChatPage(navController)
                     },
@@ -716,6 +719,7 @@ private fun TopBar(
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
+    navController: Navigator,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
     onUpdateTitle: (String) -> Unit
@@ -723,6 +727,7 @@ private fun TopBar(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+    val assistant = settings.getCurrentAssistant()
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
@@ -753,7 +758,6 @@ private fun TopBar(
                 color = Color.Transparent,
             ) {
                 Column {
-                    val assistant = settings.getCurrentAssistant()
                     val model = settings.getCurrentChatModel()
                     val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
                     Text(
@@ -801,6 +805,15 @@ private fun TopBar(
                 }
             ) {
                 Icon(HugeIcons.Earth, "Browser")
+            }
+            if (assistant.workspaceId != null) {
+                IconButton(
+                    onClick = {
+                        navController.navigate(Screen.WorkspaceTerminal(assistant.workspaceId.toString()))
+                    }
+                ) {
+                    Icon(HugeIcons.ComputerTerminal01, "Terminal")
+                }
             }
         },
     )
