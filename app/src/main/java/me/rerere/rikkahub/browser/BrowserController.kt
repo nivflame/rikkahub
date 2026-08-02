@@ -27,7 +27,11 @@ import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.uuid.Uuid
+import me.rerere.common.android.appTempFolder
+import me.rerere.document.PdfParser
 
 /**
  * Wraps a single [WebView] and exposes the suspend operations backing the browser tools.
@@ -366,6 +370,27 @@ return '['+results.join(',')+']';
     }
 
     suspend fun fetch(url: String, maxChars: Int, startIndex: Int): String {
+        if (url.lowercase().endsWith(".pdf")) {
+            val pdfText = withContext(Dispatchers.IO) {
+                runCatching {
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 15000
+                    conn.instanceFollowRedirects = true
+                    if (conn.responseCode !in 200..299) return@runCatching null
+                    val tempFile = File(webView.context.appTempFolder, "webfetch-${System.currentTimeMillis()}.pdf")
+                    try {
+                        conn.inputStream.use { input ->
+                            FileOutputStream(tempFile).use { input.copyTo(it) }
+                        }
+                        PdfParser.parserPdf(tempFile)
+                    } finally {
+                        tempFile.delete()
+                    }
+                }.getOrNull()
+            }
+            if (pdfText != null) return paginateMarkdown(pdfText, startIndex, maxChars)
+        }
         navigate(url)
         return getContent(maxChars, startIndex)
     }
