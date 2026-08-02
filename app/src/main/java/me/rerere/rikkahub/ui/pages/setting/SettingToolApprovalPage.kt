@@ -143,7 +143,7 @@ fun SettingToolApprovalPage() {
                                                 val updated = if (newValue) {
                                                     current.toolApprovalOverrides + (toolName to true)
                                                 } else {
-                                                    current.toolApprovalOverrides - toolName
+                                                    current.toolApprovalOverrides + (toolName to false)
                                                 }
                                                 current.copy(toolApprovalOverrides = updated)
                                             }
