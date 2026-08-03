@@ -391,8 +391,140 @@ return '['+results.join(',')+']';
             }
             if (pdfText != null) return paginateMarkdown(pdfText, startIndex, maxChars)
         }
+
+        val threadPattern = Regex("""https?://(?:www\.|old\.|new\.)?[a-z]+\.\w+/r/\w+/comments/\w+""")
+        if (threadPattern.containsMatchIn(url)) {
+            val oldResult = runCatching { fetchThreadOld(url, maxChars, startIndex) }.getOrNull()
+            if (oldResult != null) return oldResult
+            val newResult = runCatching { fetchThreadNew(url, maxChars, startIndex) }.getOrNull()
+            if (newResult != null) return newResult
+        }
+
         navigate(url)
         return getContent(maxChars, startIndex)
+    }
+
+    private suspend fun fetchThreadOld(url: String, maxChars: Int, startIndex: Int): String? {
+        val oldUrl = url.replace(Regex("""https?://(?:www\.|old\.|new\.)?"""), "https://old.") + "?limit=500"
+        navigate(oldUrl)
+        withContext(Dispatchers.Main) { evaluateJavascriptAsync("(function(){return document.querySelectorAll('.comment').length;})()") }?.let { unquoteJsString(it) }?.toIntOrNull()?.takeIf { it > 0 } ?: return null
+        val extractJs = """
+(function(){
+  var md='';
+  var title=document.querySelector('a.title');
+  var author=document.querySelector('.tagline .author, a.author');
+  var score=document.querySelector('.score.unvoted, .score.likes, .linkinfo .score');
+  var time=document.querySelector('.tagline time, time');
+  var flair=document.querySelector('.linkflairlabel');
+  var commentCount=document.querySelector('.comments');
+  var subEl=document.querySelector('a.subreddit, .redditname a, h1.redditname a');
+  if(!subEl){var links=document.querySelectorAll('a[href*="/r/"]');for(var i=0;i<links.length;i++){var m=(links[i].getAttribute('href')||'').match(/\/r\/(\w+)/);if(m){subEl=links[i];break;}}}
+  md+='# '+(title?title.innerText.trim():'')+'\n\n';
+  if(subEl)md+='**Subreddit:** r/'+subEl.innerText.trim()+'  \n';
+  if(author)md+='**Author:** u/'+author.innerText.trim()+'  \n';
+  if(score)md+='**Score:** '+score.innerText.trim()+'  \n';
+  if(time)md+='**Created:** '+(time.getAttribute('datetime')||time.innerText.trim())+'  \n';
+  if(flair)md+='**Flair:** '+flair.innerText.trim()+'  \n';
+  if(commentCount)md+='**Comments:** '+commentCount.innerText.trim()+'  \n\n';
+  var postBody=document.querySelector('.expando .usertext-body .md, .expando .md');
+  if(postBody)md+='## Post Body\n\n'+postBody.innerText.trim()+'\n\n';
+  var allComments=document.querySelectorAll('.comment');
+  md+='## Comments ('+allComments.length+' total)\n\n';
+  function extractComment(el, depth){
+    var a=el.querySelector('.tagline .author, a.author');
+    var s=el.querySelector('.score.unvoted, .score.likes, .score');
+    var t=el.querySelector('time');
+    var b=el.querySelector('.md');
+    var ind='  '.repeat(depth);
+    md+=ind+'**u/'+(a?a.innerText.trim():'deleted')+'** (score: '+(s?s.innerText.trim():'0')+', '+(t?(t.getAttribute('datetime')||t.innerText.trim()):'')+')\n';
+    if(b)md+=ind+b.innerText.trim()+'\n\n'; else md+=ind+'*(no body)*\n\n';
+    var children=el.querySelectorAll(':scope > .child > .sitetable > .comment');
+    for(var i=0;i<children.length;i++)extractComment(children[i], depth+1);
+  }
+  var topLevel=document.querySelectorAll('.nestedlisting > .comment, .sitetable.nestedlisting > .comment');
+  if(topLevel.length===0){var listing=document.querySelector('.nestedlisting, .sitetable.nestedlisting');if(listing)topLevel=listing.querySelectorAll(':scope > .comment');}
+  for(var i=0;i<topLevel.length;i++)extractComment(topLevel[i], 0);
+  return md;
+})();
+""".trimIndent()
+        val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
+        val markdown = raw?.let { unquoteJsString(it) } ?: ""
+        if (markdown.isBlank()) return null
+        return paginateMarkdown(markdown, startIndex, maxChars)
+    }
+
+    private suspend fun fetchThreadNew(url: String, maxChars: Int, startIndex: Int): String? {
+        navigate(url)
+        waitFor("shreddit-post", 10000)
+        withContext(Dispatchers.Main) { evaluateJavascriptAsync("document.querySelector('shreddit-post')") } ?: return null
+        repeat(15) {
+            val clickable = withContext(Dispatchers.Main) {
+                evaluateJavascriptAsync("""
+(function(){
+  var btns=document.querySelectorAll('button');
+  var count=0;
+  for(var i=0;i<btns.length;i++){
+    var t=(btns[i].innerText||'').trim();
+    if(t==='View more comments'||t.match(/^\d+\s+more replies$/)){btns[i].click();count++;}
+  }
+  return String(count);
+})();
+""".trimIndent())?.let { unquoteJsString(it) } ?: "0"
+            if (clickable == "0") return@repeat
+            delay(2000)
+        }
+        val extractJs = """
+(function(){
+  var post=document.querySelector('shreddit-post');
+  if(!post)return '';
+  var md='';
+  var title=post.getAttribute('post-title')||'';
+  var author=post.getAttribute('author')||'';
+  var score=post.getAttribute('score')||'';
+  var sub=post.getAttribute('subreddit-name')||'';
+  var created=post.getAttribute('created-timestamp')||'';
+  var cc=post.getAttribute('comment-count')||'';
+  var ratio=post.getAttribute('upvote-ratio')||'';
+  md+='# '+title+'\n\n';
+  if(sub)md+='**Subreddit:** r/'+sub+'  \n';
+  if(author)md+='**Author:** u/'+author+'  \n';
+  if(score)md+='**Score:** '+score+'  \n';
+  if(ratio)md+='**Upvote Ratio:** '+ratio+'  \n';
+  if(created)md+='**Created:** '+created+'  \n';
+  if(cc)md+='**Comments:** '+cc+'  \n\n';
+  var postMd=post.querySelector('.md, [slot="text-body"], div.text-neutral-content');
+  if(postMd)md+='## Post Body\n\n'+postMd.innerText.trim()+'\n\n';
+  var comments=document.querySelectorAll('shreddit-comment');
+  if(comments.length>0){
+    md+='## Comments (showing '+comments.length+' of '+(cc||'?')+')\n\n';
+    for(var i=0;i<comments.length;i++){
+      var c=comments[i];
+      var cA=c.getAttribute('author')||'unknown';
+      var cS=c.getAttribute('score')||'0';
+      var cD=parseInt(c.getAttribute('depth')||'0');
+      var cT=c.getAttribute('created')||'';
+      var cMd=c.querySelector('.md');
+      var cB=cMd?cMd.innerText.trim():'';
+      var ind='  '.repeat(cD);
+      md+=ind+'**u/'+cA+'** (score: '+cS+', '+cT+')\n';
+      if(cB)md+=ind+cB+'\n\n'; else md+=ind+'*(collapsed)*\n\n';
+    }
+  }
+  var totalHidden=0;
+  document.querySelectorAll('span,button,a').forEach(function(el){
+    if(el.children.length>0)return;
+    var t=(el.innerText||'').trim();
+    var m=t.match(/^(\d+)\s+more replies$/);
+    if(m)totalHidden+=parseInt(m[1]);
+  });
+  if(totalHidden>0)md+='---\n*('+totalHidden+' additional replies are collapsed)*\n';
+  return md;
+})();
+""".trimIndent()
+        val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
+        val markdown = raw?.let { unquoteJsString(it) } ?: ""
+        if (markdown.isBlank()) return null
+        return paginateMarkdown(markdown, startIndex, maxChars)
     }
 
     suspend fun waitFor(selector: String, timeoutMs: Long): String {
