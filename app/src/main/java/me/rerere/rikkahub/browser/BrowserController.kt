@@ -470,6 +470,7 @@ return '['+results.join(',')+']';
   return String(count);
 })();
 """.trimIndent())?.let { unquoteJsString(it) } ?: "0"
+            }
             if (clickable == "0") return@repeat
             delay(2000)
         }
