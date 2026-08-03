@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.ui.components.ui.KeepScreenOn
 import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 
 @Composable
@@ -80,6 +81,7 @@ fun CompressContextDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 if (isLoading) {
+                    KeepScreenOn()
                     // Loading state
                     Row(
                         modifier = Modifier.fillMaxWidth(),
