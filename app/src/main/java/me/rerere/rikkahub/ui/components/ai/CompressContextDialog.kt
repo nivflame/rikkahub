@@ -40,7 +40,7 @@ fun CompressContextDialog(
     var selectedTokens by remember { mutableIntStateOf(4000) }
     var keepRecentMessages by remember { mutableIntStateOf(32) }
     val tokenOptions = listOf(4000, 8000, 16000, 32000)
-    val keepRecentOptions = listOf(0, 16, 32, 64)
+    val keepRecentOptions = listOf(0, 8, 16, 32, 64)
     var currentJob by remember { mutableStateOf<Job?>(null) }
     val isLoading = isCompressing || currentJob?.isActive == true
 
