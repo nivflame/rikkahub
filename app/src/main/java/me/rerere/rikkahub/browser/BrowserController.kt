@@ -410,34 +410,101 @@ return '['+results.join(',')+']';
         withContext(Dispatchers.Main) { evaluateJavascriptAsync("(function(){return document.querySelectorAll('.comment').length;})()") }?.let { unquoteJsString(it) }?.toIntOrNull()?.takeIf { it > 0 } ?: return null
         val extractJs = """
 (function(){
+  function mdToMarkdown(el){
+    if(!el)return '';
+    var parts=[];
+    for(var i=0;i<el.childNodes.length;i++){
+      var node=el.childNodes[i];
+      if(node.nodeType===3){
+        var t=node.textContent;
+        if(t.trim())parts.push(t);
+      }else if(node.nodeType===1){
+        var tag=node.tagName.toLowerCase();
+        if(tag==='pre'){
+          var code=node.querySelector('code');
+          var codeText=code?code.innerText:node.innerText;
+          parts.push('\n```\n'+codeText+'\n```\n');
+        }else if(tag==='a'){
+          var href=node.getAttribute('href')||'';
+          var text=node.innerText.trim();
+          if(!text||text==='<image>'||text==='image'){
+            parts.push(href);
+          }else if(href&&href.startsWith('http')){
+            parts.push('['+text+']('+href+')');
+          }else{
+            parts.push(text);
+          }
+        }else if(tag==='br'){
+          parts.push('\n');
+        }else if(tag==='p'){
+          parts.push(mdToMarkdown(node)+'\n');
+        }else if(tag==='blockquote'){
+          var lines=mdToMarkdown(node).split('\n');
+          for(var j=0;j<lines.length;j++)parts.push('> '+lines[j]+'\n');
+        }else if(tag==='ul'||tag==='ol'){
+          var items=node.querySelectorAll(':scope > li');
+          for(var j=0;j<items.length;j++)parts.push('- '+mdToMarkdown(items[j])+'\n');
+        }else{
+          parts.push(mdToMarkdown(node));
+        }
+      }
+    }
+    return parts.join('').trim();
+  }
+  function formatDate(dt){
+    if(!dt)return '';
+    var d=dt.split('T')[0];
+    var t=dt.split('T')[1]?dt.split('T')[1].split(':')[0]+':'+dt.split('T')[1].split(':')[1]:'';
+    return d+'_'+t;
+  }
   var md='';
   var title=document.querySelector('a.title');
   var author=document.querySelector('.tagline .author, a.author');
-  var score=document.querySelector('.score.unvoted, .score.likes, .linkinfo .score');
+  var scoreEl=document.querySelector('.score.unvoted, .score.likes, .linkinfo .score');
   var time=document.querySelector('.tagline time, time');
   var flair=document.querySelector('.linkflairlabel');
   var commentCount=document.querySelector('.comments');
   var subEl=document.querySelector('a.subreddit, .redditname a, h1.redditname a');
   if(!subEl){var links=document.querySelectorAll('a[href*="/r/"]');for(var i=0;i<links.length;i++){var m=(links[i].getAttribute('href')||'').match(/\/r\/(\w+)/);if(m){subEl=links[i];break;}}}
-  md+='# '+(title?title.innerText.trim():'')+'\n\n';
-  if(subEl)md+='**Subreddit:** r/'+subEl.innerText.trim()+'  \n';
-  if(author)md+='**Author:** u/'+author.innerText.trim()+'  \n';
-  if(score)md+='**Score:** '+score.innerText.trim()+'  \n';
-  if(time)md+='**Created:** '+(time.getAttribute('datetime')||time.innerText.trim())+'  \n';
-  if(flair)md+='**Flair:** '+flair.innerText.trim()+'  \n';
-  if(commentCount)md+='**Comments:** '+commentCount.innerText.trim()+'  \n\n';
+  var titleText=title?title.innerText.trim():'';
+  var subText=subEl?subEl.innerText.trim():'';
+  var authorText=author?author.innerText.trim():'';
+  var scoreText=scoreEl?scoreEl.innerText.trim():'';
+  var scoreNum=scoreText.match(/(\d[\d,]*)/)?scoreText.match(/(\d[\d,]*)/)[1]:'';
+  var upvotePct=scoreText.match(/(\d+)%/)?scoreText.match(/(\d+)%/)[1]+'%':'';
+  var dateText=time?(time.getAttribute('datetime')||time.innerText.trim()):'';
+  var dateShort=formatDate(dateText);
+  var flairText=flair?flair.innerText.trim():'';
+  var ccText=commentCount?commentCount.innerText.trim().replace(/[^\d]/g,''):'';
+  var headerParts=[];
+  if(subText)headerParts.push('r/'+subText);
+  if(flairText)headerParts.push(flairText);
+  if(authorText)headerParts.push('u/'+authorText);
+  if(dateShort)headerParts.push(dateShort);
+  if(scoreNum)headerParts.push(scoreNum+(upvotePct?' ('+upvotePct+' upvoted)':''));
+  if(ccText)headerParts.push(ccText+' comments');
+  md+='# [ '+headerParts.join(' | ')+' ] '+titleText+'\n\n';
+  var thingLink=document.querySelector('.thing.link');
+  var dataUrl=thingLink?thingLink.getAttribute('data-url'):'';
+  if(dataUrl&&dataUrl.match(/\.(jpg|jpeg|png|gif|webp)/i)){
+    md+=dataUrl+'\n\n';
+  }
   var postBody=document.querySelector('.expando .usertext-body .md, .expando .md');
-  if(postBody)md+='## Post Body\n\n'+postBody.innerText.trim()+'\n\n';
+  if(postBody)md+=mdToMarkdown(postBody)+'\n\n';
   var allComments=document.querySelectorAll('.comment');
-  md+='## Comments ('+allComments.length+' total)\n\n';
+  md+='## Comments\n\n';
   function extractComment(el, depth){
     var a=el.querySelector('.tagline .author, a.author');
     var s=el.querySelector('.score.unvoted, .score.likes, .score');
     var t=el.querySelector('time');
     var b=el.querySelector('.md');
-    var ind='  '.repeat(depth);
-    md+=ind+'**u/'+(a?a.innerText.trim():'deleted')+'** (score: '+(s?s.innerText.trim():'0')+', '+(t?(t.getAttribute('datetime')||t.innerText.trim()):'')+')\n';
-    if(b)md+=ind+b.innerText.trim()+'\n\n'; else md+=ind+'*(no body)*\n\n';
+    var authorName=a?a.innerText.trim():'deleted';
+    var scoreVal=s?s.innerText.trim().match(/(\d[\d,]*)/)?s.innerText.trim().match(/(\d[\d,]*)/)[1]:'0':'0';
+    var ts=t?(t.getAttribute('datetime')||t.innerText.trim()):'';
+    var tsShort=formatDate(ts);
+    var heading='#'.repeat(Math.min(depth+3,6));
+    md+=heading+' u/'+authorName+' (score: '+scoreVal+', '+tsShort+')\n';
+    if(b)md+=mdToMarkdown(b)+'\n\n'; else md+='*(no body)*\n\n';
     var children=el.querySelectorAll(':scope > .child > .sitetable > .comment');
     for(var i=0;i<children.length;i++)extractComment(children[i], depth+1);
   }
@@ -476,6 +543,53 @@ return '['+results.join(',')+']';
         }
         val extractJs = """
 (function(){
+  function mdToMarkdown(el){
+    if(!el)return '';
+    var parts=[];
+    for(var i=0;i<el.childNodes.length;i++){
+      var node=el.childNodes[i];
+      if(node.nodeType===3){
+        var t=node.textContent;
+        if(t.trim())parts.push(t);
+      }else if(node.nodeType===1){
+        var tag=node.tagName.toLowerCase();
+        if(tag==='pre'){
+          var code=node.querySelector('code');
+          var codeText=code?code.innerText:node.innerText;
+          parts.push('\n```\n'+codeText+'\n```\n');
+        }else if(tag==='a'){
+          var href=node.getAttribute('href')||'';
+          var text=node.innerText.trim();
+          if(text==='<image>'||text==='image'||!text){
+            parts.push(href);
+          }else if(href&&href.startsWith('http')){
+            parts.push('['+text+']('+href+')');
+          }else{
+            parts.push(text);
+          }
+        }else if(tag==='p'){
+          parts.push(node.innerText.trim()+'\n');
+        }else if(tag==='br'){
+          parts.push('\n');
+        }else if(tag==='blockquote'){
+          var lines=node.innerText.trim().split('\n');
+          for(var j=0;j<lines.length;j++)parts.push('> '+lines[j]+'\n');
+        }else if(tag==='ul'||tag==='ol'){
+          var items=node.querySelectorAll('li');
+          for(var j=0;j<items.length;j++)parts.push('- '+items[j].innerText.trim()+'\n');
+        }else{
+          parts.push(node.innerText.trim());
+        }
+      }
+    }
+    return parts.join('').trim();
+  }
+  function formatDate(dt){
+    if(!dt)return '';
+    var d=dt.split('T')[0];
+    var t=dt.split('T')[1]?dt.split('T')[1].split(':')[0]+':'+dt.split('T')[1].split(':')[1]:'';
+    return d+'_'+t;
+  }
   var post=document.querySelector('shreddit-post');
   if(!post)return '';
   var md='';
@@ -486,18 +600,26 @@ return '['+results.join(',')+']';
   var created=post.getAttribute('created-timestamp')||'';
   var cc=post.getAttribute('comment-count')||'';
   var ratio=post.getAttribute('upvote-ratio')||'';
-  md+='# '+title+'\n\n';
-  if(sub)md+='**Subreddit:** r/'+sub+'  \n';
-  if(author)md+='**Author:** u/'+author+'  \n';
-  if(score)md+='**Score:** '+score+'  \n';
-  if(ratio)md+='**Upvote Ratio:** '+ratio+'  \n';
-  if(created)md+='**Created:** '+created+'  \n';
-  if(cc)md+='**Comments:** '+cc+'  \n\n';
+  var contentHref=post.getAttribute('content-href')||'';
+  var postType=post.getAttribute('post-type')||'';
+  var upvotePct='';
+  if(ratio){upvotePct=Math.round(parseFloat(ratio)*100)+'%';}
+  var dateShort=formatDate(created);
+  var headerParts=[];
+  if(sub)headerParts.push('r/'+sub);
+  if(author)headerParts.push('u/'+author);
+  if(dateShort)headerParts.push(dateShort);
+  if(score)headerParts.push(score+(upvotePct?' ('+upvotePct+' upvoted)':''));
+  if(cc)headerParts.push(cc+' comments');
+  md+='# [ '+headerParts.join(' | ')+' ] '+title+'\n\n';
+  if(contentHref&&postType==='image'){
+    md+=contentHref+'\n\n';
+  }
   var postMd=post.querySelector('.md, [slot="text-body"], div.text-neutral-content');
-  if(postMd)md+='## Post Body\n\n'+postMd.innerText.trim()+'\n\n';
+  if(postMd)md+=mdToMarkdown(postMd)+'\n\n';
   var comments=document.querySelectorAll('shreddit-comment');
   if(comments.length>0){
-    md+='## Comments (showing '+comments.length+' of '+(cc||'?')+')\n\n';
+    md+='## Comments\n\n';
     for(var i=0;i<comments.length;i++){
       var c=comments[i];
       var cA=c.getAttribute('author')||'unknown';
@@ -505,10 +627,10 @@ return '['+results.join(',')+']';
       var cD=parseInt(c.getAttribute('depth')||'0');
       var cT=c.getAttribute('created')||'';
       var cMd=c.querySelector('.md');
-      var cB=cMd?cMd.innerText.trim():'';
-      var ind='  '.repeat(cD);
-      md+=ind+'**u/'+cA+'** (score: '+cS+', '+cT+')\n';
-      if(cB)md+=ind+cB+'\n\n'; else md+=ind+'*(collapsed)*\n\n';
+      var cTs=formatDate(cT);
+      var heading='#'.repeat(Math.min(cD+3,6));
+      md+=heading+' u/'+cA+' (score: '+cS+', '+cTs+')\n';
+      if(cMd)md+=mdToMarkdown(cMd)+'\n\n'; else md+='*(collapsed)*\n\n';
     }
   }
   var totalHidden=0;
