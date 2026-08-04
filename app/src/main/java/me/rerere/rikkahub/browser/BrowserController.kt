@@ -62,7 +62,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.settings.domStorageEnabled = true
         webView.settings.blockNetworkImage = true
         webView.settings.loadsImagesAutomatically = false
-        webView.settings.userAgentString = webView.settings.userAgentString + " RikkaHubBrowser/1.0"
+        webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 readabilityInjected = false
