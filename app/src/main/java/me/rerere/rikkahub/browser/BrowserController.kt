@@ -499,7 +499,12 @@ return '['+results.join(',')+']';
     var t=el.querySelector('time');
     var b=el.querySelector('.md');
     var authorName=a?a.innerText.trim():'deleted';
-    var scoreVal=s?s.innerText.trim().match(/(\d[\d,]*)/)?s.innerText.trim().match(/(\d[\d,]*)/)[1]:'0':'0';
+    var scoreVal='0';
+    if(s){
+      var sTitle=s.getAttribute('title');
+      if(sTitle){scoreVal=sTitle;}
+      else{var sM=s.innerText.trim().match(/(-?\d[\d,]*)/);if(sM)scoreVal=sM[1];}
+    }
     var ts=t?(t.getAttribute('datetime')||t.innerText.trim()):'';
     var tsShort=formatDate(ts);
     var heading='#'.repeat(Math.min(depth+3,6));
