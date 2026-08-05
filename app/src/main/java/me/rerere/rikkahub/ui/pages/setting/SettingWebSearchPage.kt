@@ -15,11 +15,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.FormItem
-import me.rerere.rikkahub.ui.components.ui.OutlinedNumberInput
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.androidx.compose.koinViewModel
 
@@ -105,20 +105,22 @@ fun SettingWebSearchPage(vm: SettingVM = koinViewModel()) {
                             Text("Result Count")
                         },
                         description = {
-                            Text("How many search results to return (1 to 50)")
+                            Text("How many search results to return")
                         }
                     ) {
+                        val resultRange = 5f..50f
                         var localCount by remember(settings.webSearchResultCount) {
-                            mutableIntStateOf(settings.webSearchResultCount)
+                            mutableFloatStateOf(settings.webSearchResultCount.toFloat())
                         }
-                        OutlinedNumberInput(
+                        Text("${localCount.toInt()} results")
+                        Slider(
                             value = localCount,
                             onValueChange = {
-                                val clamped = it.coerceIn(1, 50)
-                                localCount = clamped
-                                vm.updateSettings(settings.copy(webSearchResultCount = clamped))
+                                localCount = it
+                                vm.updateSettings(settings.copy(webSearchResultCount = it.toInt()))
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            valueRange = resultRange,
+                            steps = 8,
                         )
                     }
 
@@ -131,16 +133,17 @@ fun SettingWebSearchPage(vm: SettingVM = koinViewModel()) {
                         }
                     ) {
                         var localDelay by remember(settings.webSearchDelay) {
-                            mutableIntStateOf(settings.webSearchDelay)
+                            mutableFloatStateOf(settings.webSearchDelay.toFloat())
                         }
-                        OutlinedNumberInput(
+                        Text("${localDelay.toInt()} s")
+                        Slider(
                             value = localDelay,
                             onValueChange = {
-                                val clamped = it.coerceIn(0, 30)
-                                localDelay = clamped
-                                vm.updateSettings(settings.copy(webSearchDelay = clamped))
+                                localDelay = it
+                                vm.updateSettings(settings.copy(webSearchDelay = it.toInt()))
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            valueRange = 0f..10f,
+                            steps = 9,
                         )
                     }
                 }
