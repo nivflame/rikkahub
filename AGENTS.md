@@ -83,6 +83,34 @@ When syncing with upstream:
 
 NEVER add fork-specific Room database migrations. Fork features use DataStore to preserve upstream database compatibility.
 
+## Commit Squashing
+
+Squash incomplete feature commits to keep history clean. Only squash commits that are part of the same incomplete feature (e.g. a feature commit followed by fixup commits that fix build errors or finish missed changes). Do NOT squash bug fixes, specific issue fixes, optimization commits, or independent features: these should remain separate for traceability.
+
+### When to squash
+
+- A feature commit followed by one or more fixup commits that fix build errors, missing imports, or finish incomplete changes in the same feature
+- Two commits with the same message where the first was incomplete and the second finished it
+
+### When NOT to squash
+
+- Bug fixes (e.g. "Fix negative comment scores")
+- Independent features (e.g. "Add PDF support to WebFetch")
+- Optimization or behavior changes (e.g. "Use realistic Chrome user agent")
+- Refactors or improvements that stand on their own
+
+### Procedure
+
+1. Create a backup branch: `git branch -f backup-before-squash-N HEAD`
+2. Use `GIT_SEQUENCE_EDITOR` to script the rebase since interactive editors are unavailable:
+   ```
+   GIT_SEQUENCE_EDITOR="cp /path/to/rebase-todo.txt" git rebase -i HEAD~N
+   ```
+3. Mark fixup commits with `fixup` (discard their message) and keep feature commits with `pick`
+4. If commits are non-consecutive, reorder them in the todo file so the fixup commit immediately follows the feature commit
+5. Verify with `git log --oneline` after rebase
+6. Do NOT push unless explicitly asked
+
 ## Concepts
 
 - **Assistant**: An assistant configuration with system prompts, model parameters, and conversation isolation. Each
