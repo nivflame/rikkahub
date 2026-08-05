@@ -14,12 +14,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,9 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.KeepScreenOn
@@ -126,16 +127,19 @@ fun CompressContextDialog(
                             text = "Token Threshold",
                             style = MaterialTheme.typography.labelMedium
                         )
-                        OutlinedTextField(
-                            value = autoCompressTokenThreshold.toString(),
-                            onValueChange = { v ->
-                                v.toIntOrNull()?.let {
-                                    onUpdateAutoCompressSettings(autoCompressEnabled, it, autoCompressKeepPercentage)
-                                }
+                        val thresholdRange = 100000f..500000f
+                        var thresholdValue by remember(autoCompressTokenThreshold) {
+                            mutableFloatStateOf(autoCompressTokenThreshold.toFloat().coerceIn(thresholdRange))
+                        }
+                        Text("${(thresholdValue / 1000f).roundToInt()}K")
+                        Slider(
+                            value = thresholdValue,
+                            onValueChange = {
+                                thresholdValue = it
+                                onUpdateAutoCompressSettings(autoCompressEnabled, it.roundToInt(), autoCompressKeepPercentage)
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            valueRange = thresholdRange,
+                            steps = 7,
                         )
                         Text(
                             text = "Keep Recent Percentage",
