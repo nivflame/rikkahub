@@ -111,6 +111,10 @@ Squash incomplete feature commits to keep history clean. Only squash commits tha
 5. Verify with `git log --oneline` after rebase
 6. Do NOT push unless explicitly asked
 
+### AGENTS.md is local only
+
+Never push `AGENTS.md` to the remote repository. This file contains fork-specific guidelines and should only exist locally. When pushing commits, exclude any commit that modifies `AGENTS.md` by pushing up to the commit before it (e.g. `git push <remote> <commit-hash>:master --force`).
+
 ## Concepts
 
 - **Assistant**: An assistant configuration with system prompts, model parameters, and conversation isolation. Each
