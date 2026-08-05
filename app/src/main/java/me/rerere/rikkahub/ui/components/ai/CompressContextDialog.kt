@@ -105,73 +105,7 @@ fun CompressContextDialog(
                 } else {
                     Text(stringResource(R.string.chat_page_compress_context_desc))
 
-                    // Token size selector
-                    Text(
-                        text = stringResource(R.string.chat_page_compress_target_tokens),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        tokenOptions.forEachIndexed { index, tokens ->
-                            SegmentedButton(
-                                selected = selectedTokens == tokens,
-                                onClick = { selectedTokens = tokens },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = tokenOptions.size
-                                )
-                            ) {
-                                Text("$tokens")
-                            }
-                        }
-                    }
-
-                    // Keep recent messages selector
-                    Text(
-                        text = stringResource(R.string.chat_page_compress_keep_recent),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        keepRecentOptions.forEachIndexed { index, count ->
-                            SegmentedButton(
-                                selected = keepRecentMessages == count,
-                                onClick = { keepRecentMessages = count },
-                                shape = SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = keepRecentOptions.size
-                                )
-                            ) {
-                                Text("$count")
-                            }
-                        }
-                    }
-
-                    // Additional context input
-                    OutlinedTextField(
-                        value = additionalPrompt,
-                        onValueChange = { additionalPrompt = it },
-                        label = {
-                            Text(stringResource(R.string.chat_page_compress_additional_prompt))
-                        },
-                        placeholder = {
-                            Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4,
-                    )
-
-                    // Warning text
-                    Text(
-                        text = stringResource(R.string.chat_page_compress_warning),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-
-                    // Auto-compress section
-                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                    // Auto Compression toggle at top
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -186,6 +120,7 @@ fun CompressContextDialog(
                             onCheckedChange = { onUpdateAutoCompressSettings(it, autoCompressTokenThreshold, autoCompressKeepPercentage) },
                         )
                     }
+
                     if (autoCompressEnabled) {
                         Text(
                             text = "Token Threshold",
@@ -217,7 +152,8 @@ fun CompressContextDialog(
                                     shape = SegmentedButtonDefaults.itemShape(
                                         index = index,
                                         count = percentageOptions.size
-                                    )
+                                    ),
+                                    modifier = Modifier.width(56.dp),
                                 ) {
                                     Text("$pct%")
                                 }
@@ -227,6 +163,94 @@ fun CompressContextDialog(
                             text = "Automatically compresses context during generation when prompt tokens exceed the threshold. Keeps the specified percentage of recent messages.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+                        // Additional context input (still useful for auto-compress)
+                        OutlinedTextField(
+                            value = additionalPrompt,
+                            onValueChange = { additionalPrompt = it },
+                            label = {
+                                Text(stringResource(R.string.chat_page_compress_additional_prompt))
+                            },
+                            placeholder = {
+                                Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 4,
+                        )
+
+                        // Warning text
+                        Text(
+                            text = stringResource(R.string.chat_page_compress_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        // Token size selector
+                        Text(
+                            text = stringResource(R.string.chat_page_compress_target_tokens),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            tokenOptions.forEachIndexed { index, tokens ->
+                                SegmentedButton(
+                                    selected = selectedTokens == tokens,
+                                    onClick = { selectedTokens = tokens },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = tokenOptions.size
+                                    )
+                                ) {
+                                    Text("$tokens")
+                                }
+                            }
+                        }
+
+                        // Keep recent messages selector
+                        Text(
+                            text = stringResource(R.string.chat_page_compress_keep_recent),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            keepRecentOptions.forEachIndexed { index, count ->
+                                SegmentedButton(
+                                    selected = keepRecentMessages == count,
+                                    onClick = { keepRecentMessages = count },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = keepRecentOptions.size
+                                    )
+                                ) {
+                                    Text("$count")
+                                }
+                            }
+                        }
+
+                        // Additional context input
+                        OutlinedTextField(
+                            value = additionalPrompt,
+                            onValueChange = { additionalPrompt = it },
+                            label = {
+                                Text(stringResource(R.string.chat_page_compress_additional_prompt))
+                            },
+                            placeholder = {
+                                Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 4,
+                        )
+
+                        // Warning text
+                        Text(
+                            text = stringResource(R.string.chat_page_compress_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
 
@@ -242,7 +266,7 @@ fun CompressContextDialog(
                 }) {
                     Text(stringResource(R.string.cancel))
                 }
-            } else {
+            } else if (!autoCompressEnabled) {
                 TextButton(onClick = {
                     currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
                 }) {
