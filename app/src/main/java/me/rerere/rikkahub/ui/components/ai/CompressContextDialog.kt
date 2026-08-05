@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import me.rerere.rikkahub.R
@@ -35,7 +39,11 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 fun CompressContextDialog(
     isCompressing: Boolean = false,
     onDismiss: () -> Unit,
-    onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job
+    onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
+    autoCompressEnabled: Boolean = false,
+    autoCompressTokenThreshold: Int = 300000,
+    autoCompressKeepPercentage: Int = 50,
+    onUpdateAutoCompressSettings: (Boolean, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     var additionalPrompt by remember { mutableStateOf("") }
     var selectedTokens by remember { mutableIntStateOf(4000) }
@@ -161,6 +169,67 @@ fun CompressContextDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
+
+                    // Auto-compress section
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Auto Compression",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Switch(
+                            checked = autoCompressEnabled,
+                            onCheckedChange = { onUpdateAutoCompressSettings(it, autoCompressTokenThreshold, autoCompressKeepPercentage) },
+                        )
+                    }
+                    if (autoCompressEnabled) {
+                        Text(
+                            text = "Token Threshold",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        OutlinedTextField(
+                            value = autoCompressTokenThreshold.toString(),
+                            onValueChange = { v ->
+                                v.toIntOrNull()?.let {
+                                    onUpdateAutoCompressSettings(autoCompressEnabled, it, autoCompressKeepPercentage)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        )
+                        Text(
+                            text = "Keep Recent Percentage",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        val percentageOptions = listOf(25, 50, 75)
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            percentageOptions.forEachIndexed { index, pct ->
+                                SegmentedButton(
+                                    selected = autoCompressKeepPercentage == pct,
+                                    onClick = { onUpdateAutoCompressSettings(autoCompressEnabled, autoCompressTokenThreshold, pct) },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = percentageOptions.size
+                                    )
+                                ) {
+                                    Text("$pct%")
+                                }
+                            }
+                        }
+                        Text(
+                            text = "Automatically compresses context during generation when prompt tokens exceed the threshold. Keeps the specified percentage of recent messages.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                 }
             }
         },

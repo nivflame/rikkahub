@@ -92,6 +92,8 @@ class GenerationHandler(
         conversationModeInjectionIds: Set<Uuid> = emptySet(),
         conversationLorebookIds: Set<Uuid> = emptySet(),
         workspaceCwd: String? = null,
+        autoCompressThreshold: Int = 0,
+        onAutoCompress: (suspend (List<UIMessage>) -> List<UIMessage>)? = null,
     ): Flow<GenerationChunk> = flow {
         val provider = model.findProvider(settings.providers) ?: error("Provider not found")
         val providerImpl = providerManager.getProviderByType(provider)
@@ -190,6 +192,16 @@ class GenerationHandler(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                 )
                 emit(GenerationChunk.Messages(messages))
+
+                // Auto-compress check: if prompt tokens exceed threshold, compress context
+                if (autoCompressThreshold > 0 && onAutoCompress != null) {
+                    val promptTokens = messages.lastOrNull()?.usage?.promptTokens ?: 0
+                    if (promptTokens >= autoCompressThreshold) {
+                        Log.i(TAG, "auto-compress: threshold $autoCompressThreshold reached (promptTokens=$promptTokens), compressing")
+                        messages = onAutoCompress(messages)
+                        emit(GenerationChunk.Messages(messages))
+                    }
+                }
 
                 val tools = messages.last().getTools().filter { !it.isExecuted }
                 if (tools.isEmpty()) {

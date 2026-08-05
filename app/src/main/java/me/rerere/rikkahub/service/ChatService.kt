@@ -750,6 +750,25 @@ class ChatService(
                         tool
                     }
                 },
+                autoCompressThreshold = if (settings.autoCompressEnabled) settings.autoCompressTokenThreshold else 0,
+                onAutoCompress = if (settings.autoCompressEnabled) {
+                    { msgs: List<UIMessage> ->
+                        val keepRecent = (msgs.size * settings.autoCompressKeepPercentage / 100).coerceAtLeast(1)
+                        val compressed = compressMessagesList(
+                            messages = msgs,
+                            additionalPrompt = "",
+                            targetTokens = 4000,
+                            keepRecentMessages = keepRecent
+                        ).getOrThrow()
+                        val conv = getConversationFlow(conversationId).value
+                        val newConv = conv.copy(
+                            messageNodes = compressed.map { it.toMessageNode() },
+                            chatSuggestions = emptyList(),
+                        )
+                        saveConversation(conversationId, newConv)
+                        compressed
+                    }
+                } else null,
             ).onCompletion {
                 // 取消 Live Update 通知
                 cancelLiveUpdateNotification(conversationId)
@@ -1049,6 +1068,27 @@ class ChatService(
         targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Result<Unit> = runCatching {
+        val allMessages = conversation.currentMessages
+        val newMessages = compressMessagesList(
+            messages = allMessages,
+            additionalPrompt = additionalPrompt,
+            targetTokens = targetTokens,
+            keepRecentMessages = keepRecentMessages
+        ).getOrThrow()
+
+        val newConversation = conversation.copy(
+            messageNodes = newMessages.map { it.toMessageNode() },
+            chatSuggestions = emptyList(),
+        )
+        saveConversation(conversationId, newConversation)
+    }
+
+    private suspend fun compressMessagesList(
+        messages: List<UIMessage>,
+        additionalPrompt: String,
+        targetTokens: Int,
+        keepRecentMessages: Int = 32
+    ): Result<List<UIMessage>> = runCatching {
         val settings = settingsStore.settingsFlow.first()
         val model = settings.findModelById(settings.compressModelId)
             ?: settings.getCurrentChatModel()
@@ -1059,7 +1099,7 @@ class ChatService(
         val providerHandler = providerManager.getProviderByType(provider)
 
         val maxMessagesPerChunk = 256
-        val allMessages = conversation.currentMessages
+        val allMessages = messages
 
         // Split messages into those to compress and those to keep
         val messagesToCompress: List<UIMessage>
@@ -1069,7 +1109,6 @@ class ChatService(
             messagesToCompress = allMessages.dropLast(keepRecentMessages)
             messagesToKeep = allMessages.takeLast(keepRecentMessages)
         } else if (keepRecentMessages > 0) {
-            // Not enough messages to compress while keeping recent ones
             throw IllegalStateException(context.getString(R.string.chat_page_compress_not_enough_messages))
         } else {
             messagesToCompress = allMessages
@@ -1084,7 +1123,7 @@ class ChatService(
             return left + right
         }
 
-        suspend fun compressMessages(messages: List<UIMessage>): String {
+        suspend fun compressChunk(messages: List<UIMessage>): String {
             val contentToCompress = messages.joinToString("\n\n") { it.summaryAsText(maxLength = 2000) }
             val prompt = settings.compressPrompt.applyPlaceholders(
                 "content" to contentToCompress,
@@ -1107,23 +1146,16 @@ class ChatService(
 
         val compressedSummaries = coroutineScope {
             splitMessages(messagesToCompress)
-                .map { chunk -> async { compressMessages(chunk) } }
+                .map { chunk -> async { compressChunk(chunk) } }
                 .awaitAll()
         }
 
-        // Create new conversation with compressed history as multiple user messages + kept messages
-        val newMessageNodes = buildList {
+        buildList {
             compressedSummaries.forEach { summary ->
-                add(UIMessage.user(summary).toMessageNode())
+                add(UIMessage.user(summary))
             }
-            addAll(messagesToKeep.map { it.toMessageNode() })
+            addAll(messagesToKeep)
         }
-        val newConversation = conversation.copy(
-            messageNodes = newMessageNodes,
-            chatSuggestions = emptyList(),
-        )
-
-        saveConversation(conversationId, newConversation)
     }
 
     // ---- 通知 ----

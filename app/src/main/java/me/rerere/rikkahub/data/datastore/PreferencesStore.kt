@@ -116,6 +116,9 @@ class SettingsStore(
         val OCR_PROMPT = stringPreferencesKey("ocr_prompt")
         val COMPRESS_MODEL = stringPreferencesKey("compress_model")
         val COMPRESS_PROMPT = stringPreferencesKey("compress_prompt")
+        val AUTO_COMPRESS_ENABLED = booleanPreferencesKey("auto_compress_enabled")
+        val AUTO_COMPRESS_TOKEN_THRESHOLD = intPreferencesKey("auto_compress_token_threshold")
+        val AUTO_COMPRESS_KEEP_PERCENTAGE = intPreferencesKey("auto_compress_keep_percentage")
 
         // 提供商
         val PROVIDERS = stringPreferencesKey("providers")
@@ -235,6 +238,9 @@ class SettingsStore(
                 ocrPrompt = preferences[OCR_PROMPT] ?: DEFAULT_OCR_PROMPT,
                 compressModelId = preferences[COMPRESS_MODEL]?.let { Uuid.parse(it) } ?: DEFAULT_AUTO_MODEL_ID,
                 compressPrompt = preferences[COMPRESS_PROMPT] ?: DEFAULT_COMPRESS_PROMPT,
+                autoCompressEnabled = preferences[AUTO_COMPRESS_ENABLED] ?: false,
+                autoCompressTokenThreshold = preferences[AUTO_COMPRESS_TOKEN_THRESHOLD] ?: 300000,
+                autoCompressKeepPercentage = preferences[AUTO_COMPRESS_KEEP_PERCENTAGE] ?: 50,
                 assistantId = preferences[SELECT_ASSISTANT]?.let { Uuid.parse(it) }
                     ?: DEFAULT_ASSISTANT_ID,
                 assistantTags = preferences[ASSISTANT_TAGS]?.let {
@@ -432,6 +438,9 @@ class SettingsStore(
             preferences[OCR_PROMPT] = settings.ocrPrompt
             preferences[COMPRESS_MODEL] = settings.compressModelId.toString()
             preferences[COMPRESS_PROMPT] = settings.compressPrompt
+            preferences[AUTO_COMPRESS_ENABLED] = settings.autoCompressEnabled
+            preferences[AUTO_COMPRESS_TOKEN_THRESHOLD] = settings.autoCompressTokenThreshold
+            preferences[AUTO_COMPRESS_KEEP_PERCENTAGE] = settings.autoCompressKeepPercentage
 
             preferences[PROVIDERS] = JsonInstant.encodeToString(settings.providers)
 
@@ -601,6 +610,9 @@ data class Settings(
     val ocrPrompt: String = DEFAULT_OCR_PROMPT,
     val compressModelId: Uuid = Uuid.random(),
     val compressPrompt: String = DEFAULT_COMPRESS_PROMPT,
+    val autoCompressEnabled: Boolean = false,
+    val autoCompressTokenThreshold: Int = 300000,
+    val autoCompressKeepPercentage: Int = 50,
     val assistantId: Uuid = DEFAULT_ASSISTANT_ID,
     val providers: List<ProviderSetting> = DEFAULT_PROVIDERS,
     val assistants: List<Assistant> = DEFAULT_ASSISTANTS,

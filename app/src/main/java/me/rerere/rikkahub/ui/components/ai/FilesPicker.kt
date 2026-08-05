@@ -83,6 +83,7 @@ import me.rerere.rikkahub.ui.components.ui.permission.rememberPermissionState
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.workspace.WorkspaceShellStatus
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
@@ -112,6 +113,8 @@ internal fun FilesPicker(
     val provider = settings.getCurrentChatModel()?.findProvider(providers = settings.providers)
     val navController = LocalNavController.current
     val workspaceRepository: WorkspaceRepository = koinInject()
+    val settingsStore: SettingsStore = koinInject()
+    val scope = rememberCoroutineScope()
     val workspaces by workspaceRepository.listFlow().collectAsState(initial = emptyList())
 
     Column(
@@ -298,6 +301,20 @@ internal fun FilesPicker(
             },
             onConfirm = { additionalPrompt, targetTokens, keepRecentMessages ->
                 onCompressContext(additionalPrompt, targetTokens, keepRecentMessages)
+            },
+            autoCompressEnabled = settings.autoCompressEnabled,
+            autoCompressTokenThreshold = settings.autoCompressTokenThreshold,
+            autoCompressKeepPercentage = settings.autoCompressKeepPercentage,
+            onUpdateAutoCompressSettings = { enabled, threshold, percentage ->
+                scope.launch {
+                    settingsStore.update {
+                        it.copy(
+                            autoCompressEnabled = enabled,
+                            autoCompressTokenThreshold = threshold,
+                            autoCompressKeepPercentage = percentage,
+                        )
+                    }
+                }
             },
         )
     }
