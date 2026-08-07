@@ -368,6 +368,7 @@ private fun BrowserScreen(
                     WebView(context).also { webView ->
                         val c = BrowserController(
                             webView,
+                            imagesEnabled = true,
                             onUrlChanged = { url ->
                                 addressBar = url
                                 canGoBack = webView.canGoBack()
