@@ -294,7 +294,7 @@ private fun ProviderConfigureOpenAI(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Auto Retry (rate limit)")
+        Text("Auto Retry")
         Switch(
             checked = provider.autoRetry,
             onCheckedChange = { onEdit(provider.copy(autoRetry = it)) }

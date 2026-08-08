@@ -133,11 +133,14 @@ class OpenAIProvider(
         return if (providerSetting.autoRetry) {
             var retryCount = 0
             flow.retry { e ->
-                val isRateLimit = isRateLimitError(e)
-                if (isRateLimit && retryCount < 5) {
+                val is429 = e.message?.lowercase()?.contains("429") == true
+                val retryable = isRetryableError(e)
+                if (retryable && retryCount < 5) {
                     retryCount++
-                    Log.w(TAG, "streamText: rate limited, retry $retryCount/5 in 5s")
-                    delay(5000)
+                    val baseDelay = if (is429) 5000L else 10000L
+                    val backoffDelay = minOf(baseDelay * (1L shl (retryCount - 1)), 60000L)
+                    Log.w(TAG, "streamText: retryable error (${e.message}), retry $retryCount/5 in ${backoffDelay}ms")
+                    delay(backoffDelay)
                     true
                 } else {
                     false
@@ -164,10 +167,13 @@ class OpenAIProvider(
                 }
             } catch (e: Exception) {
                 lastError = e
-                val isRateLimit = isRateLimitError(e)
-                if (!isRateLimit || attempt >= maxRetries) throw e
-                Log.w(TAG, "generateText: rate limited, retry ${attempt + 1}/$maxRetries in 5s")
-                delay(5000)
+                val is429 = e.message?.lowercase()?.contains("429") == true
+                val retryable = isRetryableError(e)
+                if (!retryable || attempt >= maxRetries) throw e
+                val baseDelay = if (is429) 5000L else 10000L
+                val backoffDelay = minOf(baseDelay * (1L shl attempt), 60000L)
+                Log.w(TAG, "generateText: retryable error (${e.message}), retry ${attempt + 1}/$maxRetries in ${backoffDelay}ms")
+                delay(backoffDelay)
             }
         }
         throw lastError!!
@@ -400,10 +406,19 @@ class OpenAIProvider(
     }
 }
 
-private fun isRateLimitError(e: Throwable): Boolean {
+private fun isRetryableError(e: Throwable): Boolean {
     val message = e.message?.lowercase() ?: return false
     return message.contains("429") ||
         message.contains("rate limit") ||
         message.contains("rate_limit") ||
-        message.contains("ratelimit")
+        message.contains("ratelimit") ||
+        message.contains("500") ||
+        message.contains("502") ||
+        message.contains("503") ||
+        message.contains("504") ||
+        message.contains("timeout") ||
+        message.contains("timed out") ||
+        message.contains("connection reset") ||
+        message.contains("failed to connect") ||
+        message.contains("connection refused")
 }
