@@ -25,6 +25,7 @@ import me.rerere.ai.core.Tool
 import me.rerere.ai.core.merge
 import me.rerere.ai.provider.CustomBody
 import me.rerere.ai.provider.Model
+import me.rerere.ai.provider.Modality
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
@@ -37,6 +38,7 @@ import me.rerere.ai.ui.handleMessageChunk
 import me.rerere.ai.ui.limitContext
 import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.MessageTransformer
+import me.rerere.rikkahub.data.ai.transformers.OcrTransformer
 import me.rerere.rikkahub.data.ai.transformers.OutputMessageTransformer
 import me.rerere.rikkahub.data.ai.tools.local.ToolCallIdContextElement
 import me.rerere.rikkahub.data.ai.tools.local.toolCallId
@@ -353,8 +355,18 @@ class GenerationHandler(
                 pendingExecution.forEachIndexed { index, (tool, _) ->
                     val result = results[index]
                     if (result.isSuccess) {
+                        val rawOutput = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
+                        val processedOutput = if (!model.inputModalities.contains(Modality.IMAGE)) {
+                            rawOutput.map { part ->
+                                if (part is UIMessagePart.Image && part.url.startsWith("file:")) {
+                                    UIMessagePart.Text(OcrTransformer.performOcr(part))
+                                } else part
+                            }
+                        } else {
+                            rawOutput
+                        }
                         executedTools += tool.copy(
-                            output = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
+                            output = processedOutput
                         )
                         recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                     } else {
