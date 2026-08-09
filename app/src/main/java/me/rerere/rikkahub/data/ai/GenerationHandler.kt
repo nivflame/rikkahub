@@ -469,8 +469,6 @@ class GenerationHandler(
             workspaceCwd = workspaceCwd,
         )
 
-        var internalMessages = internalMessages
-
         if (!model.inputModalities.contains(Modality.IMAGE)) {
             internalMessages = internalMessages.map { message ->
                 message.copy(
