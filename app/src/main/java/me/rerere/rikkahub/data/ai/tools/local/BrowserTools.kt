@@ -101,7 +101,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                 it.screenshot(BrowserController.MAX_SCREENSHOT_HEIGHT_PX, context, selector, fullPage)
             }
             if (path != null) {
-                listOf(UIMessagePart.Image(path))
+                listOf(UIMessagePart.Image("file://$path"))
             } else {
                 listOf(UIMessagePart.Text("failed to capture screenshot"))
             }
