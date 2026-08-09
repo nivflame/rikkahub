@@ -228,6 +228,10 @@ private fun BrowserScreen(
         inputExpanded = false
     }
 
+    BackHandler(enabled = canGoBack && !inputExpanded) {
+        controller?.webView?.goBack()
+    }
+
     LaunchedEffect(settings.browserLastUrl, controller) {
         if (!initialLoaded && controller != null) {
             controller?.webView?.loadUrl(settings.browserLastUrl ?: HOME_URL)
