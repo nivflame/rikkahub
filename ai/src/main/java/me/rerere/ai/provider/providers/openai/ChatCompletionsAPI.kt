@@ -488,12 +488,42 @@ class ChatCompletionsAPI(
                     reasoningPart = null // 清空，下一个 group 可能有新的 reasoning
 
                     // 紧跟 tool 结果消息
+                    val deferredImages = mutableListOf<UIMessagePart.Image>()
                     group.tools.forEach { tool ->
+                        val (content, images) = tool.toToolResultContent()
+                        deferredImages.addAll(images)
                         add(buildJsonObject {
                             put("role", "tool")
                             put("name", tool.toolName)
                             put("tool_call_id", tool.toolCallId)
-                            put("content", tool.toToolResultContent())
+                            put("content", content)
+                        })
+                    }
+
+                    // Emit deferred images as a user message after all tool messages
+                    if (deferredImages.isNotEmpty()) {
+                        add(buildJsonObject {
+                            put("role", "user")
+                            putJsonArray("content") {
+                                add(buildJsonObject {
+                                    put("type", "text")
+                                    put("text", "Tool result images:")
+                                })
+                                deferredImages.forEach { image ->
+                                    add(buildJsonObject {
+                                        image.encodeBase64().onSuccess { encodedImage ->
+                                            put("type", "image_url")
+                                            put("image_url", buildJsonObject {
+                                                put("url", encodedImage.base64)
+                                            })
+                                        }.onFailure {
+                                            Log.w(TAG, "encode deferred tool image failed: ${image.url}", it)
+                                            put("type", "text")
+                                            put("text", "Error: Failed to encode image")
+                                        }
+                                    })
+                                }
+                            }
                         })
                     }
                 }
@@ -633,10 +663,15 @@ class ChatCompletionsAPI(
         })
     }
 
-    private fun UIMessagePart.Tool.toToolResultContent(): JsonElement =
-        if (output.none { it is UIMessagePart.Image || it is UIMessagePart.Video }) {
-            JsonPrimitive(output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text })
-        } else {
+    private fun UIMessagePart.Tool.toToolResultContent(): Pair<JsonElement, List<UIMessagePart.Image>> {
+        val images = output.filterIsInstance<UIMessagePart.Image>()
+        if (images.isEmpty()) {
+            return Pair(
+                JsonPrimitive(output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }),
+                emptyList()
+            )
+        }
+        return Pair(
             buildJsonArray {
                 output.forEach { part ->
                     when (part) {
@@ -651,16 +686,8 @@ class ChatCompletionsAPI(
 
                         is UIMessagePart.Image -> {
                             add(buildJsonObject {
-                                part.encodeBase64().onSuccess { encodedImage ->
-                                    put("type", "image_url")
-                                    put("image_url", buildJsonObject {
-                                        put("url", encodedImage.base64)
-                                    })
-                                }.onFailure {
-                                    Log.w(TAG, "encode tool result image failed: ${part.url}", it)
-                                    put("type", "text")
-                                    put("text", "Error: Failed to encode image to base64")
-                                }
+                                put("type", "text")
+                                put("text", "[Image captured, see following user message]")
                             })
                         }
 
@@ -697,8 +724,10 @@ class ChatCompletionsAPI(
                         else -> {}
                     }
                 }
-            }
-        }
+            },
+            images
+        )
+    }
 
     private fun parseMessage(jsonObject: JsonObject): UIMessage {
         val role = MessageRole.valueOf(
