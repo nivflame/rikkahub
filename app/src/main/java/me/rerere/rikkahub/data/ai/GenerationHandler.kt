@@ -355,18 +355,8 @@ class GenerationHandler(
                 pendingExecution.forEachIndexed { index, (tool, _) ->
                     val result = results[index]
                     if (result.isSuccess) {
-                        val rawOutput = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
-                        val processedOutput = if (!model.inputModalities.contains(Modality.IMAGE)) {
-                            rawOutput.map { part ->
-                                if (part is UIMessagePart.Image && part.url.startsWith("file:")) {
-                                    UIMessagePart.Text(OcrTransformer.performOcr(part))
-                                } else part
-                            }
-                        } else {
-                            rawOutput
-                        }
                         executedTools += tool.copy(
-                            output = processedOutput
+                            output = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
                         )
                         recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                     } else {
@@ -478,6 +468,26 @@ class GenerationHandler(
             processingStatus = processingStatus,
             workspaceCwd = workspaceCwd,
         )
+
+        var internalMessages = internalMessages
+
+        if (!model.inputModalities.contains(Modality.IMAGE)) {
+            internalMessages = internalMessages.map { message ->
+                message.copy(
+                    parts = message.parts.map { part ->
+                        if (part is UIMessagePart.Tool) {
+                            part.copy(
+                                output = part.output.map { outputPart ->
+                                    if (outputPart is UIMessagePart.Image && outputPart.url.startsWith("file:")) {
+                                        UIMessagePart.Text(OcrTransformer.performOcr(outputPart))
+                                    } else outputPart
+                                }
+                            )
+                        } else part
+                    }
+                )
+            }
+        }
 
         var messages: List<UIMessage> = messages
         val params = TextGenerationParams(
