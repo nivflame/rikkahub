@@ -44,6 +44,7 @@ import me.rerere.ai.util.configureReferHeaders
 import me.rerere.ai.util.encodeBase64
 import me.rerere.ai.util.json
 import me.rerere.ai.util.mergeCustomBody
+import me.rerere.ai.util.HttpException
 import me.rerere.ai.util.parseErrorDetail
 import me.rerere.ai.util.stringSafe
 import me.rerere.ai.util.toHeaders
@@ -215,6 +216,7 @@ class ChatCompletionsAPI(
                 t?.printStackTrace()
                 println("[onFailure] 发生错误: ${t?.javaClass?.name} ${t?.message} / $response")
 
+                val statusCode = response?.code
                 val bodyRaw = response?.body?.stringSafe()
                 try {
                     if (!bodyRaw.isNullOrBlank()) {
@@ -228,6 +230,9 @@ class ChatCompletionsAPI(
                     e.printStackTrace()
                     exception = e
                 } finally {
+                    if (statusCode != null && exception?.message?.contains(statusCode.toString()) != true) {
+                        exception = HttpException("HTTP $statusCode: ${exception?.message ?: bodyRaw ?: t?.message ?: "unknown error"}")
+                    }
                     close(exception)
                 }
             }
