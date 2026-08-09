@@ -432,7 +432,7 @@ class GenerationHandler(
         conversationLorebookIds: Set<Uuid> = emptySet(),
         workspaceCwd: String? = null,
     ) {
-        val internalMessages = buildList {
+        var internalMessages = buildList {
             val system = buildString {
                 val effectiveSystemPrompt =
                     if (assistant.allowConversationSystemPrompt && !conversationSystemPrompt.isNullOrBlank()) {
