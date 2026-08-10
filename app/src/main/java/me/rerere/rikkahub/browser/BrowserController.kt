@@ -45,9 +45,6 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     private var loadDeferred: CompletableDeferred<Unit>? = null
 
     @Volatile
-    private var readabilityInjected = false
-    private var readabilityScript: String? = null
-    @Volatile
     private var turndownInjected = false
     private var turndownScript: String? = null
 
@@ -65,7 +62,6 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                readabilityInjected = false
                 turndownInjected = false
                 onUrlChanged?.invoke(url ?: "")
             }
@@ -343,21 +339,18 @@ return '['+results.join(',')+']';
     }
 
     suspend fun getContent(maxChars: Int, startIndex: Int): String {
-        ensureReadability()
         ensureTurndown()
         val markdown = withContext(Dispatchers.Main) {
             val js = "(function(){ try { var doc = document.cloneNode(true);" +
                 " var aoEls = doc.querySelectorAll('[data-attrid*=\"overview\"], [aria-label*=\"AI Overview\" i], .Kevs9'); aoEls.forEach(function(el){el.remove();});" +
                 " var heads = doc.querySelectorAll('h1, h2, div.Fzsovc, div.YzCcne'); heads.forEach(function(h){if(h.textContent.trim()==='AI Overview'){var p=h.parentElement; if(p)p.remove();}});" +
-                " var article = new Readability(doc).parse();" +
-                " var html = article ? (article.content || '') : (doc.body ? doc.body.outerHTML : '');" +
+                " var mainEl = doc.querySelector('article, main, [role=\"main\"]');" +
+                " var html = mainEl ? mainEl.outerHTML : (doc.body ? doc.body.outerHTML : '');" +
                 " if(!html) return '';" +
                 " var td = new TurndownService({headingStyle:'atx', bulletListMarker:'-', codeBlockStyle:'fenced'});" +
                 " td.addRule('absoluteLinks', {filter:function(n){return n.nodeName==='A' && n.getAttribute('href');}, replacement:function(c, n){var h=n.getAttribute('href'); try{h=new URL(h, location.href).href;}catch(e){} return '['+(c||n.textContent||'')+']('+h+')';}});" +
                 " var md = td.turndown(html);" +
                 " if(md && md.replace(/\\s/g,'').length < 200) {" +
-                "   var mainEl = document.querySelector('article, main, [role=\"main\"]');" +
-                "   if(mainEl) { var mainMd = td.turndown(mainEl.outerHTML); if(mainMd && mainMd.replace(/\\s/g,'').length > 200) return mainMd; }" +
                 "   if(doc.body) return doc.body.textContent;" +
                 "   return '';" +
                 " }" +
@@ -700,20 +693,6 @@ return '['+results.join(',')+']';
         }
     }
 
-    private suspend fun ensureReadability() {
-        if (readabilityInjected) return
-        val script = readabilityScript ?: withContext(Dispatchers.IO) {
-            runCatching {
-                webView.context.assets.open("browser/readability.js").bufferedReader().use { it.readText() }
-            }.getOrNull()
-        } ?: ""
-        readabilityScript = script
-        if (script.isNotBlank()) {
-            withContext(Dispatchers.Main) { evaluateJavascriptAsync(script) }
-        }
-        readabilityInjected = true
-    }
-
     private suspend fun ensureTurndown() {
         if (turndownInjected) return
         val script = turndownScript ?: withContext(Dispatchers.IO) {
@@ -916,6 +895,11 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
             "sb.scorecardresearch.com",
             "rum.staticOpera.com",
             "cdn.branch.io",
+            "app.link",
+        )
+    }
+}
+     "cdn.branch.io",
             "app.link",
         )
     }
