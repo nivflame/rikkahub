@@ -899,8 +899,3 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         )
     }
 }
-     "cdn.branch.io",
-            "app.link",
-        )
-    }
-}
