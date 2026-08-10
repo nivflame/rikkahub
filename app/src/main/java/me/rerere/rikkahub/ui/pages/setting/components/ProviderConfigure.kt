@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -34,6 +36,7 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -223,9 +226,7 @@ private fun ProviderConfigureOpenAI(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }) {
-                Icon(if (keyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
-            }
+            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
         },
     )
 
@@ -326,9 +327,7 @@ private fun ProviderConfigureClaude(
         maxLines = 3,
         visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { keyVisible = !keyVisible }) {
-                Icon(if (keyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
-            }
+            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
         },
     )
 
@@ -438,9 +437,7 @@ private fun ProviderConfigureGoogle(
             maxLines = 3,
             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { keyVisible = !keyVisible }) {
-                    Icon(if (keyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
-                }
+                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
             },
         )
     }
@@ -522,12 +519,10 @@ private fun ProviderConfigureGoogle(
             maxLines = 6,
             minLines = 3,
             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
-            visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                IconButton(onClick = { privateKeyVisible = !privateKeyVisible }) {
-                    Icon(if (privateKeyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
-                }
-            },
+        visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            ApiKeyTrailingIcons(privateKeyVisible, { privateKeyVisible = !privateKeyVisible }, provider.privateKey)
+        },
         )
 
         OutlinedTextField(
@@ -543,5 +538,29 @@ private fun ProviderConfigureGoogle(
             label = { Text(stringResource(R.string.setting_provider_page_project_id)) },
             modifier = Modifier.fillMaxWidth(),
         )
+    }
+}
+
+@Composable
+private fun ApiKeyTrailingIcons(
+    keyVisible: Boolean,
+    onToggleVisible: () -> Unit,
+    value: String,
+) {
+    val clipboard = LocalClipboardManager.current
+    val toaster = LocalToaster.current
+    Row {
+        IconButton(onClick = onToggleVisible) {
+            Icon(if (keyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
+        }
+        IconButton(
+            onClick = {
+                clipboard.setText(AnnotatedString(value))
+                toaster.show("Copied", ToastType.Success)
+            },
+            enabled = value.isNotBlank(),
+        ) {
+            Icon(HugeIcons.Copy01, contentDescription = null)
+        }
     }
 }
