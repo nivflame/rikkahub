@@ -1,6 +1,8 @@
 package me.rerere.rikkahub.ui.components.message.tools
 
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,10 +10,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,6 +42,41 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
 
     @Composable
     override fun title(context: ToolUIContext): String = "Browser: ${browserActionLabel(toolName)}"
+
+    @Composable
+    override fun Label(context: ToolUIContext) {
+        if (toolName == "browser_screenshot") {
+            val image = context.tool.output.firstOrNull { it is UIMessagePart.Image } as? UIMessagePart.Image
+            val dimensions = image?.let { getImageDimensions(it.url, LocalContext.current) }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title(context),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (dimensions != null) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Text(
+                            text = "${dimensions.first}x${dimensions.second}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                        )
+                    }
+                }
+            }
+        } else {
+            super.Label(context)
+        }
+    }
 
     override fun hasSummary(context: ToolUIContext): Boolean = toolName == "browser_navigate"
 
@@ -126,6 +165,24 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
             }
         }
     }
+}
+
+internal fun getImageDimensions(url: String, context: android.content.Context): Pair<Int, Int>? {
+    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    when {
+        url.startsWith("file://") -> {
+            val path = Uri.parse(url).path ?: return null
+            BitmapFactory.decodeFile(path, options)
+        }
+        url.startsWith("content://") -> {
+            context.contentResolver.openInputStream(Uri.parse(url))?.use { input ->
+                BitmapFactory.decodeStream(input, null, options)
+            } ?: return null
+        }
+        else -> return null
+    }
+    if (options.outWidth <= 0 || options.outHeight <= 0) return null
+    return Pair(options.outWidth, options.outHeight)
 }
 
 private fun browserActionLabel(toolName: String): String = when (toolName) {
