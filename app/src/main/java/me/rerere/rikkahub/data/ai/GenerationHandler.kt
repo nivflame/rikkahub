@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -334,26 +335,59 @@ class GenerationHandler(
                 }
             }
 
-            // Execute tools in parallel
+            // Execute tools: file-modifying and MCP tools sequentially, others in parallel
             if (pendingExecution.isNotEmpty()) {
                 val hasShellAccess = toolsInternal.any { it.name == "Bash" }
-                val results = coroutineScope {
-                    pendingExecution.map { (tool, toolDef) ->
-                        async(toolCallIdCtx(tool.toolCallId)) {
-                            runCatching {
-                                val args = runCatching {
-                                    json.parseToJsonElement(tool.input.ifBlank { "{}" })
-                                }.getOrElse {
-                                    error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
-                                }
-                                Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
-                                toolDef.execute(args)
-                            }
-                        }
-                    }.awaitAll()
+                val sequentialToolNames = setOf("Edit", "Write", "Bash")
+                val sequentialIndices = pendingExecution.indices.filter {
+                    val name = pendingExecution[it].first.toolName
+                    name.startsWith("mcp__") || name in sequentialToolNames
                 }
+                val parallelIndices = pendingExecution.indices.filter { it !in sequentialIndices }
+                val resultIndexes = mutableMapOf<Int, Result<List<UIMessagePart>>>()
+
+                // Parallel tools
+                if (parallelIndices.isNotEmpty()) {
+                    val results = coroutineScope {
+                        parallelIndices.map { idx ->
+                            val (tool, toolDef) = pendingExecution[idx]
+                            async(toolCallIdCtx(tool.toolCallId)) {
+                                runCatching {
+                                    val args = runCatching {
+                                        json.parseToJsonElement(tool.input.ifBlank { "{}" })
+                                    }.getOrElse {
+                                        error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
+                                    }
+                                    Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
+                                    toolDef.execute(args)
+                                }
+                            }
+                        }.awaitAll()
+                    }
+                    parallelIndices.forEachIndexed { i, idx ->
+                        resultIndexes[idx] = results[i]
+                    }
+                }
+
+                // Sequential tools (Edit, Write, Bash, MCP)
+                for (idx in sequentialIndices) {
+                    val (tool, toolDef) = pendingExecution[idx]
+                    val result = withContext(toolCallIdCtx(tool.toolCallId)) {
+                        runCatching {
+                            val args = runCatching {
+                                json.parseToJsonElement(tool.input.ifBlank { "{}" })
+                            }.getOrElse {
+                                error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
+                            }
+                            Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
+                            toolDef.execute(args)
+                        }
+                    }
+                    resultIndexes[idx] = result
+                }
+
                 pendingExecution.forEachIndexed { index, (tool, _) ->
-                    val result = results[index]
+                    val result = resultIndexes[index]!!
                     if (result.isSuccess) {
                         executedTools += tool.copy(
                             output = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
