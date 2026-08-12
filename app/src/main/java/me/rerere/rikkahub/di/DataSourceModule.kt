@@ -13,6 +13,11 @@ import io.requery.android.database.sqlite.SQLiteCustomExtension
 import kotlinx.serialization.json.Json
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.common.http.AcceptLanguageBuilder
+import me.rerere.rikkahub.AppScope
+import me.rerere.rikkahub.data.codex.CodexAccountRepository
+import me.rerere.rikkahub.data.codex.CodexCredentialStore
+import me.rerere.rikkahub.data.codex.CodexOAuthManager
+import me.rerere.rikkahub.data.codex.CodexProvider
 import me.rerere.rikkahub.BuildConfig
 import me.rerere.rikkahub.data.ai.AIRequestInterceptor
 import me.rerere.rikkahub.data.ai.RequestLoggingInterceptor
@@ -216,7 +221,25 @@ val dataSourceModule = module {
     }
 
     single {
-        ProviderManager(client = get(), context = get())
+        CodexCredentialStore(context = get(), json = get())
+    }
+
+    single {
+        CodexAccountRepository(store = get(), client = get(), json = get())
+    }
+
+    single {
+        CodexOAuthManager(context = get(), scope = get<AppScope>(), client = get(), repository = get())
+    }
+
+    single {
+        CodexProvider(client = get(), repository = get(), json = get(), scope = get())
+    }
+
+    single {
+        ProviderManager(client = get(), context = get()).also {
+            it.registerProvider("codex", get<CodexProvider>())
+        }
     }
 
     single {

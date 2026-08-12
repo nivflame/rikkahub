@@ -47,4 +47,9 @@ val DEFAULT_PROVIDERS: List<ProviderSetting> = listOf(
         name = "OpenRouter",
         baseUrl = "https://openrouter.ai/api/v1",
     ),
+    ProviderSetting.Codex(
+        id = Uuid.parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+        name = "Codex",
+        enabled = false,
+    ),
 )
