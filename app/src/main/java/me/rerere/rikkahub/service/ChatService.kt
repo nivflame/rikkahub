@@ -1055,10 +1055,15 @@ class ChatService(
         targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Job = launchWithConversationReference(conversationId) {
-        compressConversation(conversationId, conversation, additionalPrompt, targetTokens, keepRecentMessages)
-            .onFailure {
-                addError(it, title = context.getString(R.string.error_title_compress_conversation))
-            }
+        startGenerationKeepAlive(context.getString(R.string.chat_page_compressing))
+        try {
+            compressConversation(conversationId, conversation, additionalPrompt, targetTokens, keepRecentMessages)
+                .onFailure {
+                    addError(it, title = context.getString(R.string.error_title_compress_conversation))
+                }
+        } finally {
+            stopGenerationKeepAlive()
+        }
     }
 
     suspend fun compressConversation(
