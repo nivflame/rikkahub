@@ -338,28 +338,37 @@ private fun BrowserScreen(
             color = topBarColor,
             tonalElevation = 2.dp,
         ) {
-            OutlinedTextField(
-                value = addressBar,
-                onValueChange = { addressBar = it },
-                placeholder = { Text("Search or enter address", style = MaterialTheme.typography.bodyLarge) },
-                singleLine = true,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = 16.dp, vertical = 0.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                    keyboardActions = KeyboardActions(onGo = {
-                        navigate()
-                        focusManager.clearFocus()
-                    }),
-                shape = CircleShape,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge,
-            )
+                    .padding(horizontal = 8.dp, vertical = 0.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { (context as? android.app.Activity)?.finish() }) {
+                    Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Close")
+                }
+                OutlinedTextField(
+                    value = addressBar,
+                    onValueChange = { addressBar = it },
+                    placeholder = { Text("Search or enter address", style = MaterialTheme.typography.bodyLarge) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                        keyboardActions = KeyboardActions(onGo = {
+                            navigate()
+                            focusManager.clearFocus()
+                        }),
+                    shape = CircleShape,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
         Box(
             modifier = Modifier
