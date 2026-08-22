@@ -309,6 +309,11 @@ class SettingsStore(
         }
         .map {
             var providers = it.providers.ifEmpty { DEFAULT_PROVIDERS }.toMutableList()
+            DEFAULT_PROVIDERS.filter { it.builtIn }.forEach { defaultProvider ->
+                if (providers.none { it.id == defaultProvider.id }) {
+                    providers.add(defaultProvider.copyProvider())
+                }
+            }
             val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS.toList() }.toMutableList()
             for (i in assistants.indices) {
                 val default = DEFAULT_ASSISTANTS.find { it.id == assistants[i].id }
@@ -347,6 +352,10 @@ class SettingsStore(
                         )
 
                         is ProviderSetting.Claude -> provider.copy(
+                            models = provider.models.distinctBy { model -> model.id }
+                        )
+
+                        is ProviderSetting.Codex -> provider.copy(
                             models = provider.models.distinctBy { model -> model.id }
                         )
                     }

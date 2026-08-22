@@ -1296,5 +1296,31 @@
   <string name="chat_page_select">Select</string>
   <string name="chat_page_selected_count">%1$d selected</string>
   <string name="chat_page_batch_delete_confirm">Delete %1$d conversations? This cannot be undone.</string>
+  <string name="codex_provider_description">Sign in with your ChatGPT account to use Codex models. Uses the official Codex CLI OAuth flow.</string>
+  <string name="codex_sign_in">Sign in with ChatGPT</string>
+  <string name="codex_enable">Enable Codex</string>
+  <string name="codex_sign_in_required">Sign in with at least one ChatGPT account to enable Codex.</string>
+  <string name="codex_round_robin_description">Round-robin across available accounts. Multiple accounts supported.</string>
+  <string name="codex_accounts_count">Accounts: %d</string>
+  <string name="codex_check_status">Check Status</string>
+  <string name="codex_no_accounts">No accounts signed in. Tap "Sign in with ChatGPT" to add one.</string>
+  <string name="codex_token_available">Available</string>
+  <string name="codex_token_expired">Expired</string>
+  <string name="codex_token_unavailable">Invalid</string>
+  <string name="codex_token_not_checked">Not checked</string>
+  <string name="codex_five_hour_limit">5-hour limit</string>
+  <string name="codex_weekly_limit">Weekly limit</string>
+  <string name="codex_monthly_limit">Monthly limit</string>
+  <string name="codex_minute_limit">%d-minute limit</string>
+  <string name="codex_percent_remaining">%d%% remaining</string>
+  <string name="codex_resets_at">Resets at %s</string>
+  <string name="codex_refresh">Refresh</string>
+  <string name="codex_reauthenticate">Re-authenticate</string>
+  <string name="codex_remove_account_title">Remove account</string>
+  <string name="codex_remove_account_message">Are you sure you want to remove this account?</string>
+  <string name="codex_remove">Remove</string>
+  <string name="codex_refresh_failed">Failed to refresh account</string>
+  <string name="codex_oauth_success">Signed in successfully</string>
+  <string name="codex_oauth_ports_unavailable">Unable to start OAuth callback server. Ports 1455 and 1457 are in use.</string>
 </resources>
 

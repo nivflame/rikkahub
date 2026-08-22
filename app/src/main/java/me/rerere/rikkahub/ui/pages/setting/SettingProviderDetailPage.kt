@@ -293,9 +293,11 @@ private fun SettingProviderConfigPage(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ProviderConnectionTester(
-                internalProvider = internalProvider,
-            )
+            if (internalProvider !is ProviderSetting.Codex) {
+                ProviderConnectionTester(
+                    internalProvider = internalProvider,
+                )
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -309,16 +311,18 @@ private fun SettingProviderConfigPage(
                 }
             }
 
-            IconButton(
-                onClick = {
-                    internalProvider = internalProvider.resetBaseUrlToDefault()
-                },
-                enabled = !internalProvider.isUsingDefaultBaseUrl(),
-            ) {
-                Icon(
-                    imageVector = HugeIcons.Refresh03,
-                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default)
-                )
+            if (internalProvider !is ProviderSetting.Codex) {
+                IconButton(
+                    onClick = {
+                        internalProvider = internalProvider.resetBaseUrlToDefault()
+                    },
+                    enabled = !internalProvider.isUsingDefaultBaseUrl(),
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Refresh03,
+                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default)
+                    )
+                }
             }
 
             Button(

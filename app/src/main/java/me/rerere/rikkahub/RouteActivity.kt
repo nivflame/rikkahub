@@ -144,6 +144,10 @@ import kotlin.uuid.Uuid
 private const val TAG = "RouteActivity"
 
 class RouteActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_OPEN_CODEX_SETTINGS = "open_codex_settings"
+    }
+
     private val highlighter by inject<Highlighter>()
     private val okHttpClient by inject<OkHttpClient>()
     private val settingsStore by inject<SettingsStore>()
@@ -233,10 +237,13 @@ class RouteActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Navigate to the chat screen if a conversation ID is provided
         intent.getStringExtra("conversationId")?.let { text ->
             navStack?.add(Screen.Chat(text))
-        }    }
+        }
+        if (intent.getBooleanExtra(EXTRA_OPEN_CODEX_SETTINGS, false)) {
+            navStack?.add(Screen.SettingProvider)
+        }
+    }
 
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
