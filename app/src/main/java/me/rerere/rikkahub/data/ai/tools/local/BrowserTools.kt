@@ -22,6 +22,7 @@ internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_dom_snapshot",
     "browser_execute_script",
     "browser_waitfor",
+    "browser_logs",
 )
 
 val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
@@ -223,6 +224,80 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
             val timeout = it.jsonObject["timeout"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 10000L
             val result = HeadlessBrowserSession.withController(context) {
                 it.waitFor(selector, timeout)
+            }
+            listOf(UIMessagePart.Text(result))
+        }
+    ),
+    Tool(
+        name = "browser_logs",
+        description = """Retrieve captured browser logs from the current browser session, similar to Chrome DevTools console/network panels.
+
+Console logs (type="console"):
+- Each entry: type (log/warning/error/info/debug), args, url, lineNumber, timestamp
+- Filter with "types" (e.g., ["error"] for errors only)
+
+Network logs (type="network"):
+- One entry per request the page makes (documents, scripts, images, XHR/fetch API calls)
+- url, method, status, statusText, resourceType, mimeType, queryString
+- requestHeaders on every entry; responseHeaders on fetch/XHR entries; use includeRequestBody/includeResponseBody for bodies (truncated at 4KB)
+- resourceType is inferred from context (Document, Script, Stylesheet, Image, Font, Media, Fetch, XHR)
+- Use "resourceTypes" to filter (e.g., ["XHR","Fetch"] for API calls only)
+- Use "urlPattern" to find specific endpoints (e.g., "/api/")
+- Use "requestId" to get full detail of a single request
+
+Pagination: pageIdx + pageSize (default 50), most recent first. Logs persist across navigations for the whole session.""",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("type", buildJsonObject {
+                        put("type", "string")
+                        put("enum", buildJsonArray {
+                            add("console"); add("network")
+                        })
+                        put("description", "Log type to retrieve")
+                    })
+                    put("pageIdx", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Pagination offset (0 = most recent page, default 0)")
+                    })
+                    put("pageSize", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Entries per page (default 50)")
+                    })
+                    put("resourceTypes", buildJsonObject {
+                        put("type", "array")
+                        put("items", buildJsonObject { put("type", "string") })
+                        put("description", "Network only: filter by resource type (e.g., [\"XHR\",\"Fetch\",\"Document\",\"Image\"])")
+                    })
+                    put("urlPattern", buildJsonObject {
+                        put("type", "string")
+                        put("description", "Network only: substring filter on URL (e.g., \"/api/\")")
+                    })
+                    put("requestId", buildJsonObject {
+                        put("type", "string")
+                        put("description", "Network only: return full detail of a single request by its requestId")
+                    })
+                    put("includeRequestBody", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "Network only: include request body when captured (default false)")
+                    })
+                    put("includeResponseBody", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "Network only: include response body when captured, truncated at 4KB (default false)")
+                    })
+                    put("types", buildJsonObject {
+                        put("type", "array")
+                        put("items", buildJsonObject { put("type", "string") })
+                        put("description", "Console only: filter by log level (e.g., [\"error\"])")
+                    })
+                },
+                required = listOf("type")
+            )
+        },
+        execute = {
+            val args = it.jsonObject
+            val result = HeadlessBrowserSession.withController(context) { controller ->
+                controller.getLogs(args)
             }
             listOf(UIMessagePart.Text(result))
         }

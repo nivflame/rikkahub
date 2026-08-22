@@ -5,6 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.RectF
 import android.view.View
+import android.webkit.ConsoleMessage
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -42,6 +45,8 @@ import me.rerere.document.PdfParser
 class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null, imagesEnabled: Boolean = false) {
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
+    private val logCollector = BrowserLogCollector()
+
     private var loadDeferred: CompletableDeferred<Unit>? = null
 
     @Volatile
@@ -60,10 +65,34 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         webView.settings.blockNetworkImage = !imagesEnabled
         webView.settings.loadsImagesAutomatically = imagesEnabled
         webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+        webView.addJavascriptInterface(NetLogBridge(logCollector), NET_BRIDGE_NAME)
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                if (consoleMessage != null) {
+                    val level = when (consoleMessage.messageLevel()) {
+                        ConsoleMessage.MessageLevel.ERROR -> "error"
+                        ConsoleMessage.MessageLevel.WARNING -> "warning"
+                        ConsoleMessage.MessageLevel.DEBUG -> "debug"
+                        ConsoleMessage.MessageLevel.TIP -> "info"
+                        else -> "log"
+                    }
+                    logCollector.addConsole(
+                        level = level,
+                        message = consoleMessage.message(),
+                        sourceId = consoleMessage.sourceId(),
+                        lineNumber = consoleMessage.lineNumber(),
+                    )
+                }
+                return true
+            }
+        }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 turndownInjected = false
                 onUrlChanged?.invoke(url ?: "")
+                // Inject the fetch/XHR logging hook as early as possible; the script is
+                // self-guarding so re-injection on every navigation is harmless.
+                view?.evaluateJavascript(NET_HOOK_JS, null)
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -73,8 +102,15 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             }
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                request?.url?.let { url ->
+                request?.let { req ->
                     lastRequestAt = System.currentTimeMillis()
+                    logCollector.onNativeRequest(
+                        url = req.url.toString(),
+                        method = req.method ?: "GET",
+                        headers = req.requestHeaders ?: emptyMap(),
+                        isMainFrame = req.isForMainFrame,
+                    )
+                    val url = req.url
                     val host = url.host ?: return@let
                     val path = url.path ?: ""
                     val lowerPath = path.lowercase()
@@ -648,6 +684,9 @@ return '['+results.join(',')+']';
         return paginateMarkdown(markdown, startIndex, maxChars)
     }
 
+    suspend fun getLogs(args: kotlinx.serialization.json.JsonObject): String =
+        logCollector.getLogs(args)
+
     suspend fun waitFor(selector: String, timeoutMs: Long): String {
         val cssChars = setOf('#', '.', '>', '[', ':', '*')
         val isCss = selector.any { it in cssChars } || selector.startsWith("//")
@@ -875,6 +914,84 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val MAX_DOM_NODES = 200
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
 
+        private const val NET_BRIDGE_NAME = "__rkNetBridge"
+
+        /**
+         * Patches window.fetch and XMLHttpRequest so request bodies, status codes, response
+         * headers and response bodies of page-issued API calls reach [NetLogBridge]. WebView
+         * offers no native equivalent (shouldInterceptRequest sees requests only), which is why
+         * the hook reports through a JS bridge instead. Self-guards against double injection;
+         * every failure path is swallowed so pages keep working untouched.
+         */
+        private val NET_HOOK_JS = """
+(function(){
+if(window.__rkNetHooked)return;window.__rkNetHooked=true;
+var MAX=4096;
+function trunc(s){try{s=String(s);return s.length>MAX?s.slice(0,MAX):s;}catch(e){return null;}}
+function h2o(h){var o={};try{if(h&&h.forEach)h.forEach(function(v,k){o[k]=v;});}catch(e){}return o;}
+function rep(e){try{if(e&&e.url)__rkNetBridge.report(JSON.stringify(e));}catch(err){}}
+var _f=window.fetch;
+if(_f){
+window.fetch=function(){
+  var args=arguments,e={resourceType:'Fetch'};
+  try{
+    var input=args[0],init=args[1]||{};
+    if(typeof input==='string'||input instanceof URL){
+      e.url=String(input);e.method=(init.method||'GET').toUpperCase();
+      e.requestHeaders=h2o(init.headers);
+    }else{
+      e.url=input.url;e.method=(init.method||input.method||'GET').toUpperCase();
+      e.requestHeaders=Object.keys(init.headers||{}).length?h2o(init.headers instanceof Headers?init.headers:new Headers(init.headers)):(input.headers?h2o(input.headers):{});
+    }
+    var b=init.body!==undefined?init.body:null;
+    if(typeof b==='string')e.requestBody=trunc(b);
+    else if(typeof URLSearchParams!=='undefined'&&b instanceof URLSearchParams)e.requestBody=trunc(b.toString());
+  }catch(err){}
+  return _f.apply(this,args).then(function(res){
+    try{
+      e.status=res.status;e.statusText=res.statusText;
+      e.responseHeaders=h2o(res.headers);
+      res.clone().text().then(function(t){e.responseBody=trunc(t);rep(e);},function(){rep(e);});
+    }catch(err){rep(e);}
+    return res;
+  },function(err){
+    try{rep(e);}catch(_){}
+    throw err;
+  });
+};
+}
+try{
+var _open=XMLHttpRequest.prototype.open,
+    _sh=XMLHttpRequest.prototype.setRequestHeader,
+    _send=XMLHttpRequest.prototype.send;
+XMLHttpRequest.prototype.open=function(m,u){
+  this.__rk={method:String(m||'GET').toUpperCase(),url:String(u||''),requestHeaders:{},resourceType:'XHR'};
+  return _open.apply(this,arguments);
+};
+XMLHttpRequest.prototype.setRequestHeader=function(k,v){
+  try{if(this.__rk)this.__rk.requestHeaders[String(k)]=String(v);}catch(e){}
+  return _sh.apply(this,arguments);
+};
+XMLHttpRequest.prototype.send=function(b){
+  var x=this,r=x.__rk;
+  if(!r){r={method:'GET',url:x.responseURL||'',requestHeaders:{},resourceType:'XHR'};x.__rk=r;}
+  if(typeof b==='string')r.requestBody=trunc(b);
+  x.addEventListener('loadend',function(){
+    try{
+      r.status=x.status;r.statusText=x.statusText;
+      r.responseHeaders={};
+      var hs=x.getAllResponseHeaders();
+      if(hs){var lines=hs.trim().split(/[\r\n]+/);for(var i=0;i<lines.length;i++){var idx=lines[i].indexOf(':');if(idx>0)r.responseHeaders[lines[i].slice(0,idx).trim()]=lines[i].slice(idx+1).trim();}}
+      if(x.responseType===''||x.responseType==='text')r.responseBody=trunc(x.responseText);
+    }catch(e){}
+    rep(r);
+  });
+  return _send.apply(this,arguments);
+};
+}catch(e){}
+})();
+        """.trimIndent()
+
         private val BLOCKED_DOMAINS = setOf(
             "cdn.optimizely.com",
             "cdn.tinypass.com",
@@ -897,5 +1014,20 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
             "cdn.branch.io",
             "app.link",
         )
+    }
+}
+
+/**
+ * JS-to-native bridge for the fetch/XHR logging hook injected into every page. Top-level and
+ * public-at-runtime (Kotlin internal compiles to a public JVM class) because WebView resolves
+ * annotated methods reflectively; private/inner classes can fail that lookup.
+ */
+internal class NetLogBridge(private val collector: BrowserLogCollector) {
+    @JavascriptInterface
+    fun report(entryJson: String) {
+        runCatching {
+            val entry = Json.parseToJsonElement(entryJson).jsonObject
+            collector.mergeJsEntry(entry)
+        }
     }
 }
