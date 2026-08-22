@@ -65,6 +65,7 @@ import me.rerere.hugeicons.stroke.LeftToRightListBullet
 import me.rerere.hugeicons.stroke.Menu03
 import me.rerere.hugeicons.stroke.MessageAdd01
 import me.rerere.hugeicons.stroke.Earth
+import me.rerere.hugeicons.stroke.Folder01
 import android.content.Intent
 import me.rerere.rikkahub.browser.BrowserActivity
 import me.rerere.rikkahub.R
@@ -807,6 +808,13 @@ private fun TopBar(
                 Icon(HugeIcons.Earth, "Browser")
             }
             if (assistant.workspaceId != null) {
+                IconButton(
+                    onClick = {
+                        navController.navigate(Screen.WorkspaceDetail(assistant.workspaceId.toString()))
+                    }
+                ) {
+                    Icon(HugeIcons.Folder01, "Workspace Directory")
+                }
                 IconButton(
                     onClick = {
                         navController.navigate(Screen.WorkspaceTerminal(assistant.workspaceId.toString()))
