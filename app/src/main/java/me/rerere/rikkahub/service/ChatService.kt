@@ -1503,6 +1503,7 @@ class ChatService(
             customSystemPrompt = currentConversation.customSystemPrompt,
             modeInjectionIds = currentConversation.modeInjectionIds,
             lorebookIds = currentConversation.lorebookIds,
+            folderId = currentConversation.folderId,
         )
 
         saveConversation(forkConversation.id, forkConversation)
