@@ -284,7 +284,6 @@ fun ChatDrawerContent(
                 },
                 onDelete = {
                     vm.deleteConversation(it)
-                    conversations.refresh()
                     if (it.id == current.id) {
                         navigateToChatPage(navController)
                     }
@@ -481,7 +480,6 @@ fun ChatDrawerContent(
                     folderSheetState.hide()
                     showMoveToFolderSheet = false
                     conversationToMoveFolder = null
-                    conversations.refresh()
                 }
             }
         }
@@ -643,7 +641,6 @@ fun ChatDrawerContent(
                     onClick = {
                         if (drawerVm.deleteFolder(folder.id)) {
                             folderToDelete = null
-                            conversations.refresh()
                         } else {
                             toaster.show(context.getString(R.string.chat_page_delete_folder_generating), type = ToastType.Warning)
                         }
@@ -677,7 +674,6 @@ fun ChatDrawerContent(
                         showBatchDeleteDialog = false
                         scope.launch {
                             vm.deleteConversations(toDelete)
-                            conversations.refresh()
                             if (deletedCurrent) {
                                 navigateToChatPage(navController)
                             }
