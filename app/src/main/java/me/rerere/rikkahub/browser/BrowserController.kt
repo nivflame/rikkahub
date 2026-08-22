@@ -42,7 +42,7 @@ import me.rerere.document.PdfParser
  * awaited via [WebViewClient.onPageFinished] with a hard per-tool timeout so a hung page
  * cannot wedge the agent loop.
  */
-class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null, imagesEnabled: Boolean = false) {
+class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
     private val logCollector = BrowserLogCollector()
@@ -62,8 +62,6 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
-        webView.settings.blockNetworkImage = !imagesEnabled
-        webView.settings.loadsImagesAutomatically = imagesEnabled
         webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
         webView.addJavascriptInterface(NetLogBridge(logCollector), NET_BRIDGE_NAME)
         webView.webChromeClient = object : WebChromeClient() {
