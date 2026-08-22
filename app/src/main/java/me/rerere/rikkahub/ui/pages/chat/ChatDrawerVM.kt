@@ -176,10 +176,10 @@ class ChatDrawerVM(
         return true
     }
 
-    fun moveConversationToFolder(conversationId: Uuid, folderId: Uuid?) {
+    fun moveConversationsToFolder(ids: Collection<Uuid>, folderId: Uuid?) {
         viewModelScope.launch {
             // 经 ChatService 移动：活跃会话会先同步内存态，避免后续整对象保存覆盖 folder_id
-            chatService.moveConversationToFolder(conversationId, folderId)
+            ids.forEach { chatService.moveConversationToFolder(it, folderId) }
         }
     }
 

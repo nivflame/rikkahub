@@ -155,6 +155,7 @@ fun ChatDrawerContent(
 
     // 文件夹相关状态
     var showMoveToFolderSheet by remember { mutableStateOf(false) }
+    var showBatchMoveToFolderSheet by remember { mutableStateOf(false) }
     var conversationToMoveFolder by remember { mutableStateOf<Conversation?>(null) }
     val folderSheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     var showCreateFolderDialog by remember { mutableStateOf(false) }
@@ -253,6 +254,9 @@ fun ChatDrawerContent(
                     },
                     onDelete = {
                         showBatchDeleteDialog = true
+                    },
+                    onMoveToFolder = {
+                        showBatchMoveToFolderSheet = true
                     },
                 )
             } else {
@@ -471,21 +475,34 @@ fun ChatDrawerContent(
         )
     }
 
-    // 移动到文件夹 Bottom Sheet
-    if (showMoveToFolderSheet) {
+    // 移动到文件夹 Bottom Sheet（单个会话或多选批量）
+    if (showMoveToFolderSheet || showBatchMoveToFolderSheet) {
+        val isBatchMove = showBatchMoveToFolderSheet
+        val moveTargets: List<Uuid> = if (isBatchMove) {
+            selectedIds.toList()
+        } else {
+            listOfNotNull(conversationToMoveFolder?.id)
+        }
         val doMove: (Uuid?) -> Unit = { folderId ->
-            conversationToMoveFolder?.let { conversation ->
-                drawerVm.moveConversationToFolder(conversation.id, folderId)
-                scope.launch {
-                    folderSheetState.hide()
-                    showMoveToFolderSheet = false
-                    conversationToMoveFolder = null
+            if (moveTargets.isNotEmpty()) {
+                drawerVm.moveConversationsToFolder(moveTargets, folderId)
+            }
+            scope.launch {
+                folderSheetState.hide()
+                showMoveToFolderSheet = false
+                showBatchMoveToFolderSheet = false
+                conversationToMoveFolder = null
+                if (isBatchMove) {
+                    isSelectionMode = false
+                    selectedIds = emptySet()
                 }
             }
         }
+        val currentFolderId: Uuid? = if (isBatchMove) null else conversationToMoveFolder?.folderId
         ModalBottomSheet(
             onDismissRequest = {
                 showMoveToFolderSheet = false
+                showBatchMoveToFolderSheet = false
                 conversationToMoveFolder = null
             },
             sheetState = folderSheetState
@@ -508,7 +525,7 @@ fun ChatDrawerContent(
                     onClick = { doMove(null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    color = if (conversationToMoveFolder?.folderId == null) {
+                    color = if (currentFolderId == null) {
                         MaterialTheme.colorScheme.surfaceVariant
                     } else {
                         MaterialTheme.colorScheme.surface
@@ -533,7 +550,7 @@ fun ChatDrawerContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(folders) { folder ->
-                        val isCurrent = folder.id == conversationToMoveFolder?.folderId
+                        val isCurrent = folder.id == currentFolderId
                         Surface(
                             onClick = { doMove(folder.id) },
                             modifier = Modifier.fillMaxWidth(),
@@ -996,6 +1013,7 @@ private fun SelectionTopBar(
     selectedCount: Int,
     onClose: () -> Unit,
     onDelete: () -> Unit,
+    onMoveToFolder: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -1015,6 +1033,14 @@ private fun SelectionTopBar(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f),
         )
+        IconButton(onClick = onMoveToFolder, enabled = selectedCount > 0) {
+            Icon(
+                imageVector = HugeIcons.Folder01,
+                contentDescription = "Move to folder",
+                tint = if (selectedCount > 0) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            )
+        }
         IconButton(onClick = onDelete, enabled = selectedCount > 0) {
             Icon(
                 imageVector = HugeIcons.Delete01,
