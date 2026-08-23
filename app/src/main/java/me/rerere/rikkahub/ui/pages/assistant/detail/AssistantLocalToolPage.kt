@@ -88,62 +88,6 @@ private fun AssistantLocalToolContent(
         CardGroup {
             item(
                 headlineContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_title))
-                },
-                supportingContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc))
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.AskQuestion),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskQuestion, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_browser_title))
-                },
-                supportingContent = {
-                    Text(stringResource(R.string.assistant_page_local_tools_browser_desc))
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.Browser),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Browser, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text("WebSearch")
-                },
-                supportingContent = {
-                    Text("Search the web using Google Search")
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.WebSearch),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebSearch, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text("WebFetch")
-                },
-                supportingContent = {
-                    Text("Fetch and read content from a URL")
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.WebFetch),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebFetch, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
                     Text("Subagent")
                 },
                 supportingContent = {
@@ -153,34 +97,6 @@ private fun AssistantLocalToolContent(
                     Switch(
                         checked = assistant.localTools.contains(LocalToolOption.Subagent),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.Subagent, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text("Skill")
-                },
-                supportingContent = {
-                    Text("Let the assistant load installed skills on demand")
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.Skill),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Skill, it) }
-                    )
-                }
-            )
-            item(
-                headlineContent = {
-                    Text("ToolSearch")
-                },
-                supportingContent = {
-                    Text("Defer selected tools so the agent fetches their schemas on demand, saving context tokens")
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.ToolSearch),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.ToolSearch, it) }
                     )
                 }
             )
@@ -237,6 +153,90 @@ private fun AssistantLocalToolContent(
                     Switch(
                         checked = assistant.localTools.contains(LocalToolOption.Edit),
                         onCheckedChange = { toggleLocalTool(LocalToolOption.Edit, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("Skill")
+                },
+                supportingContent = {
+                    Text("Let the assistant load installed skills on demand")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Skill),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Skill, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.AskQuestion),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskQuestion, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("WebSearch")
+                },
+                supportingContent = {
+                    Text("Search the web")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.WebSearch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebSearch, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("WebFetch")
+                },
+                supportingContent = {
+                    Text("Fetch and read content from a URL")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.WebFetch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.WebFetch, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_browser_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_browser_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Browser),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Browser, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text("ToolSearch")
+                },
+                supportingContent = {
+                    Text("Defer selected tools so the agent fetches their schemas on demand, saving context tokens")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.ToolSearch),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.ToolSearch, it) }
                     )
                 }
             )

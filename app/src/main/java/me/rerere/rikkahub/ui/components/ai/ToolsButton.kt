@@ -224,17 +224,17 @@ private fun CountChip(count: Int) {
 }
 
 private fun localToolOptions(): List<LocalToolOption> = listOf(
-    LocalToolOption.AskQuestion,
-    LocalToolOption.Browser,
-    LocalToolOption.WebSearch,
-    LocalToolOption.WebFetch,
     LocalToolOption.Subagent,
-    LocalToolOption.Skill,
-    LocalToolOption.ToolSearch,
     LocalToolOption.Bash,
     LocalToolOption.Read,
     LocalToolOption.Write,
     LocalToolOption.Edit,
+    LocalToolOption.Skill,
+    LocalToolOption.AskQuestion,
+    LocalToolOption.WebSearch,
+    LocalToolOption.WebFetch,
+    LocalToolOption.Browser,
+    LocalToolOption.ToolSearch,
 )
 
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
