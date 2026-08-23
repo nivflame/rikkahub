@@ -50,6 +50,7 @@ import com.termux.view.TerminalView
 import androidx.compose.ui.res.stringResource
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.nav.BackButton
+import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.theme.ColorMode
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
 import kotlinx.coroutines.Dispatchers
@@ -185,7 +186,10 @@ private fun WorkspaceTerminalContent(
     }
 
     DisposableEffect(session) {
-        sessionClient?.onFinished = { finished = true }
+        sessionClient?.onFinished = {
+            root?.let { WorkspaceTerminalSessionHolder.markFinished(it) }
+            finished = true
+        }
         onDispose {
             if (finished) {
                 root?.let { WorkspaceTerminalSessionHolder.remove(it) }
@@ -193,6 +197,13 @@ private fun WorkspaceTerminalContent(
                 root?.let { WorkspaceTerminalSessionHolder.detachView(it) }
             }
             viewClient.terminalView = null
+        }
+    }
+
+    val navController = LocalNavController.current
+    LaunchedEffect(finished) {
+        if (finished) {
+            navController.popBackStack()
         }
     }
 

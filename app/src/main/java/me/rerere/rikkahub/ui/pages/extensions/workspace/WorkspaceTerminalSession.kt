@@ -122,11 +122,14 @@ internal object WorkspaceTerminalSessionHolder {
 
     fun isFinished(root: String): Boolean = finishedFlags[root] ?: false
 
+    fun markFinished(root: String) {
+        finishedFlags[root] = true
+    }
+
     fun create(root: String, context: Context): TerminalSession {
         remove(root)
         val appContext = context.applicationContext
         val client = WorkspaceTerminalSessionClient(appContext)
-        client.onFinished = { finishedFlags[root] = true }
         val session = createWorkspaceTerminalSession(context, root, client)
         sessions[root] = SessionEntry(session, client)
         finishedFlags[root] = false
