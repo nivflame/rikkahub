@@ -41,6 +41,7 @@ import me.rerere.rikkahub.data.ai.transformers.InputMessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.MessageTransformer
 import me.rerere.rikkahub.data.ai.transformers.OcrTransformer
 import me.rerere.rikkahub.data.ai.transformers.OutputMessageTransformer
+import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.ToolCallIdContextElement
 import me.rerere.rikkahub.data.ai.tools.local.toolCallId
 import me.rerere.rikkahub.data.files.FileFolders
@@ -335,13 +336,13 @@ class GenerationHandler(
                 }
             }
 
-            // Execute tools: file-modifying and MCP tools sequentially, others in parallel
+            // Execute tools: file-modifying, MCP, and Browser tools sequentially, others in parallel
             if (pendingExecution.isNotEmpty()) {
                 val hasShellAccess = toolsInternal.any { it.name == "Bash" }
                 val sequentialToolNames = setOf("Edit", "Write", "Bash")
                 val sequentialIndices = pendingExecution.indices.filter {
                     val name = pendingExecution[it].first.toolName
-                    name.startsWith("mcp__") || name in sequentialToolNames
+                    name.startsWith("mcp__") || name in sequentialToolNames || name in ALL_BROWSER_TOOL_NAMES
                 }
                 val parallelIndices = pendingExecution.indices.filter { it !in sequentialIndices }
                 val resultIndexes = mutableMapOf<Int, Result<List<UIMessagePart>>>()
