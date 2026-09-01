@@ -29,6 +29,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -306,6 +307,27 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         return resolved
     }
 
+    private fun parseCharsetFromContentType(contentType: String?): java.nio.charset.Charset {
+        if (contentType != null) {
+            contentType.split(';').forEach { param ->
+                val trimmed = param.trim()
+                val eq = trimmed.indexOf('=')
+                if (eq > 0) {
+                    val key = trimmed.substring(0, eq).trim()
+                    var value = trimmed.substring(eq + 1).trim()
+                    if (value.startsWith("\"") && value.endsWith("\"")) {
+                        value = value.substring(1, value.length - 1)
+                    }
+                    if (key.equals("charset", ignoreCase = true) && value.isNotBlank()) {
+                        runCatching { java.nio.charset.Charset.forName(value) }
+                            .getOrNull()?.let { return it }
+                    }
+                }
+            }
+        }
+        return Charsets.UTF_8
+    }
+
     private fun normalizeNewsUrl(raw: String): String {
         return try {
             val uri = Uri.parse(raw)
@@ -469,22 +491,78 @@ return '['+results.join(',')+']';
             val pdfText = withContext(Dispatchers.IO) {
                 runCatching {
                     val conn = URL(url).openConnection() as HttpURLConnection
-                    conn.connectTimeout = 15000
-                    conn.readTimeout = 15000
-                    conn.instanceFollowRedirects = true
-                    if (conn.responseCode !in 200..299) return@runCatching null
-                    val tempFile = File(webView.context.appTempFolder, "webfetch-${System.currentTimeMillis()}.pdf")
                     try {
-                        conn.inputStream.use { input ->
-                            FileOutputStream(tempFile).use { input.copyTo(it) }
+                        conn.connectTimeout = 15000
+                        conn.readTimeout = 15000
+                        conn.instanceFollowRedirects = true
+                        if (conn.responseCode !in 200..299) return@runCatching null
+                        if (conn.contentLengthLong > RAW_FETCH_MAX_BYTES) {
+                            return@runCatching null
                         }
-                        PdfParser.parserPdf(tempFile)
+                        val tempFile = File(webView.context.appTempFolder, "webfetch-${System.currentTimeMillis()}.pdf")
+                        try {
+                            var total = 0
+                            conn.inputStream.use { input ->
+                                FileOutputStream(tempFile).use { output ->
+                                    val buf = ByteArray(8192)
+                                    while (true) {
+                                        val n = input.read(buf)
+                                        if (n < 0) break
+                                        total += n
+                                        if (total > RAW_FETCH_MAX_BYTES) return@runCatching null
+                                        output.write(buf, 0, n)
+                                    }
+                                }
+                            }
+                            PdfParser.parserPdf(tempFile)
+                        } finally {
+                            tempFile.delete()
+                        }
                     } finally {
-                        tempFile.delete()
+                        conn.disconnect()
                     }
                 }.getOrNull()
             }
             if (pdfText != null) return paginateMarkdown(pdfText, startIndex, maxChars)
+        }
+
+        val rawHost = runCatching { URL(url).host.lowercase() }.getOrNull().orEmpty()
+        if (rawHost == "raw.githubusercontent.com") {
+            val rawText = withContext(Dispatchers.IO) {
+                runCatching {
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    try {
+                        conn.connectTimeout = 15000
+                        conn.readTimeout = 15000
+                        conn.instanceFollowRedirects = true
+                        if (conn.responseCode !in 200..299) return@runCatching null
+                        if (!conn.url.host.equals("raw.githubusercontent.com", ignoreCase = true)) {
+                            return@runCatching null
+                        }
+                        if (conn.contentLengthLong > RAW_FETCH_MAX_BYTES) {
+                            return@runCatching null
+                        }
+                        val charset = parseCharsetFromContentType(conn.contentType)
+                        var total = 0
+                        conn.inputStream.use { input ->
+                            ByteArrayOutputStream().let { out ->
+                                val buf = ByteArray(8192)
+                                while (true) {
+                                    val n = input.read(buf)
+                                    if (n < 0) break
+                                    total += n
+                                    if (total > RAW_FETCH_MAX_BYTES) return@runCatching null
+                                    out.write(buf, 0, n)
+                                }
+                                out.toByteArray().toString(charset)
+                            }
+                        }
+                    } finally {
+                        conn.disconnect()
+                    }
+                }.getOrNull()
+            }
+            if (rawText != null) return paginateMarkdown(rawText, startIndex, maxChars)
         }
 
         val threadPattern = Regex("""https?://(?:www\.|old\.|new\.)?[a-z]+\.\w+/r/\w+/comments/\w+""")
@@ -977,6 +1055,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val MAX_TEXT_CHARS = 64 * 1024
         const val MAX_CONTENT_CHARS = 50 * 1024
         const val MAX_LINKS = 200
+        const val RAW_FETCH_MAX_BYTES = 5L * 1024 * 1024
         const val MAX_DOM_NODES = 200
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
 
