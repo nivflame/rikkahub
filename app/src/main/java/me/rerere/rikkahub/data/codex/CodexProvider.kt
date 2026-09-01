@@ -49,7 +49,7 @@ class CodexProvider(
         withContext(Dispatchers.IO) {
             val account = repository.acquireAccount()
             val request = Request.Builder()
-                .url("$CODEX_API_BASE/models?client_version=$CLIENT_VERSION")
+                .url("$CODEX_API_BASE/models?client_version=$CODEX_CLIENT_VERSION")
                 .codexHeaders(account)
                 .get()
                 .build()
@@ -153,36 +153,6 @@ class CodexProvider(
             listOf(UIMessage.system(DEFAULT_INSTRUCTIONS)) + messages
         }
 
-    private fun withCodexParams(
-        params: TextGenerationParams,
-        account: CodexAccount,
-        stream: Boolean,
-    ): TextGenerationParams {
-        val reasoningEffort = params.model.abilities
-            .takeIf { it.contains(ModelAbility.REASONING) }
-            ?.let { codexReasoningEffort(params.reasoningLevel) }
-        return params.copy(
-            customHeaders = params.customHeaders + buildList {
-                add(CustomHeader("ChatGPT-Account-Id", account.chatgptAccountId))
-                add(CustomHeader("OpenAI-Beta", "responses=experimental"))
-                add(CustomHeader("originator", "codex_cli_rs"))
-                add(CustomHeader("User-Agent", CODEX_USER_AGENT))
-                if (stream) add(CustomHeader("Accept", "text/event-stream"))
-            },
-            customBody = params.customBody + listOfNotNull(
-                reasoningEffort?.let { effort ->
-                    CustomBody(
-                        key = "reasoning",
-                        value = buildJsonObject {
-                            put("effort", effort)
-                            put("summary", "auto")
-                        },
-                    )
-                },
-            ),
-        )
-    }
-
     private fun responseApiFor(account: CodexAccount): ResponseAPI {
         val accountAwareClient = client.newBuilder()
             .addNetworkInterceptor { chain ->
@@ -214,14 +184,15 @@ class CodexProvider(
 
     private companion object {
         const val CODEX_API_BASE = "${CodexAccountRepository.CODEX_BASE_URL}/codex"
-        const val CLIENT_VERSION = "0.144.5"
-
-        val CODEX_USER_AGENT =
-            "codex_cli_rs/$CLIENT_VERSION (Android ${Build.VERSION.RELEASE}; " +
-                "${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"})"
         const val DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
     }
 }
+
+internal const val CODEX_CLIENT_VERSION = "0.144.5"
+
+internal val CODEX_USER_AGENT =
+    "codex_cli_rs/$CODEX_CLIENT_VERSION (Android ${Build.VERSION.RELEASE}; " +
+        "${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"})"
 
 internal fun codexReasoningEffort(level: ReasoningLevel): String? {
     return when (level) {
@@ -233,4 +204,35 @@ internal fun codexReasoningEffort(level: ReasoningLevel): String? {
         ReasoningLevel.MAX -> "max"
         ReasoningLevel.OFF -> "none"
     }
+}
+
+internal fun withCodexParams(
+    params: TextGenerationParams,
+    account: CodexAccount,
+    stream: Boolean,
+): TextGenerationParams {
+    val reasoningEffort = params.model.abilities
+        .takeIf { it.contains(ModelAbility.REASONING) }
+        ?.let { codexReasoningEffort(params.reasoningLevel) }
+    return params.copy(
+        maxTokens = null,
+        customHeaders = params.customHeaders + buildList {
+            add(CustomHeader("ChatGPT-Account-Id", account.chatgptAccountId))
+            add(CustomHeader("OpenAI-Beta", "responses=experimental"))
+            add(CustomHeader("originator", "codex_cli_rs"))
+            add(CustomHeader("User-Agent", CODEX_USER_AGENT))
+            if (stream) add(CustomHeader("Accept", "text/event-stream"))
+        },
+        customBody = params.customBody + listOfNotNull(
+            reasoningEffort?.let { effort ->
+                CustomBody(
+                    key = "reasoning",
+                    value = buildJsonObject {
+                        put("effort", effort)
+                        put("summary", "auto")
+                    },
+                )
+            },
+        ),
+    )
 }
