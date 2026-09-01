@@ -155,7 +155,7 @@ private fun ProviderPoolSection(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "Pool", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Account Rotation", style = MaterialTheme.typography.titleMedium)
         Switch(
             checked = poolEnabled,
             onCheckedChange = { enable ->
@@ -183,7 +183,7 @@ private fun ProviderPoolSection(
             ),
         ) {
             Text(
-                text = "No accounts yet. Add an account to use pooling.",
+                text = "No accounts yet. Add an account to enable rotation.",
                 modifier = Modifier.padding(16.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -261,10 +261,10 @@ private fun ProviderPoolSection(
     if (showDisableWarning) {
         AlertDialog(
             onDismissRequest = { showDisableWarning = false },
-            title = { Text("Disable Pool") },
+            title = { Text("Disable Account Rotation") },
             text = {
                 Text(
-                    "Disabling pooling will delete all accounts except the first. " +
+                    "Disabling rotation will delete all accounts except the first. " +
                         "The first account's API key becomes the provider API key."
                 )
             },
