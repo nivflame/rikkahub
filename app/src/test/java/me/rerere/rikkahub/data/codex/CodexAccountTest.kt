@@ -155,18 +155,80 @@ class CodexAccountTest {
         )
     }
 
+    @Test
+    fun `merge overrides same id and keeps local only accounts`() {
+        val current = CodexAccountState(
+            accounts = listOf(account("local-only"), account("shared")),
+            nextAccountIndex = 1,
+        )
+        val imported = CodexAccountState(
+            accounts = listOf(account("shared", name = "renamed"), account("imported")),
+        )
+
+        val merged = mergeCodexAccounts(current, imported, nowMillis = 1_000)
+
+        assertEquals(listOf("local-only", "shared", "imported"), merged.accounts.map { it.id })
+        assertEquals("renamed", merged.accounts.first { it.id == "shared" }.name)
+    }
+
+    @Test
+    fun `merge keeps current state when imported has no accounts`() {
+        val current = CodexAccountState(accounts = listOf(account("kept")), nextAccountIndex = 0)
+
+        val merged = mergeCodexAccounts(current, CodexAccountState(), nowMillis = 1_000)
+
+        assertEquals(listOf("kept"), merged.accounts.map { it.id })
+    }
+
+    @Test
+    fun `merge marks expired tokens`() {
+        val imported = CodexAccountState(
+            accounts = listOf(
+                account("expired", expiresAt = 500),
+                account("invalid", expiresAt = 500, status = CodexTokenStatus.INVALID),
+                account("valid"),
+            )
+        )
+
+        val merged = mergeCodexAccounts(CodexAccountState(), imported, nowMillis = 1_000)
+
+        assertEquals(CodexTokenStatus.EXPIRED, merged.accounts.first { it.id == "expired" }.tokenStatus)
+        assertEquals(CodexTokenStatus.INVALID, merged.accounts.first { it.id == "invalid" }.tokenStatus)
+        assertEquals(CodexTokenStatus.AVAILABLE, merged.accounts.first { it.id == "valid" }.tokenStatus)
+    }
+
+    @Test
+    fun `merge resets round robin index when out of range`() {
+        val current = CodexAccountState(nextAccountIndex = 7)
+        val imported = CodexAccountState(accounts = listOf(account("a"), account("b")))
+
+        val merged = mergeCodexAccounts(current, imported, nowMillis = 1_000)
+
+        assertEquals(0, merged.nextAccountIndex)
+        assertEquals(
+            1,
+            mergeCodexAccounts(
+                CodexAccountState(nextAccountIndex = 1),
+                imported,
+                nowMillis = 1_000,
+            ).nextAccountIndex,
+        )
+    }
+
     private fun account(
         id: String,
         enabled: Boolean = true,
         status: CodexTokenStatus = CodexTokenStatus.AVAILABLE,
         usage: CodexUsageSnapshot? = null,
+        expiresAt: Long = Long.MAX_VALUE,
+        name: String = id,
     ) = CodexAccount(
         id = id,
-        name = id,
+        name = name,
         chatgptAccountId = "workspace-$id",
         accessToken = "token",
         refreshToken = "refresh",
-        expiresAt = Long.MAX_VALUE,
+        expiresAt = expiresAt,
         enabled = enabled,
         tokenStatus = status,
         usage = usage,

@@ -14,6 +14,8 @@ import me.rerere.rikkahub.data.datastore.WebDavConfig
 import me.rerere.rikkahub.data.datastore.migration.SettingsJsonMigrator
 import me.rerere.rikkahub.data.ai.tools.local.loadDefaultSubagentPrompts
 import me.rerere.rikkahub.data.ai.tools.local.mergeSubagentPrompts
+import me.rerere.rikkahub.data.codex.CodexAccountRepository
+import me.rerere.rikkahub.data.codex.CodexAccountState
 import me.rerere.rikkahub.utils.fileSizeToString
 import java.io.File
 import java.io.FileInputStream
@@ -32,6 +34,7 @@ class WebDavSync(
     private val json: Json,
     private val context: Context,
     private val httpClient: HttpClient,
+    private val codexAccountRepository: CodexAccountRepository,
 ) {
     private fun getClient(config: WebDavConfig): WebDavClient {
         return WebDavClient(config, httpClient)
@@ -149,6 +152,12 @@ class WebDavSync(
                 content = json.encodeToString(settingsStore.settingsFlow.value)
             )
 
+            addVirtualFileToZip(
+                zipOut = zipOut,
+                name = "codex_accounts.json",
+                content = json.encodeToString(codexAccountRepository.exportState())
+            )
+
             // Backup database files
             if (config.items.contains(WebDavConfig.BackupItem.DATABASE)) {
                 val dbFile = context.getDatabasePath("rikka_hub")
@@ -243,6 +252,17 @@ class WebDavSync(
                             } catch (e: Exception) {
                                 Log.e(TAG, "restoreFromBackupFile: Failed to restore settings", e)
                                 throw Exception("Failed to restore settings: ${e.message}")
+                            }
+                        }
+
+                        "codex_accounts.json" -> {
+                            val accountsJson = zipIn.readBytes().toString(Charsets.UTF_8)
+                            try {
+                                val imported = json.decodeFromString<CodexAccountState>(accountsJson)
+                                codexAccountRepository.importState(imported)
+                                Log.i(TAG, "restoreFromBackupFile: Codex accounts restored (${imported.accounts.size})")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "restoreFromBackupFile: Failed to restore codex accounts", e)
                             }
                         }
 

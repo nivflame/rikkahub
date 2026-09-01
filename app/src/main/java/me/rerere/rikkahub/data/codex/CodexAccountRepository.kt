@@ -131,6 +131,12 @@ class CodexAccountRepository internal constructor(
         }
     }
 
+    internal suspend fun exportState(): CodexAccountState = mutex.withLock { state }
+
+    internal suspend fun importState(imported: CodexAccountState) = mutex.withLock {
+        updateState(mergeCodexAccounts(state, imported))
+    }
+
     private suspend fun ensureFreshLocked(
         account: CodexAccount,
         force: Boolean = false,
@@ -255,4 +261,26 @@ internal fun selectCodexAccountIndex(
         if (accounts[index].isAvailable(nowMillis)) return index
     }
     return null
+}
+
+internal fun mergeCodexAccounts(
+    current: CodexAccountState,
+    imported: CodexAccountState,
+    nowMillis: Long = System.currentTimeMillis(),
+): CodexAccountState {
+    if (imported.accounts.isEmpty()) return current
+    val importedById = imported.accounts.associateBy { it.id }
+    val currentIds = current.accounts.mapTo(mutableSetOf()) { it.id }
+    val merged = current.accounts.map { importedById[it.id] ?: it } +
+        imported.accounts.filterNot { it.id in currentIds }
+    return current.copy(
+        accounts = merged.map { account ->
+            if (account.tokenStatus != CodexTokenStatus.INVALID && account.expiresAt <= nowMillis) {
+                account.copy(tokenStatus = CodexTokenStatus.EXPIRED)
+            } else {
+                account
+            }
+        },
+        nextAccountIndex = current.nextAccountIndex.takeIf { it < merged.size } ?: 0,
+    )
 }
