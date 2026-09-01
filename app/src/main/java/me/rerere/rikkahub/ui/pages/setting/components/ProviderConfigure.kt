@@ -5,7 +5,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +22,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,11 +39,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.dokar.sonner.ToastType
 import me.rerere.ai.provider.ClaudePromptCacheTtl
+import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Copy01
+import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -80,7 +90,218 @@ fun ProviderConfigure(
             is ProviderSetting.Claude -> ProviderConfigureClaude(provider, onEdit)
             is ProviderSetting.Codex -> CodexProviderConfigure(provider, onEdit)
         }
+
+        ProviderPoolSection(provider, onEdit)
     }
+}
+
+private fun ProviderSetting.updatePool(enabled: Boolean, accounts: List<PoolAccount>): ProviderSetting = when (this) {
+    is ProviderSetting.OpenAI -> copy(poolEnabled = enabled, poolAccounts = accounts)
+    is ProviderSetting.Google -> copy(poolEnabled = enabled, poolAccounts = accounts)
+    is ProviderSetting.Claude -> copy(poolEnabled = enabled, poolAccounts = accounts)
+    else -> this
+}
+
+@Composable
+private fun ProviderPoolSection(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit,
+) {
+    if (provider is ProviderSetting.Codex) return
+    val poolEnabled = when (provider) {
+        is ProviderSetting.OpenAI -> provider.poolEnabled
+        is ProviderSetting.Google -> provider.poolEnabled
+        is ProviderSetting.Claude -> provider.poolEnabled
+        else -> return
+    }
+    val poolAccounts = when (provider) {
+        is ProviderSetting.OpenAI -> provider.poolAccounts
+        is ProviderSetting.Google -> provider.poolAccounts
+        is ProviderSetting.Claude -> provider.poolAccounts
+        else -> return
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = "Pool", style = MaterialTheme.typography.titleMedium)
+        Switch(
+            checked = poolEnabled,
+            onCheckedChange = { onEdit(provider.updatePool(it, poolAccounts)) },
+        )
+    }
+
+    if (!poolEnabled) return
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
+    var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
+
+    if (poolAccounts.isEmpty()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+        ) {
+            Text(
+                text = "No accounts yet. Add an account to use pooling.",
+                modifier = Modifier.padding(16.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    poolAccounts.forEach { account ->
+        PoolAccountCard(
+            account = account,
+            onEdit = { editTarget = account },
+            onDelete = { deleteTarget = account },
+        )
+    }
+
+    OutlinedButton(
+        onClick = { showAddDialog = true },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(HugeIcons.Add01, contentDescription = null)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("Add Account")
+    }
+
+    if (showAddDialog) {
+        PoolAccountDialog(
+            account = null,
+            onConfirm = { name, apiKey ->
+                onEdit(provider.updatePool(true, poolAccounts + PoolAccount(name = name, apiKey = apiKey)))
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false },
+        )
+    }
+
+    editTarget?.let { account ->
+        PoolAccountDialog(
+            account = account,
+            onConfirm = { name, apiKey ->
+                onEdit(
+                    provider.updatePool(
+                        enabled = true,
+                        accounts = poolAccounts.map {
+                            if (it.id == account.id) it.copy(name = name, apiKey = apiKey) else it
+                        }
+                    )
+                )
+                editTarget = null
+            },
+            onDismiss = { editTarget = null },
+        )
+    }
+
+    deleteTarget?.let { account ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("Delete Account") },
+            text = { Text("Delete account \"${account.name}\"? The API key cannot be recovered.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEdit(provider.updatePool(true, poolAccounts - account))
+                        deleteTarget = null
+                    }
+                ) {
+                    Text(text = "Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun PoolAccountCard(
+    account: PoolAccount,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+        onClick = onEdit,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = account.name, style = MaterialTheme.typography.titleMedium)
+                val maskedKey = if (account.apiKey.length > 12) {
+                    account.apiKey.take(6) + "..." + account.apiKey.takeLast(4)
+                } else {
+                    account.apiKey
+                }
+                Text(
+                    text = maskedKey,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = JetbrainsMono,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(HugeIcons.Delete01, contentDescription = "Delete")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PoolAccountDialog(
+    account: PoolAccount?,
+    onConfirm: (name: String, apiKey: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember(account?.id) { mutableStateOf(account?.name.orEmpty()) }
+    var apiKey by remember(account?.id) { mutableStateOf(account?.apiKey.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (account == null) "Add Account" else "Edit Account") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.setting_provider_page_name)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it },
+                    label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name.trim(), apiKey.trim()) },
+                enabled = name.isNotBlank() && apiKey.isNotBlank(),
+            ) {
+                Text(if (account == null) stringResource(R.string.setting_provider_page_add) else "Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }
 
 fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSetting {
@@ -225,18 +446,20 @@ private fun ProviderConfigureOpenAI(
         modifier = Modifier.fillMaxWidth(),
     )
 
-    var keyVisible by remember { mutableStateOf(false) }
-    OutlinedTextField(
-        value = provider.apiKey,
-        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 3,
-        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-        },
-    )
+    if (!provider.poolEnabled) {
+        var keyVisible by remember { mutableStateOf(false) }
+        OutlinedTextField(
+            value = provider.apiKey,
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 3,
+            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+            },
+        )
+    }
 
     OutlinedTextField(
         value = provider.baseUrl,
@@ -326,18 +549,20 @@ private fun ProviderConfigureClaude(
         maxLines = 3,
     )
 
-    var keyVisible by remember { mutableStateOf(false) }
-    OutlinedTextField(
-        value = provider.apiKey,
-        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 3,
-        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-        },
-    )
+    if (!provider.poolEnabled) {
+        var keyVisible by remember { mutableStateOf(false) }
+        OutlinedTextField(
+            value = provider.apiKey,
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 3,
+            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+            },
+        )
+    }
 
     OutlinedTextField(
         value = provider.baseUrl,
@@ -435,7 +660,7 @@ private fun ProviderConfigureGoogle(
         modifier = Modifier.fillMaxWidth(),
     )
 
-    if (!(provider.vertexAI && provider.useServiceAccount)) {
+    if (!provider.poolEnabled && !(provider.vertexAI && provider.useServiceAccount)) {
         var keyVisible by remember { mutableStateOf(false) }
         OutlinedTextField(
             value = provider.apiKey,

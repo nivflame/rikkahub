@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
 
 @Serializable
@@ -12,6 +13,19 @@ data class BalanceOption(
     val apiPath: String = "/credits", // 余额获取API路径
     val resultPath: String = "data.total_usage", // 余额获取JSON路径
 )
+
+@Serializable
+data class PoolAccount(
+    val id: Uuid = Uuid.random(),
+    val name: String,
+    val apiKey: String,
+)
+
+interface PoolableProvider {
+    var poolEnabled: Boolean
+    var poolAccounts: List<PoolAccount>
+    fun withApiKey(apiKey: String): ProviderSetting
+}
 
 @Serializable
 enum class ClaudePromptCacheTtl(val apiValue: String?) {
@@ -66,7 +80,9 @@ sealed class ProviderSetting {
         var useResponseApi: Boolean = false,
         var includeHistoryReasoning: Boolean = true,
         var autoRetry: Boolean = false,
-    ) : ProviderSetting() {
+        override var poolEnabled: Boolean = false,
+        override var poolAccounts: List<PoolAccount> = emptyList(),
+    ) : ProviderSetting(), PoolableProvider {
         override fun addModel(model: Model): ProviderSetting {
             return copy(models = models + model)
         }
@@ -110,6 +126,10 @@ sealed class ProviderSetting {
                 shortDescription = shortDescription
             )
         }
+
+        override fun withApiKey(apiKey: String): ProviderSetting {
+            return copy(apiKey = apiKey)
+        }
     }
 
     @Serializable
@@ -131,7 +151,9 @@ sealed class ProviderSetting {
         var serviceAccountEmail: String = "", // only for vertex AI service account
         var location: String = "us-central1", // only for vertex AI service account
         var projectId: String = "", // only for vertex AI service account
-    ) : ProviderSetting() {
+        override var poolEnabled: Boolean = false,
+        override var poolAccounts: List<PoolAccount> = emptyList(),
+    ) : ProviderSetting(), PoolableProvider {
         override fun addModel(model: Model): ProviderSetting {
             return copy(models = models + model)
         }
@@ -175,6 +197,10 @@ sealed class ProviderSetting {
                 balanceOption = balanceOption
             )
         }
+
+        override fun withApiKey(apiKey: String): ProviderSetting {
+            return copy(apiKey = apiKey)
+        }
     }
 
     @Serializable
@@ -192,7 +218,9 @@ sealed class ProviderSetting {
         var baseUrl: String = "https://api.anthropic.com/v1",
         var promptCaching: Boolean = false,
         var promptCacheTtl: ClaudePromptCacheTtl = ClaudePromptCacheTtl.FIVE_MINUTES,
-    ) : ProviderSetting() {
+        override var poolEnabled: Boolean = false,
+        override var poolAccounts: List<PoolAccount> = emptyList(),
+    ) : ProviderSetting(), PoolableProvider {
         override fun addModel(model: Model): ProviderSetting {
             return copy(models = models + model)
         }
@@ -235,6 +263,10 @@ sealed class ProviderSetting {
                 description = description,
                 shortDescription = shortDescription,
             )
+        }
+
+        override fun withApiKey(apiKey: String): ProviderSetting {
+            return copy(apiKey = apiKey)
         }
     }
 
@@ -283,7 +315,7 @@ sealed class ProviderSetting {
     }
 
     companion object {
-        val Types by lazy {
+        val Types: List<KClass<out ProviderSetting>> by lazy {
             listOf(
                 OpenAI::class,
                 Google::class,

@@ -81,6 +81,8 @@ class GenerationHandler(
     private val memoryRepo: MemoryRepository,
     private val settingsStore: SettingsStore? = null,
 ) {
+    private val poolSelector = ProviderPoolSelector()
+
     fun generateText(
         settings: Settings,
         model: Model,
@@ -99,7 +101,9 @@ class GenerationHandler(
         autoCompressThreshold: Int = 0,
         onAutoCompress: (suspend (List<UIMessage>) -> List<UIMessage>)? = null,
     ): Flow<GenerationChunk> = flow {
-        val provider = model.findProvider(settings.providers) ?: error("Provider not found")
+        val provider = poolSelector.select(
+            model.findProvider(settings.providers) ?: error("Provider not found")
+        )
         val providerImpl = providerManager.getProviderByType(provider)
 
         var messages: List<UIMessage> = messages
@@ -634,8 +638,9 @@ class GenerationHandler(
     ): Flow<String> = flow {
         val model = settings.providers.findModelById(settings.translateModeId)
             ?: error("Translation model not found")
-        val provider = model.findProvider(settings.providers)
-            ?: error("Translation provider not found")
+        val provider = poolSelector.select(
+            model.findProvider(settings.providers) ?: error("Translation provider not found")
+        )
 
         val providerHandler = providerManager.getProviderByType(provider)
 
