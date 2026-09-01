@@ -62,13 +62,14 @@ import kotlin.reflect.KClass
 fun ProviderConfigure(
     provider: ProviderSetting,
     modifier: Modifier = Modifier,
-    onEdit: (provider: ProviderSetting) -> Unit
+    onEdit: (provider: ProviderSetting) -> Unit,
+    showTypeSelector: Boolean = false,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
     ) {
-        if (!provider.builtIn) {
+        if (showTypeSelector && !provider.builtIn) {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 ProviderSetting.Types.forEachIndexed { index, type ->
                     SegmentedButton(
