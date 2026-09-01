@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.RectF
+import android.net.Uri
 import android.view.View
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
@@ -182,7 +183,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         val baseUrl = if (news) {
             "https://www.google.com/search?q=$encodedQuery&tbm=nws"
         } else {
-            "https://www.google.com/search?q=$encodedQuery"
+            "https://www.google.com/search?q=$encodedQuery&udm=14"
         }
 
         val allResults = mutableListOf<String>()
@@ -194,72 +195,45 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             val currentUrl = if (start > 0) "$baseUrl&start=$start" else baseUrl
             navigate(currentUrl)
 
-            val extractJs = """
-(function(){
-var containers=document.querySelectorAll('[class*="Ww4FFb"]');
-var results=[];
-var seen=new Set();
-var siteNames=['YouTube','Reddit','Medium','Facebook','Twitter','X','Instagram','TikTok','LinkedIn','Pinterest','Quora'];
-for(var i=0;i<containers.length;i++){
-var links=containers[i].querySelectorAll('a[href]');
-for(var j=0;j<links.length;j++){
-var link=links[j];
-var href=link.href;
-if(!href||href.indexOf('google.')>=0) continue;
-if(seen.has(href)) continue;
-var text=(link.innerText||'').trim();
-if(!text||text.length<5) continue;
-var lines=text.split('\n').filter(function(s){return s.trim();});
-if(lines.length<2) continue;
-var title='';
-var snippet='';
-var line1=lines[1].trim();
-if(line1.indexOf('http')===0||line1.indexOf('www.')===0){
-title=lines.length>=3?lines[2].trim():'';
-if(lines.length>=4){snippet=lines.slice(3).join(' ').trim().slice(0,200);}
-}else{
-var longest='';
-for(var k=0;k<lines.length;k++){
-var l=lines[k].trim();
-if(l.indexOf('http')===0||l.indexOf('www.')===0) continue;
-if(l.match(/^\d+\s*(hour|day|week|month|year|ago|min)/i)) continue;
-if(l.match(/^\d{4}$/)) continue;
-if(siteNames.indexOf(l)>=0) continue;
-if(l.indexOf('\u00b7')>=0) continue;
-if(l.length>longest.length) longest=l;
-}
-title=longest;
-}
-if(!title||title.length<3) continue;
-if(!snippet){
-var descEl=containers[i].querySelector('.VwiC3b, .GI74Re');
-if(descEl) snippet=descEl.innerText.trim().slice(0,200);
-}
-seen.add(href);
-results.push(JSON.stringify({title:title.slice(0,150),snippet:snippet,url:href}));
-}
-}
-return '['+results.join(',')+']';
-})();
-            """.trimIndent()
-
+            val extractJs = if (news) NEWS_EXTRACT_JS else WEB_EXTRACT_JS
+            var pageItems: List<JsonObject>? = null
             repeat(5) { attempt ->
                 if (attempt > 0) delay(500)
                 val extractRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(extractJs) }
                 val extractText = extractRaw?.let { unquoteJsString(it) } ?: ""
 
                 if (extractText.isNotBlank()) {
-                    val jsonArray = Json.parseToJsonElement(extractText).jsonArray
-                    for (item in jsonArray) {
-                        val url = item.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: continue
-                        if (url.isNotEmpty() && url !in seenUrls) {
-                            seenUrls.add(url)
-                            allResults.add(item.toString())
-                        }
+                    runCatching {
+                        Json.parseToJsonElement(extractText).jsonArray.map { it.jsonObject }
+                    }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { pageItems = it }
+                }
+                if (!pageItems.isNullOrEmpty()) return@repeat
+            }
+
+            val items = pageItems.orEmpty()
+            if (news) {
+                val tokens = items.mapNotNull { it["token"]?.jsonPrimitive?.contentOrNull }
+                val resolved = resolveGotoUrls(tokens)
+                for (item in items) {
+                    val token = item["token"]?.jsonPrimitive?.contentOrNull ?: continue
+                    val url = resolved[token] ?: continue
+                    if (!seenUrls.add(url)) continue
+                    val title = item["title"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                    val date = item["date"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                    allResults.add(
+                        buildJsonObject {
+                            put("title", if (date.isNotBlank()) "$title ($date)" else title)
+                            put("url", url)
+                        }.toString()
+                    )
+                }
+            } else {
+                for (item in items) {
+                    val url = item["url"]?.jsonPrimitive?.contentOrNull ?: continue
+                    if (url.isNotEmpty() && seenUrls.add(url)) {
+                        allResults.add(item.toString())
                     }
                 }
-
-                if (allResults.size > 0) return@repeat
             }
 
             if (allResults.size >= resultCount) break
@@ -283,6 +257,100 @@ return '['+results.join(',')+']';
         return JsonArray(jsonResults).toString()
     }
 
+    private suspend fun resolveGotoUrls(tokens: List<String>): Map<String, String> {
+        if (tokens.isEmpty()) return emptyMap()
+        val context = webView.context ?: return emptyMap()
+        val resolved = java.util.concurrent.ConcurrentHashMap<String, String>()
+        withContext(Dispatchers.Main) {
+            tokens.chunked(8).forEach { batch ->
+                val resolvers = batch.map { token ->
+                    val resolver = WebView(context)
+                    resolver.settings.javaScriptEnabled = false
+                    resolver.settings.domStorageEnabled = false
+                    resolver.webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                            val url = request.url.toString()
+                            if (request.isForMainFrame &&
+                                resolved[token] == null &&
+                                !url.startsWith("https://www.google.com") &&
+                                !url.startsWith("https://google.com") &&
+                                looksLikeArticleUrl(url)
+                            ) {
+                                resolved[token] = normalizeNewsUrl(url)
+                                view.post { view.stopLoading() }
+                            }
+                            return null
+                        }
+
+                        override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                            if (url != null &&
+                                !url.startsWith("https://www.google.com") &&
+                                !url.startsWith("https://google.com") &&
+                                looksLikeArticleUrl(url)
+                            ) {
+                                resolved[token] = normalizeNewsUrl(url)
+                                view.stopLoading()
+                            }
+                        }
+                    }
+                    resolver.loadUrl("https://www.google.com/goto?url=$token")
+                    resolver
+                }
+                val deadline = System.currentTimeMillis() + 4000
+                while (batch.any { resolved[it] == null } && System.currentTimeMillis() < deadline) {
+                    delay(50)
+                }
+                resolvers.forEach { it.destroy() }
+            }
+        }
+        return resolved
+    }
+
+    private fun normalizeNewsUrl(raw: String): String {
+        return try {
+            val uri = Uri.parse(raw)
+            val host = uri.host.orEmpty()
+            val path = uri.path.orEmpty()
+            if (host.contains("ampproject.org") && path.startsWith("/v/s/")) {
+                val inner = path.removePrefix("/v/s/")
+                val slash = inner.indexOf('/')
+                if (slash > 0) {
+                    val innerHost = inner.substring(0, slash)
+                    var innerPath = inner.substring(slash)
+                    if (innerPath.startsWith("/amp/")) innerPath = innerPath.removePrefix("/amp/")
+                    if (innerHost.isNotBlank()) return "https://$innerHost$innerPath"
+                }
+            }
+            raw
+        } catch (_: Exception) {
+            raw
+        }
+    }
+
+    private val ASSET_HOSTS = setOf(
+        "fonts.googleapis.com",
+        "polyfill.io",
+        "assets.guim.co.uk",
+        "cdnjs.cloudflare.com",
+        "unpkg.com",
+        "cdn.jsdelivr.net",
+    )
+
+    private val ASSET_EXTENSIONS = setOf(".svg", ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2")
+
+    private fun looksLikeArticleUrl(url: String): Boolean {
+        return try {
+            val uri = Uri.parse(url)
+            val host = uri.host.orEmpty()
+            val path = uri.path.orEmpty()
+            if (host in ASSET_HOSTS) return false
+            if (path.startsWith("/wp-content/")) return false
+            ASSET_EXTENSIONS.none { path.endsWith(it) }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     suspend fun searchBrave(query: String, news: Boolean, resultCount: Int = 10): String {
         val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
         val basePath = if (news) "search.brave.com/news" else "search.brave.com/search"
@@ -290,7 +358,7 @@ return '['+results.join(',')+']';
         val allResults = mutableListOf<String>()
         val seenUrls = mutableSetOf<String>()
         var offset = 0
-        var pagesRemaining = (resultCount + 9) / 10
+        var pagesRemaining = (resultCount + 19) / 20
 
         while (allResults.size < resultCount && pagesRemaining > 0) {
             val url = "https://$basePath?q=$encodedQuery" +
@@ -299,7 +367,7 @@ return '['+results.join(',')+']';
 
             val extractJs = """
 (function(){
-var selectors='#results .snippet[data-type="web"], main div.results .snippet[data-type="news"], #results .snippet[data-type="news"]';
+var selectors='.snippet[data-type="web"], .snippet[data-type="news"]';
 var snippets=document.querySelectorAll(selectors);
 var results=[];
 var seen=window.__seenUrls||new Set();
@@ -315,15 +383,15 @@ var url=link?link.href:'';
 if(!url||url.indexOf('search.brave.com')>=0) continue;
 if(seen.has(url)) continue;
 if(!title) continue;
-var descEls=s.querySelectorAll('.content, .description, .snippet-description');
+var descEls=s.querySelectorAll('.content, .description, .snippet-description, .inline-qa-question, .inline-qa-answer, .product-review');
 var descParts=[];
 for(var j=0;j<descEls.length;j++){
-var t=(descEls[j].innerText||'').trim();
+var t=(descEls[j].innerText||'').replace(/\s+/g,' ').trim();
 if(t&&t.length>5) descParts.push(t);
 }
-var desc=descParts.join(' ').slice(0,200);
+var desc=descParts.join(' ');
 seen.add(url);
-results.push(JSON.stringify({title:title.slice(0,150),snippet:desc,url:url}));
+results.push(JSON.stringify({title:title,snippet:desc,url:url}));
 }
 return '['+results.join(',')+']';
 })();
@@ -349,7 +417,7 @@ return '['+results.join(',')+']';
             }
 
             if (allResults.size >= resultCount) break
-            offset += 20
+            offset += 1
             pagesRemaining--
         }
 
@@ -1029,3 +1097,38 @@ internal class NetLogBridge(private val collector: BrowserLogCollector) {
         }
     }
 }
+
+private const val WEB_EXTRACT_JS = """(function(){
+var html=document.documentElement.outerHTML.replace(/\\"/g,'"');
+var re=/\["(https?:\/\/[^"\[\]]+)","([^"]+)","([^"]+)"/g;
+var results=[];
+var seen=new Set();
+var m;
+while((m=re.exec(html))!==null){
+var url=m[1].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&');
+if(url.indexOf('google.')>=0||url.indexOf('gstatic')>=0||url.indexOf('.svg')>=0) continue;
+if(seen.has(url)) continue;
+seen.add(url);
+results.push(JSON.stringify({title:m[2].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&'),snippet:m[3].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&'),url:url}));
+}
+return '['+results.join(',')+']';
+})();"""
+
+private const val NEWS_EXTRACT_JS = """(function(){
+var titles=document.querySelectorAll('[role="heading"][aria-level="3"]');
+var results=[];
+for(var i=0;i<titles.length;i++){
+var t=titles[i];
+var a=t.closest('a[href]');
+if(!a) continue;
+var href=a.href;
+if(href.indexOf('/goto?url=')<0) continue;
+var container=a.closest('[class*="Ww4FFb"]')||a.parentElement;
+var source=container?((container.querySelector('span')||{}).innerText||''):'';
+var date=container?((container.querySelector('span[data-ts]')||{}).innerText||''):'';
+var title=t.innerText.trim();
+if(!title) continue;
+results.push(JSON.stringify({title:title,source:source.trim(),date:date.trim(),token:href.split('url=')[1]}));
+}
+return '['+results.join(',')+']';
+})();"""
