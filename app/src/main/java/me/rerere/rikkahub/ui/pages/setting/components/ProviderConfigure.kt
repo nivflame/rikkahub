@@ -42,6 +42,8 @@ import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.data.ai.PoolTogglePlan
+import me.rerere.rikkahub.data.ai.planPoolToggle
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -96,10 +98,29 @@ fun ProviderConfigure(
     }
 }
 
-private fun ProviderSetting.updatePool(enabled: Boolean, accounts: List<PoolAccount>): ProviderSetting = when (this) {
-    is ProviderSetting.OpenAI -> copy(poolEnabled = enabled, poolAccounts = accounts)
-    is ProviderSetting.Google -> copy(poolEnabled = enabled, poolAccounts = accounts)
-    is ProviderSetting.Claude -> copy(poolEnabled = enabled, poolAccounts = accounts)
+private fun ProviderSetting.updatePool(
+    enabled: Boolean,
+    accounts: List<PoolAccount>,
+    apiKey: String? = null,
+): ProviderSetting = when (this) {
+    is ProviderSetting.OpenAI -> copy(
+        poolEnabled = enabled,
+        poolAccounts = accounts,
+        apiKey = apiKey ?: this.apiKey,
+    )
+
+    is ProviderSetting.Google -> copy(
+        poolEnabled = enabled,
+        poolAccounts = accounts,
+        apiKey = apiKey ?: this.apiKey,
+    )
+
+    is ProviderSetting.Claude -> copy(
+        poolEnabled = enabled,
+        poolAccounts = accounts,
+        apiKey = apiKey ?: this.apiKey,
+    )
+
     else -> this
 }
 
@@ -121,7 +142,14 @@ private fun ProviderPoolSection(
         is ProviderSetting.Claude -> provider.poolAccounts
         else -> return
     }
+    val currentApiKey = when (provider) {
+        is ProviderSetting.OpenAI -> provider.apiKey
+        is ProviderSetting.Google -> provider.apiKey
+        is ProviderSetting.Claude -> provider.apiKey
+        else -> return
+    }
 
+    var showDisableWarning by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -130,7 +158,14 @@ private fun ProviderPoolSection(
         Text(text = "Pool", style = MaterialTheme.typography.titleMedium)
         Switch(
             checked = poolEnabled,
-            onCheckedChange = { onEdit(provider.updatePool(it, poolAccounts)) },
+            onCheckedChange = { enable ->
+                when (val plan = planPoolToggle(currentApiKey, poolAccounts, enable)) {
+                    is PoolTogglePlan.ConfirmDisable -> showDisableWarning = true
+                    is PoolTogglePlan.Apply -> onEdit(
+                        provider.updatePool(plan.enabled, plan.accounts, plan.newApiKey)
+                    )
+                }
+            },
         )
     }
 
@@ -217,6 +252,40 @@ private fun ProviderPoolSection(
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (showDisableWarning) {
+        AlertDialog(
+            onDismissRequest = { showDisableWarning = false },
+            title = { Text("Disable Pool") },
+            text = {
+                Text(
+                    "Disabling pooling will delete all accounts except the first. " +
+                        "The first account's API key becomes the provider API key."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEdit(
+                            provider.updatePool(
+                                enabled = false,
+                                accounts = emptyList(),
+                                apiKey = poolAccounts.first().apiKey,
+                            )
+                        )
+                        showDisableWarning = false
+                    }
+                ) {
+                    Text(text = "Disable", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisableWarning = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
