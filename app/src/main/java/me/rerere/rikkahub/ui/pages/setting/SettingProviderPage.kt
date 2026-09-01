@@ -3,6 +3,7 @@ package me.rerere.rikkahub.ui.pages.setting
 import android.net.Uri
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Camera01
+import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.DragDropHorizontal
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.FileImport
@@ -32,6 +33,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -41,14 +43,17 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +84,7 @@ import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.ImageUtils
 import me.rerere.rikkahub.utils.plus
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -210,6 +216,11 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                             },
                             onClick = {
                                 navController.navigate(Screen.SettingProviderDetail(providerId = provider.id.toString()))
+                            },
+                            onDelete = {
+                                vm.updateSettings(
+                                    settings.copy(providers = settings.providers - provider)
+                                )
                             }
                         )
                     }
@@ -486,61 +497,103 @@ private fun ProviderItem(
     provider: ProviderSetting,
     modifier: Modifier = Modifier,
     dragHandle: @Composable () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (provider.enabled) {
-                CustomColors.listItemColors.containerColor
-            } else MaterialTheme.colorScheme.errorContainer,
-        ),
-        onClick = {
-            onClick()
-        }
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AutoAIIcon(
-                name = provider.name,
-                modifier = Modifier.size(40.dp)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+    val scope = rememberCoroutineScope()
+    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+    SwipeToDismissBox(
+        state = swipeToDismissBoxState,
+        backgroundContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = provider.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                ProvideTextStyle(MaterialTheme.typography.labelSmall) {
-                    CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
-                        provider.shortDescription()
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            swipeToDismissBoxState.reset()
+                        }
                     }
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Tag(type = if (provider.enabled) TagType.SUCCESS else TagType.WARNING) {
-                        Text(stringResource(if (provider.enabled) R.string.setting_provider_page_enabled else R.string.setting_provider_page_disabled))
+                    Icon(HugeIcons.Cancel01, null)
+                }
+                FilledIconButton(
+                    onClick = {
+                        onDelete()
+                        scope.launch {
+                            swipeToDismissBoxState.reset()
+                        }
                     }
-                    Tag(type = TagType.INFO) {
-                        Text(
-                            stringResource(
-                                R.string.setting_provider_page_model_count,
-                                provider.models.size
-                            )
-                        )
-                    }
+                ) {
+                    Icon(
+                        HugeIcons.Delete01,
+                        contentDescription = stringResource(R.string.chat_page_delete)
+                    )
                 }
             }
-            dragHandle()
+        },
+        enableDismissFromStartToEnd = false,
+        gesturesEnabled = true,
+        modifier = modifier
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (provider.enabled) {
+                    CustomColors.listItemColors.containerColor
+                } else MaterialTheme.colorScheme.errorContainer,
+            ),
+            onClick = {
+                onClick()
+            }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AutoAIIcon(
+                    name = provider.name,
+                    modifier = Modifier.size(40.dp)
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = provider.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    ProvideTextStyle(MaterialTheme.typography.labelSmall) {
+                        CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
+                            provider.shortDescription()
+                        }
+                    }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Tag(type = if (provider.enabled) TagType.SUCCESS else TagType.WARNING) {
+                            Text(stringResource(if (provider.enabled) R.string.setting_provider_page_enabled else R.string.setting_provider_page_disabled))
+                        }
+                        Tag(type = TagType.INFO) {
+                            Text(
+                                stringResource(
+                                    R.string.setting_provider_page_model_count,
+                                    provider.models.size
+                                )
+                            )
+                        }
+                    }
+                }
+                dragHandle()
+            }
         }
     }
 }
