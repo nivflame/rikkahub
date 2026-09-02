@@ -1139,14 +1139,18 @@ class ChatService(
                 "locale" to Locale.getDefault().displayName
             )
 
-            val result = providerHandler.generateText(
+            val sb = StringBuilder()
+            providerHandler.streamText(
                 providerSetting = provider,
                 messages = listOf(UIMessage.user(prompt)),
                 params = backgroundTextGenerationParams(model),
-            )
+            ).collect { chunk ->
+                val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
+                message?.toText()?.let { sb.append(it) }
+            }
 
-            return result.choices[0].message?.toText()?.trim()
-                ?: throw IllegalStateException("Failed to generate compressed summary")
+            return sb.toString().trim()
+                .ifBlank { throw IllegalStateException("Failed to generate compressed summary") }
         }
 
         val compressedSummaries = coroutineScope {
