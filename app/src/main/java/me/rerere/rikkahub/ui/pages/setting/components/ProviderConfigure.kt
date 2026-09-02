@@ -30,8 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -45,6 +43,7 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.PoolTogglePlan
 import me.rerere.rikkahub.data.ai.planPoolToggle
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
+import me.rerere.rikkahub.utils.writeClipboardText
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Copy01
@@ -850,7 +849,7 @@ private fun ApiKeyTrailingIcons(
     onToggleVisible: () -> Unit,
     value: String,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
     val toaster = LocalToaster.current
     Row {
         IconButton(onClick = onToggleVisible) {
@@ -858,7 +857,7 @@ private fun ApiKeyTrailingIcons(
         }
         IconButton(
             onClick = {
-                clipboard.setText(AnnotatedString(value))
+                context.writeClipboardText(value, sensitive = true)
                 toaster.show("Copied", ToastType.Success)
             },
             enabled = value.isNotBlank(),

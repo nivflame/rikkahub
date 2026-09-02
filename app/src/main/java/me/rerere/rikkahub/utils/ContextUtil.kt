@@ -63,14 +63,19 @@ fun Context.joinQQGroup(key: String?): Boolean {
 /**
  * Write text into clipboard
  */
-fun Context.writeClipboardText(text: String) {
+fun Context.writeClipboardText(text: String, sensitive: Boolean = false) {
     val clipboardManager =
         getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
     runCatching {
-        clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("text", text))
-        Log.i(TAG, "writeClipboardText: $text")
+        val clip = android.content.ClipData.newPlainText("text", text)
+        if (sensitive && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            clip.description.extras = android.os.PersistableBundle().apply {
+                putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        clipboardManager.setPrimaryClip(clip)
     }.onFailure {
-        Log.e(TAG, "writeClipboardText: $text", it)
+        Log.e(TAG, "writeClipboardText failed", it)
         Toast.makeText(this, "Failed to write text into clipboard", Toast.LENGTH_SHORT).show()
     }
 }
