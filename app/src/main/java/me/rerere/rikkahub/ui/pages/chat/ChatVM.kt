@@ -2,6 +2,7 @@ package me.rerere.rikkahub.ui.pages.chat
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import me.rerere.rikkahub.ui.hooks.writeStringPreference
 import me.rerere.rikkahub.ui.hooks.ChatInputState
 import me.rerere.rikkahub.utils.UiState
 import me.rerere.rikkahub.utils.UpdateChecker
+import me.rerere.rikkahub.utils.base64Decode
 import java.util.Locale
 import kotlin.uuid.Uuid
 
@@ -57,6 +59,9 @@ class ChatVM(
     private val analytics: FirebaseAnalytics,
     private val filesManager: FilesManager,
     private val favoriteRepository: FavoriteRepository,
+    private val initText: String? = null,
+    private val initFiles: List<Uri> = emptyList(),
+    private val autoSend: Boolean = false,
 ) : ViewModel() {
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
@@ -91,6 +96,16 @@ class ChatVM(
         // 初始化对话
         viewModelScope.launch {
             chatService.initializeConversation(_conversationId)
+            if (autoSend) {
+                val parts = buildList {
+                    addAll(filesManager.createMessageParts(initFiles))
+                    val decoded = initText?.base64Decode().orEmpty()
+                    if (decoded.isNotEmpty()) {
+                        add(UIMessagePart.Text(text = decoded))
+                    }
+                }
+                handleMessageSend(parts)
+            }
         }
 
         // 记住对话ID, 方便下次启动恢复

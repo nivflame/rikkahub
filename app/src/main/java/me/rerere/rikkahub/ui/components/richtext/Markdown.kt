@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -465,13 +466,13 @@ private fun MarkdownNode(
             val linkDest =
                 node.findChildOfTypeRecursive(MarkdownElementTypes.LINK_DESTINATION)?.getTextInNode(content) ?: ""
             val context = LocalContext.current
+            val uriHandler = LocalUriHandler.current
             Text(
                 text = linkText,
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration = TextDecoration.Underline,
                 modifier = modifier.clickable {
-                    val intent = Intent(Intent.ACTION_VIEW, linkDest.toUri())
-                    context.startActivity(intent)
+                    uriHandler.openUri(linkDest)
                 })
         }
 

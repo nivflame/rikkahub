@@ -47,14 +47,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
-import coil3.gif.AnimatedImageDecoder
-import coil3.gif.GifDecoder
-import coil3.network.cachecontrol.CacheControlCacheStrategy
-import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import coil3.request.crossfade
-import coil3.svg.SvgDecoder
 import com.dokar.sonner.Toaster
 import com.dokar.sonner.rememberToasterState
 import kotlinx.serialization.Serializable
@@ -135,8 +128,8 @@ import me.rerere.rikkahub.ui.pages.webview.WebViewPage
 import me.rerere.rikkahub.ui.theme.LocalDarkMode
 import me.rerere.rikkahub.ui.theme.RikkahubTheme
 import me.rerere.rikkahub.utils.CrashHandler
+import me.rerere.rikkahub.utils.base64Encode
 import me.rerere.rikkahub.utils.openUsageAccessSettings
-import okhttp3.OkHttpClient
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import kotlin.uuid.Uuid
@@ -146,10 +139,12 @@ private const val TAG = "RouteActivity"
 class RouteActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN_CODEX_SETTINGS = "open_codex_settings"
+        const val EXTRA_ASSIST_FILES = "assist_files"
+        const val EXTRA_ASSIST = "assist_send"
+        const val ACTION_OPEN_CONVERSATION = "me.rerere.rikkahub.OPEN_CONVERSATION"
     }
 
     private val highlighter by inject<Highlighter>()
-    private val okHttpClient by inject<OkHttpClient>()
     private val settingsStore by inject<SettingsStore>()
     private var navStack: MutableList<NavKey>? = null
 
@@ -180,23 +175,6 @@ class RouteActivity : ComponentActivity() {
         }
         setContent {
             RikkahubTheme {
-                setSingletonImageLoaderFactory { context ->
-                    ImageLoader.Builder(context)
-                        .crossfade(true)
-                        .components {
-                            add(OkHttpNetworkFetcherFactory(
-                                callFactory = { okHttpClient },
-                                cacheStrategy = { CacheControlCacheStrategy() },
-                            ))
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                add(AnimatedImageDecoder.Factory())
-                            } else {
-                                add(GifDecoder.Factory())
-                            }
-                            add(SvgDecoder.Factory(scaleToDensity = true))
-                        }
-                        .build()
-                }
                 AppRoutes()
             }
         }
@@ -216,6 +194,9 @@ class RouteActivity : ComponentActivity() {
                 putExtra(Intent.EXTRA_TEXT, intent?.getStringExtra(Intent.EXTRA_TEXT))
                 putExtra(Intent.EXTRA_STREAM, intent?.getStringExtra(Intent.EXTRA_STREAM))
                 putExtra(Intent.EXTRA_PROCESS_TEXT, intent?.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT))
+                putStringArrayListExtra(EXTRA_ASSIST_FILES, intent?.getStringArrayListExtra(EXTRA_ASSIST_FILES))
+                putExtra(EXTRA_ASSIST, intent?.getBooleanExtra(EXTRA_ASSIST, false))
+                putExtra("conversationId", intent?.getStringExtra("conversationId"))
             }
         }
 
@@ -224,12 +205,30 @@ class RouteActivity : ComponentActivity() {
                 Intent.ACTION_SEND -> {
                     val text = shareIntent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
                     val imageUri = shareIntent.getStringExtra(Intent.EXTRA_STREAM)
-                    backStack.add(Screen.ShareHandler(text, imageUri))
+                    val files = shareIntent.getStringArrayListExtra(EXTRA_ASSIST_FILES)?.toList() ?: emptyList()
+                    if (shareIntent.getBooleanExtra(EXTRA_ASSIST, false)) {
+                        backStack.add(
+                            Screen.Chat(
+                                id = Uuid.random().toString(),
+                                text = text.base64Encode(),
+                                files = files,
+                                autoSend = true,
+                            )
+                        )
+                    } else {
+                        backStack.add(Screen.ShareHandler(text, imageUri, files))
+                    }
                 }
 
                 Intent.ACTION_PROCESS_TEXT -> {
                     val text = shareIntent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString() ?: ""
                     backStack.add(Screen.ShareHandler(text, null))
+                }
+
+                ACTION_OPEN_CONVERSATION -> {
+                    shareIntent.getStringExtra("conversationId")?.let { id ->
+                        backStack.add(Screen.Chat(id = id))
+                    }
                 }
             }
         }
@@ -336,14 +335,16 @@ class RouteActivity : ComponentActivity() {
                                     id = Uuid.parse(key.id),
                                     text = key.text,
                                     files = key.files.map { it.toUri() },
-                                    nodeId = key.nodeId?.let { Uuid.parse(it) }
+                                    nodeId = key.nodeId?.let { Uuid.parse(it) },
+                                    autoSend = key.autoSend
                                 )
                             }
 
                             entry<Screen.ShareHandler> { key ->
                                 ShareHandlerPage(
                                     text = key.text,
-                                    image = key.streamUri
+                                    image = key.streamUri,
+                                    files = key.files
                                 )
                             }
 
@@ -612,11 +613,16 @@ sealed interface Screen : NavKey {
         val id: String,
         val text: String? = null,
         val files: List<String> = emptyList(),
-        val nodeId: String? = null
+        val nodeId: String? = null,
+        val autoSend: Boolean = false
     ) : Screen
 
     @Serializable
-    data class ShareHandler(val text: String, val streamUri: String? = null) : Screen
+    data class ShareHandler(
+        val text: String,
+        val streamUri: String? = null,
+        val files: List<String> = emptyList()
+    ) : Screen
 
     @Serializable
     data object History : Screen

@@ -36,6 +36,9 @@ val viewModelModule = module {
             analytics = get(),
             filesManager = get(),
             favoriteRepository = get(),
+            initText = params[1],
+            initFiles = params[2],
+            autoSend = params[3],
         )
     }
     viewModelOf(::ChatDrawerVM)

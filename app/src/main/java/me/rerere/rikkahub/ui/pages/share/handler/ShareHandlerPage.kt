@@ -36,7 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun ShareHandlerPage(text: String, image: String?) {
+fun ShareHandlerPage(text: String, image: String?, files: List<String> = emptyList()) {
     val vm: ShareHandlerVM = koinViewModel(parameters = { parametersOf(text) })
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -88,7 +88,7 @@ fun ShareHandlerPage(text: String, image: String?) {
                             navigateToChatPage(
                                 navigator = navController,
                                 initText = vm.shareText.base64Encode(),
-                                initFiles = image?.let { listOf(it.toUri()) } ?: emptyList()
+                                initFiles = (files + listOfNotNull(image)).map { it.toUri() }
                             )
                         }
                     },

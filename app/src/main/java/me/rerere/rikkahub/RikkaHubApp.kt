@@ -38,10 +38,22 @@ import me.rerere.rikkahub.utils.CrashHandler
 import me.rerere.rikkahub.utils.DatabaseUtil
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.workspace.WorkspaceManager
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
+import coil3.network.cachecontrol.CacheControlCacheStrategy
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
+import coil3.svg.SvgDecoder
+import okhttp3.OkHttpClient
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.koin.core.context.startKoin
 
 private const val TAG = "RikkaHubApp"
@@ -50,7 +62,27 @@ const val CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID = "chat_completed"
 const val CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID = "chat_live_update"
 const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 
-class RikkaHubApp : Application() {
+class RikkaHubApp : Application(), SingletonImageLoader.Factory, KoinComponent {
+    private val okHttpClient: OkHttpClient by inject()
+
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .crossfade(true)
+            .components {
+                add(OkHttpNetworkFetcherFactory(
+                    callFactory = { okHttpClient },
+                    cacheStrategy = { CacheControlCacheStrategy() },
+                ))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    add(AnimatedImageDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+                add(SvgDecoder.Factory(scaleToDensity = true))
+            }
+            .build()
+    }
+
     override fun onCreate() {
         // Must be called before any WebView is created so full-page screenshots can draw the
         // whole document instead of only the viewport.

@@ -102,6 +102,25 @@ class FilesManager(
     fun getFile(entity: ManagedFileEntity): File =
         File(context.filesDir, entity.relativePath)
 
+    fun createMessageParts(uris: List<Uri>): List<UIMessagePart> {
+        val localFiles = createChatFilesByContents(uris)
+        val contentTypes = localFiles.mapNotNull { file ->
+            getFileMimeType(file)
+        }
+        return buildList {
+            localFiles.forEachIndexed { index, file ->
+                val type = contentTypes.getOrNull(index)
+                if (type?.startsWith("image/") == true) {
+                    add(UIMessagePart.Image(url = file.toString()))
+                } else if (type?.startsWith("video/") == true) {
+                    add(UIMessagePart.Video(url = file.toString()))
+                } else if (type?.startsWith("audio/") == true) {
+                    add(UIMessagePart.Audio(url = file.toString()))
+                }
+            }
+        }
+    }
+
     fun createChatFilesByContents(uris: List<Uri>): List<Uri> {
         val newUris = mutableListOf<Uri>()
         val dir = context.filesDir.resolve(FileFolders.UPLOAD)

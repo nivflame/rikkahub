@@ -105,10 +105,16 @@ import java.io.File
 import kotlin.uuid.Uuid
 
 @Composable
-fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
+fun ChatPage(
+    id: Uuid,
+    text: String?,
+    files: List<Uri>,
+    nodeId: Uuid? = null,
+    autoSend: Boolean = false,
+) {
     val vm: ChatVM = koinViewModel(
         parameters = {
-            parametersOf(id.toString())
+            parametersOf(id.toString(), text ?: "", files, autoSend)
         }
     )
     val filesManager: FilesManager = koinInject()
@@ -156,24 +162,9 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null) {
 
     // 初始化输入状态（处理传入的 files 和 text 参数）
     LaunchedEffect(files, text) {
+        if (autoSend) return@LaunchedEffect
         if (files.isNotEmpty()) {
-            val localFiles = filesManager.createChatFilesByContents(files)
-            val contentTypes = files.mapNotNull { file ->
-                filesManager.getFileMimeType(file)
-            }
-            val parts = buildList {
-                localFiles.forEachIndexed { index, file ->
-                    val type = contentTypes.getOrNull(index)
-                    if (type?.startsWith("image/") == true) {
-                        add(UIMessagePart.Image(url = file.toString()))
-                    } else if (type?.startsWith("video/") == true) {
-                        add(UIMessagePart.Video(url = file.toString()))
-                    } else if (type?.startsWith("audio/") == true) {
-                        add(UIMessagePart.Audio(url = file.toString()))
-                    }
-                }
-            }
-            inputState.messageContent = parts
+            inputState.messageContent = filesManager.createMessageParts(files)
         }
         text?.base64Decode()?.let { decodedText ->
             if (decodedText.isNotEmpty()) {
@@ -507,7 +498,7 @@ private fun ChatPageContent(
 }
 
 @Composable
-private fun ChatFilesPickerSheet(
+internal fun ChatFilesPickerSheet(
     inputState: ChatInputState,
     setting: Settings,
     conversation: Conversation,

@@ -60,6 +60,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -79,6 +81,7 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
@@ -124,6 +127,9 @@ fun ChatInput(
     onToggleSearch: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     completionProviders: List<ChatCompletionProvider> = emptyList(),
+    autoFocus: Boolean = false,
+    showInputBorder: Boolean = true,
+    showSearchButton: Boolean = true,
     onUpdateChatModel: (Model) -> Unit,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateSearchService: (Int) -> Unit,
@@ -220,7 +226,9 @@ fun ChatInput(
                     ),
                 shape = containerShape,
                 tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                border = if (showInputBorder) {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                } else null,
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else hazeTintColor,
             ) {
                 Column(
@@ -234,6 +242,7 @@ fun ChatInput(
                     TextInputRow(
                         state = state,
                         completionProviders = completionProviders,
+                        autoFocus = autoFocus,
                         onSendMessage = { sendMessage() }
                     )
 
@@ -266,24 +275,26 @@ fun ChatInput(
                             val enableSearchMsg = stringResource(R.string.web_search_enabled)
                             val disableSearchMsg = stringResource(R.string.web_search_disabled)
                             val chatModel = settings.getCurrentChatModel()
-                            SearchPickerButton(
-                                enableSearch = enableSearch,
-                                settings = settings,
-                                onToggleSearch = { enabled ->
-                                    onToggleSearch(enabled)
-                                    toaster.show(
-                                        message = if (enabled) enableSearchMsg else disableSearchMsg,
-                                        duration = 1.seconds,
-                                        type = if (enabled) {
-                                            ToastType.Success
-                                        } else {
-                                            ToastType.Normal
-                                        }
-                                    )
-                                },
-                                onUpdateSearchService = onUpdateSearchService,
-                                model = chatModel,
-                            )
+                            if (showSearchButton) {
+                                SearchPickerButton(
+                                    enableSearch = enableSearch,
+                                    settings = settings,
+                                    onToggleSearch = { enabled ->
+                                        onToggleSearch(enabled)
+                                        toaster.show(
+                                            message = if (enabled) enableSearchMsg else disableSearchMsg,
+                                            duration = 1.seconds,
+                                            type = if (enabled) {
+                                                ToastType.Success
+                                            } else {
+                                                ToastType.Normal
+                                            }
+                                        )
+                                    },
+                                    onUpdateSearchService = onUpdateSearchService,
+                                    model = chatModel,
+                                )
+                            }
 
                             // Reasoning
                             val model = settings.getCurrentChatModel()
@@ -425,6 +436,7 @@ private fun ActionIconButton(
 private fun TextInputRow(
     state: ChatInputState,
     completionProviders: List<ChatCompletionProvider>,
+    autoFocus: Boolean = false,
     onSendMessage: () -> Unit,
 ) {
     val settings = LocalSettings.current
@@ -432,6 +444,16 @@ private fun TextInputRow(
     val assistant = settings.getCurrentAssistant()
     val quickMessages = remember(settings.quickMessages, assistant.quickMessageIds) {
         settings.getQuickMessagesOfAssistant(assistant)
+    }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(autoFocus) {
+        if (autoFocus) {
+            delay(150)
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
     }
 
     Column(
@@ -552,6 +574,7 @@ private fun TextInputRow(
             state = state.textContent,
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(focusRequester)
                 .testTag("chat_input")
                 .contentReceiver(receiveContentListener)
                 .onFocusChanged {

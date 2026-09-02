@@ -3,6 +3,7 @@
   xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
   <uses-permission android:name="android.permission.CAMERA" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -161,8 +162,11 @@
       android:name="com.yalantis.ucrop.UCropActivity"
       android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
-    <service
-      android:name=".service.WebServerService"
+      <service
+        android:name=".service.AssistBubbleService"
+        android:exported="false" />
+      <service
+        android:name=".service.WebServerService"
       android:exported="false"
       android:foregroundServiceType="specialUse">
       <property
@@ -178,6 +182,40 @@
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
         android:value="keep network alive during AI response generation" />
     </service>
+
+    <activity
+      android:name=".ui.activity.AssistChatActivity"
+      android:excludeFromRecents="true"
+      android:exported="true"
+      android:launchMode="singleTask"
+      android:showWhenLocked="true"
+      android:taskAffinity="me.rerere.rikkahub.assist"
+      android:theme="@style/Theme.AssistOverlay"
+      android:windowSoftInputMode="adjustResize">
+      <intent-filter>
+        <action android:name="android.intent.action.ASSIST" />
+
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
+
+    <service
+      android:name=".service.AssistVoiceInteractionService"
+      android:exported="true"
+      android:permission="android.permission.BIND_VOICE_INTERACTION">
+      <intent-filter>
+        <action android:name="android.service.voice.VoiceInteractionService" />
+      </intent-filter>
+
+      <meta-data
+        android:name="android.voice_interaction"
+        android:resource="@xml/assist_voice_interaction_service" />
+    </service>
+
+    <service
+      android:name=".service.AssistSessionService"
+      android:exported="true"
+      android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
     <provider
       android:name="androidx.core.content.FileProvider"
