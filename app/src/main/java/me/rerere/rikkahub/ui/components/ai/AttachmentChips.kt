@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.core.net.toUri
-import coil3.compose.AsyncImage
+import me.rerere.rikkahub.ui.components.richtext.ZoomableAsyncImage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
@@ -86,7 +86,7 @@ internal fun MediaFileInputRow(
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             ) {
-                                AsyncImage(
+                                ZoomableAsyncImage(
                                     model = part.url,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
