@@ -124,10 +124,16 @@ class AssistChatActivity : ComponentActivity() {
         intent?.getStringExtra("conversationId")?.let { raw ->
             runCatching { Uuid.parse(raw) }.getOrNull()?.let { overlayConversationId = it }
         }
+        val prefillText = if (intent?.action == Intent.ACTION_PROCESS_TEXT) {
+            intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
+        } else {
+            null
+        }
         setContent {
             RikkahubTheme {
                 AssistChatPage(
                     conversationId = overlayConversationId,
+                    prefillText = prefillText,
                     onOpenConversation = { openConversation(it) },
                     onDismiss = { finish() },
                 )
@@ -161,6 +167,7 @@ class AssistChatActivity : ComponentActivity() {
 @Composable
 private fun AssistChatPage(
     conversationId: Uuid,
+    prefillText: String?,
     onOpenConversation: (Uuid) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -181,11 +188,15 @@ private fun AssistChatPage(
     val imeVisible = WindowInsets.isImeVisible
     val context = LocalContext.current
 
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(prefillText != null) }
     var showFilesSheet by remember { mutableStateOf(false) }
     var responseText by remember { mutableStateOf("") }
     var capsuleStatus by remember { mutableStateOf("Generating") }
     val inputState = vm.inputState
+
+    LaunchedEffect(Unit) {
+        prefillText?.let { inputState.setMessageText(it) }
+    }
 
     LaunchedEffect(conversationId) {
         vm.conversation.collect { conv ->
