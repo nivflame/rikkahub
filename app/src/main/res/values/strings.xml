@@ -1060,6 +1060,7 @@
   <string name="skill_detail_page_save">Save</string>
   <string name="skills_page_add_title">Add Skill</string>
   <string name="skills_page_delete_message">Are you sure you want to delete "%s"? This action cannot be undone.</string>
+  <string name="skills_page_delete_selected_message">Delete %1$d selected skills? This action cannot be undone.</string>
   <string name="skills_page_delete_title">Delete Skill</string>
   <string name="skills_page_downloading">Downloading...</string>
   <string name="skills_page_empty_hint">Tap the + button at the bottom right to add a Skill</string>
@@ -1076,6 +1077,7 @@
   <string name="skills_page_repo_url_label">Repository URL</string>
   <string name="skills_page_save">Save</string>
   <string name="skills_page_save_failed">Save failed, please check the Skill format</string>
+  <string name="skills_page_selected_count">%1$d selected</string>
   <string name="skills_page_skill_content_label">SKILL.md Content</string>
   <string name="skills_page_skill_name">Skill name: %s</string>
   <string name="skills_page_title">Agent Skills</string>

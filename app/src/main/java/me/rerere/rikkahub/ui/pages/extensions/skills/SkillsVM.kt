@@ -36,6 +36,26 @@ class SkillsVM(
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
+    private val _selectedSkills = MutableStateFlow<Set<String>>(emptySet())
+    val selectedSkills = _selectedSkills.asStateFlow()
+
+    fun toggleSkillSelection(name: String) {
+        val current = _selectedSkills.value
+        _selectedSkills.value = if (name in current) current - name else current + name
+    }
+
+    fun clearSelection() {
+        _selectedSkills.value = emptySet()
+    }
+
+    fun deleteSelectedSkills() {
+        val names = _selectedSkills.value
+        _selectedSkills.value = emptySet()
+        viewModelScope.launch(Dispatchers.IO) {
+            names.forEach { skillManager.deleteSkill(it) }
+            _skills.value = skillManager.listSkills()
+        }
+    }
 
     init {
         loadSkills()
@@ -60,7 +80,9 @@ class SkillsVM(
     fun deleteSkill(name: String) {
         viewModelScope.launch(Dispatchers.IO) {
             skillManager.deleteSkill(name)
-            _skills.value = skillManager.listSkills()
+            val existing = skillManager.listSkills()
+            _skills.value = existing
+            _selectedSkills.value = _selectedSkills.value intersect existing.mapTo(HashSet()) { it.name }
         }
     }
 
