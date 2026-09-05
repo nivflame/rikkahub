@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * App-global browser session manager. Owns one off-screen headless [WebView] the agent drives in
@@ -25,11 +26,21 @@ object HeadlessBrowserSession {
 
     private var headless: BrowserController? = null
 
+    @Volatile
+    private var localContentRoot: File? = null
+
+    fun setLocalContentRoot(file: File?) {
+        localContentRoot = file
+        active?.localContentRoot = file
+        headless?.localContentRoot = file
+    }
+
     private val _url = MutableStateFlow("")
     val urlFlow: StateFlow<String> = _url.asStateFlow()
 
     fun setActive(controller: BrowserController?) {
         active = controller
+        controller?.localContentRoot = localContentRoot
     }
 
     private suspend fun getOrCreateHeadless(context: Context): BrowserController {
@@ -38,7 +49,10 @@ object HeadlessBrowserSession {
             headless ?: BrowserController(
                 WebView(context.applicationContext),
                 onUrlChanged = { _url.value = it }
-            ).also { headless = it }
+            ).also {
+                it.localContentRoot = localContentRoot
+                headless = it
+            }
         }
     }
 

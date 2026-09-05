@@ -25,6 +25,7 @@ import me.rerere.rikkahub.ui.pages.extensions.workspace.WorkspaceTerminalSession
 import me.rerere.workspace.WorkspaceManager
 import me.rerere.workspace.WorkspaceShellStatus
 import me.rerere.workspace.WorkspaceStorageArea
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.uuid.Uuid
@@ -74,6 +75,8 @@ class WorkspaceRepository(
     }
 
     suspend fun getById(id: String): WorkspaceEntity? = dao.getById(id)
+
+    fun getFilesDirByRoot(root: String): File = manager.filesDir(root)
 
     suspend fun create(name: String): WorkspaceEntity {
         val id = Uuid.random().toString()

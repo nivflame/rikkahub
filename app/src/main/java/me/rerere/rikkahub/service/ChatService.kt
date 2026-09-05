@@ -108,6 +108,7 @@ import me.rerere.rikkahub.web.NotFoundException
 import me.rerere.rikkahub.utils.applyPlaceholders
 import me.rerere.rikkahub.utils.sendNotification
 import me.rerere.rikkahub.utils.cancelNotification
+import me.rerere.rikkahub.browser.HeadlessBrowserSession
 import me.rerere.workspace.WorkspaceShellStatus
 import java.time.Instant
 import java.util.Locale
@@ -618,6 +619,7 @@ class ChatService(
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
+                    HeadlessBrowserSession.setLocalContentRoot(null)
                     addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, assistant.localTools))
                     if (LocalToolOption.Skill in assistant.localTools) {
                         addAll(
@@ -846,6 +848,7 @@ class ChatService(
     ): List<Tool> {
         if (workspaceId.isNullOrBlank()) return emptyList()
         val workspace = workspaceRepository.getById(workspaceId) ?: return emptyList()
+        HeadlessBrowserSession.setLocalContentRoot(workspaceRepository.getFilesDirByRoot(workspace.root))
         if (workspace.shellStatus != WorkspaceShellStatus.READY.name) {
             Log.d(
                 TAG,

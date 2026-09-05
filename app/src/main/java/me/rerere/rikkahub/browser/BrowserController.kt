@@ -31,6 +31,8 @@ import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import me.rerere.rikkahub.data.files.FileUtils
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -45,6 +47,8 @@ import me.rerere.document.PdfParser
  * cannot wedge the agent loop.
  */
 class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {
+    @Volatile
+    var localContentRoot: File? = null
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
     private val logCollector = BrowserLogCollector()
@@ -113,17 +117,33 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                     val url = req.url
                     val host = url.host ?: return@let
                     val path = url.path ?: ""
+
+                    // Serve workspace files over a virtual https origin
+                    if (host == "appassets.androidplatform.net") {
+                        val root = localContentRoot
+                        val rel = path.removePrefix("/workspace/").takeIf { it.isNotEmpty() }
+                        if (root != null && rel != null) {
+                            val base = root.canonicalFile
+                            val candidate = File(base, Uri.decode(rel))
+                            val relative = FileUtils.getRelativePathInFilesDir(base, candidate)
+                            if (relative != null) {
+                                val served = File(base, relative)
+                                val stream = runCatching { FileInputStream(served) }.getOrNull()
+                                if (stream != null) {
+                                    return WebResourceResponse(
+                                        FileUtils.guessMimeType(served, served.name),
+                                        null,
+                                        stream,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     val lowerPath = path.lowercase()
 
                     // Block analytics and ad domains
                     if (host in BLOCKED_DOMAINS) {
-                        return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
-                    }
-
-                    // Block fonts
-                    if (lowerPath.endsWith(".woff") || lowerPath.endsWith(".woff2") ||
-                        lowerPath.endsWith(".ttf") || lowerPath.endsWith(".otf") || lowerPath.endsWith(".eot")
-                    ) {
                         return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
                     }
 
@@ -165,8 +185,10 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 }
 
                 else -> {
+                    val resolved = resolveWorkspaceUrl(url.ifBlank { "about:blank" })
+                    if (resolved == null) return@withContext "file not found in workspace: $url"
                     loadDeferred = CompletableDeferred()
-                    webView.loadUrl(url.ifBlank { "about:blank" })
+                    webView.loadUrl(resolved)
                     loadDeferred?.await()
                 }
             }
@@ -177,6 +199,16 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     suspend fun currentUrl(): String = withContext(Dispatchers.Main) {
         webView.url ?: ""
+    }
+
+    private fun resolveWorkspaceUrl(url: String): String? {
+        val root = localContentRoot ?: return url
+        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("about:")) return url
+        val rel = url.removePrefix("/workspace/").trimStart('/')
+        if (rel.isEmpty()) return url
+        val file = File(root, rel)
+        if (!file.isFile) return null
+        return "https://appassets.androidplatform.net/workspace/" + Uri.encode(rel, "/")
     }
 
     suspend fun search(query: String, news: Boolean, resultCount: Int = 20): String {

@@ -30,7 +30,7 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_navigate",
-        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
+        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- url may also be a workspace-relative file path (e.g. \"index.html\") to open an HTML file from the workspace\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
