@@ -10,10 +10,70 @@ import android.webkit.MimeTypeMap
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
+import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlin.uuid.Uuid
+
+data class SafEntry(val uri: Uri, val name: String, val isDir: Boolean)
 
 object FileUtils {
     private const val TAG = "FileUtils"
+
+    suspend fun collectSafFiles(
+        context: Context,
+        dir: DocumentFile,
+        relativePath: String = "",
+        dispatcher: CoroutineDispatcher,
+    ): Map<String, ByteArray> = coroutineScope {
+        listSafChildren(context, dir).map { entry ->
+            async(dispatcher) {
+                val childPath = if (relativePath.isBlank()) entry.name else "$relativePath/${entry.name}"
+                if (entry.isDir) {
+                    val childDir = DocumentFile.fromTreeUri(context, entry.uri) ?: return@async emptyMap()
+                    collectSafFiles(context, childDir, childPath, dispatcher)
+                } else {
+                    val bytes = runCatching {
+                        context.contentResolver.openInputStream(entry.uri)?.use { it.readBytes() }
+                    }.getOrNull() ?: return@async emptyMap()
+                    mapOf(childPath to bytes)
+                }
+            }
+        }.awaitAll().fold(LinkedHashMap()) { acc, map -> acc.putAll(map); acc }
+    }
+
+    fun listSafChildren(context: Context, dir: DocumentFile): List<SafEntry> {
+        val childrenUri = runCatching {
+            val documentId = DocumentsContract.getDocumentId(dir.uri)
+            DocumentsContract.buildChildDocumentsUriUsingTree(dir.uri, documentId)
+        }.getOrNull() ?: return emptyList()
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        )
+        return runCatching {
+            context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        val nameIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                        val mimeIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                        val idIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                        if (nameIndex < 0 || idIndex < 0) continue
+                        val name = cursor.getString(nameIndex) ?: continue
+                        val documentId = cursor.getString(idIndex) ?: continue
+                        val mime = if (mimeIndex >= 0) cursor.getString(mimeIndex) else ""
+                        val isDir = mime == DocumentsContract.Document.MIME_TYPE_DIR
+                        add(SafEntry(DocumentsContract.buildDocumentUriUsingTree(dir.uri, documentId), name, isDir))
+                    }
+                }
+            }
+        }.onFailure {
+            Log.w(TAG, "listSafChildren: Failed to list ${dir.uri}", it)
+        }.getOrNull() ?: emptyList()
+    }
 
     fun buildUuidFileName(displayName: String?, mimeType: String?): String {
         val extFromName = displayName

@@ -10,18 +10,26 @@ import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.LinkedHashMap
+import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.ZipInputStream
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.rerere.rikkahub.data.files.FileUtils
+import me.rerere.rikkahub.data.files.SafEntry
 import me.rerere.rikkahub.data.files.SkillFrontmatterParser
 import me.rerere.rikkahub.data.files.SkillManager
 import me.rerere.rikkahub.data.files.SkillMetadata
 import org.json.JSONArray
 import kotlin.collections.iterator
+
+private const val SAF_IMPORT_PARALLELISM = 8
 
 class SkillsVM(
     private val skillManager: SkillManager,
@@ -94,34 +102,40 @@ class SkillsVM(
                     withContext(Dispatchers.Main) { onResult(false, "Invalid folder") }
                     return@launch
                 }
-                val skillDirs = findSkillDirs(tree)
+                val skillDirs = findSkillDirs(appContext, tree)
                 if (skillDirs.isEmpty()) {
                     withContext(Dispatchers.Main) { onResult(false, "No SKILL.md found in folder") }
                     return@launch
                 }
-                val importedNames = mutableListOf<String>()
-                for (skillDir in skillDirs) {
-                    val files = LinkedHashMap<String, ByteArray>()
-                    collectFilesRecursive(appContext, skillDir, "", files)
-                    val skillMdBytes = files["SKILL.md"]
-                        ?: files.entries.firstOrNull { it.key.endsWith("/SKILL.md") }?.value
-                    if (skillMdBytes == null) continue
-                    val content = skillMdBytes.toString(Charsets.UTF_8)
-                    val frontmatter = SkillFrontmatterParser.parse(content)
-                    val name = frontmatter["name"]?.trim()
-                    if (name.isNullOrBlank()) continue
-                    if (frontmatter["description"].isNullOrBlank()) continue
-                    val normalizedFiles = LinkedHashMap<String, ByteArray>()
-                    for ((path, bytes) in files) {
-                        val normalizedPath = if (path.equals("SKILL.md", ignoreCase = true)) {
-                            "SKILL.md"
-                        } else {
-                            path
+                val importedNames = coroutineScope {
+                    val importDispatcher = Dispatchers.IO.limitedParallelism(SAF_IMPORT_PARALLELISM)
+                    val claimedNames = ConcurrentHashMap.newKeySet<String>()
+                    skillDirs.map { skillDir ->
+                        async(importDispatcher) {
+                            runCatching {
+                                val files = FileUtils.collectSafFiles(appContext, skillDir, dispatcher = importDispatcher)
+                                val skillMdBytes = files["SKILL.md"]
+                                    ?: files.entries.firstOrNull { it.key.endsWith("/SKILL.md") }?.value
+                                    ?: return@runCatching null
+                                val content = skillMdBytes.toString(Charsets.UTF_8)
+                                val frontmatter = SkillFrontmatterParser.parse(content)
+                                val name = frontmatter["name"]?.trim()
+                                if (name.isNullOrBlank() || frontmatter["description"].isNullOrBlank()) return@runCatching null
+                                if (!claimedNames.add(name)) return@runCatching null
+                                val normalizedFiles = LinkedHashMap<String, ByteArray>()
+                                for ((path, bytes) in files) {
+                                    val normalizedPath = if (path.equals("SKILL.md", ignoreCase = true)) {
+                                        "SKILL.md"
+                                    } else {
+                                        path
+                                    }
+                                    normalizedFiles[normalizedPath] = bytes
+                                }
+                                val saved = skillManager.saveSkillFileBytesAtomically(name, normalizedFiles)
+                                if (saved) name else null
+                            }.getOrNull()
                         }
-                        normalizedFiles[normalizedPath] = bytes
-                    }
-                    val saved = skillManager.saveSkillFileBytesAtomically(name, normalizedFiles)
-                    if (saved) importedNames += name
+                    }.awaitAll().filterNotNull()
                 }
                 _skills.value = skillManager.listSkills()
                 withContext(Dispatchers.Main) {
@@ -131,6 +145,8 @@ class SkillsVM(
                         onResult(true, importedNames.joinToString())
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w("SkillsVM", "importSkillFromFolder failed", e)
                 withContext(Dispatchers.Main) { onResult(false, e.message ?: "Import failed") }
@@ -138,39 +154,22 @@ class SkillsVM(
         }
     }
 
-    private fun findSkillDirs(root: DocumentFile): List<DocumentFile> {
+    private fun findSkillDirs(context: Context, root: DocumentFile): List<DocumentFile> {
         val result = mutableListOf<DocumentFile>()
-        if (root.listFiles().any { !it.isDirectory && it.name?.equals("SKILL.md", ignoreCase = true) == true }) {
+        val rootChildren = FileUtils.listSafChildren(context, root)
+        fun hasSkillMd(entries: List<SafEntry>) =
+            entries.any { !it.isDir && it.name.equals("SKILL.md", ignoreCase = true) }
+        if (hasSkillMd(rootChildren)) {
             result.add(root)
         }
-        for (child in root.listFiles()) {
-            if (child.isDirectory) {
-                if (child.listFiles().any { !it.isDirectory && it.name?.equals("SKILL.md", ignoreCase = true) == true }) {
-                    result.add(child)
-                }
+        for (entry in rootChildren) {
+            if (!entry.isDir) continue
+            val childDir = DocumentFile.fromTreeUri(context, entry.uri) ?: continue
+            if (hasSkillMd(FileUtils.listSafChildren(context, childDir))) {
+                result.add(childDir)
             }
         }
         return result
-    }
-
-    private fun collectFilesRecursive(
-        context: Context,
-        dir: DocumentFile,
-        relativePath: String,
-        result: LinkedHashMap<String, ByteArray>,
-    ) {
-        for (child in dir.listFiles()) {
-            val name = child.name ?: continue
-            val childPath = if (relativePath.isBlank()) name else "$relativePath/$name"
-            if (child.isDirectory) {
-                collectFilesRecursive(context, child, childPath, result)
-            } else {
-                val bytes = runCatching {
-                    context.contentResolver.openInputStream(child.uri)?.use { it.readBytes() }
-                }.getOrNull() ?: continue
-                result[childPath] = bytes
-            }
-        }
     }
 
     fun importSkillFromGitHub(repoUrl: String, onResult: (Boolean, String) -> Unit) {
