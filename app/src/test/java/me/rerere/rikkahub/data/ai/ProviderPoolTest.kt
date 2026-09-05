@@ -10,7 +10,6 @@ import org.junit.Test
 
 class ProviderPoolTest {
     private fun account(name: String) = PoolAccount(name = name, apiKey = "key-$name")
-
     private fun openaiProvider(
         id: Uuid = Uuid.random(),
         enabled: Boolean = true,
@@ -146,5 +145,74 @@ class ProviderPoolTest {
         assertEquals(null, apply.newApiKey)
         assertEquals(false, apply.enabled)
         assertTrue(apply.accounts.isEmpty())
+    }
+
+    @Test
+    fun `rate limited account is skipped`() {
+        val selector = ProviderPoolSelector()
+        val limited = account("one").copy(rateLimitedUntil = Long.MAX_VALUE)
+        val provider = openaiProvider(accounts = listOf(limited, account("two")))
+
+        val keys = (1..3).map { selector.select(provider).apiKey }
+
+        assertEquals(listOf("key-two", "key-two", "key-two"), keys)
+    }
+
+    @Test
+    fun `rate limited account re-enters rotation after cooldown`() {
+        val accounts = listOf(
+            account("one").copy(rateLimitedUntil = 1000L),
+            account("two"),
+        )
+
+        assertEquals(1, selectPoolAccountIndex(accounts, counterValue = 0, nowMillis = 500L))
+        assertEquals(0, selectPoolAccountIndex(accounts, counterValue = 1, nowMillis = 2000L))
+    }
+
+    @Test
+    fun `all limited accounts fall back to rotation`() {
+        val selector = ProviderPoolSelector()
+        val accounts = listOf(
+            account("one").copy(rateLimitedUntil = Long.MAX_VALUE),
+            account("two").copy(rateLimitedUntil = Long.MAX_VALUE),
+        )
+        val provider = openaiProvider(accounts = accounts)
+
+        val keys = (1..2).map { selector.select(provider).apiKey }
+
+        assertEquals(listOf("key-one", "key-two"), keys)
+    }
+
+    @Test
+    fun `rate limit error detection and duration parsing`() {
+        val message = "Error 429: Daily free limit reached on model z-ai/glm-5.3-flash. Try again in 2h 7m"
+        assertTrue(isPoolRateLimitError(message))
+        assertEquals(false, isPoolRateLimitError("Error 500: internal server error"))
+        assertEquals(127 * 60_000L, parsePoolRetryAfterMillis(message))
+        assertEquals(
+            120 * 60_000L,
+            parsePoolRetryAfterMillis("Error 429: daily usage 45m tokens exceeded. Try again in 2h"),
+        )
+        assertEquals(45 * 60_000L, parsePoolRetryAfterMillis("Error 429: limit. Try again in 45m"))
+        assertEquals(60 * 60_000L, parsePoolRetryAfterMillis("Error 429: limit reached"))
+    }
+
+    @Test
+    fun `rate limited model slug is parsed from error`() {
+        assertEquals(
+            "z-ai/glm-5.3-flash",
+            parsePoolRateLimitedModel("Error 429: Daily free limit reached on model z-ai/glm-5.3-flash. Try again in 2h 7m"),
+        )
+        assertEquals(null, parsePoolRateLimitedModel("Error 429: limit reached. Try again in 45m"))
+        assertEquals(null, parsePoolRateLimitedModel(null))
+    }
+
+    @Test
+    fun `cooldown formats as h m s`() {
+        assertEquals("2h 7m", formatPoolCooldown(127 * 60_000L))
+        assertEquals("2h 17m", formatPoolCooldown(137 * 60_000L + 20_000L))
+        assertEquals("45m", formatPoolCooldown(45 * 60_000L))
+        assertEquals("30s", formatPoolCooldown(30_000L))
+        assertEquals("0s", formatPoolCooldown(0L))
     }
 }

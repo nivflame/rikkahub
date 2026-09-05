@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -401,7 +403,13 @@ class SettingsStore(
         .distinctUntilChanged()
         .toMutableStateFlow(scope, Settings.dummy())
 
+    private val updateMutex = Mutex()
+
     suspend fun update(settings: Settings) {
+        updateMutex.withLock { updateInternal(settings) }
+    }
+
+    private suspend fun updateInternal(settings: Settings) {
         if(settings.init) {
             Log.w(TAG, "Cannot update dummy settings")
             return
@@ -489,7 +497,7 @@ class SettingsStore(
     }
 
     suspend fun update(fn: (Settings) -> Settings) {
-        update(fn(settingsFlow.value))
+        updateMutex.withLock { updateInternal(fn(settingsFlow.value)) }
     }
 
     val workspaceOrderFlow = dataStore.data

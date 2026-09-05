@@ -10,6 +10,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.datetime.TimeZone
@@ -100,10 +101,12 @@ class GenerationHandler(
         workspaceCwd: String? = null,
         autoCompressThreshold: Int = 0,
         onAutoCompress: (suspend (List<UIMessage>) -> List<UIMessage>)? = null,
-    ): Flow<GenerationChunk> = flow {
-        val provider = poolSelector.select(
-            model.findProvider(settings.providers) ?: error("Provider not found")
-        )
+    ): Flow<GenerationChunk> {
+        var baseProvider: ProviderSetting? = null
+        var selectedProvider: ProviderSetting? = null
+        return flow {
+            baseProvider = model.findProvider(settings.providers) ?: error("Provider not found")
+            val provider = poolSelector.select(baseProvider!!).also { selectedProvider = it }
         val providerImpl = providerManager.getProviderByType(provider)
 
         var messages: List<UIMessage> = messages
@@ -449,7 +452,11 @@ class GenerationHandler(
             )
         }
 
-    }.flowOn(Dispatchers.IO)
+        }.catch { e ->
+            markPoolAccountRateLimited(baseProvider, selectedProvider, e.message, settingsStore)
+            throw e
+        }.flowOn(Dispatchers.IO)
+    }
 
     private fun toolCallIdCtx(toolCallId: String) = ToolCallIdContextElement(toolCallId)
 
@@ -635,12 +642,14 @@ class GenerationHandler(
         sourceText: String,
         targetLanguage: Locale,
         onStreamUpdate: ((String) -> Unit)? = null
-    ): Flow<String> = flow {
-        val model = settings.providers.findModelById(settings.translateModeId)
-            ?: error("Translation model not found")
-        val provider = poolSelector.select(
-            model.findProvider(settings.providers) ?: error("Translation provider not found")
-        )
+    ): Flow<String> {
+        var baseProvider: ProviderSetting? = null
+        var selectedProvider: ProviderSetting? = null
+        return flow {
+            val model = settings.providers.findModelById(settings.translateModeId)
+                ?: error("Translation model not found")
+            baseProvider = model.findProvider(settings.providers) ?: error("Translation provider not found")
+            val provider = poolSelector.select(baseProvider!!).also { selectedProvider = it }
 
         val providerHandler = providerManager.getProviderByType(provider)
 
@@ -701,5 +710,9 @@ class GenerationHandler(
                 emit(translatedText)
             }
         }
+    }.catch { e ->
+        markPoolAccountRateLimited(baseProvider, selectedProvider, e.message, settingsStore)
+        throw e
     }.flowOn(Dispatchers.IO)
+    }
 }

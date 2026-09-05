@@ -19,12 +19,15 @@ data class PoolAccount(
     val id: Uuid = Uuid.random(),
     val name: String,
     val apiKey: String,
+    val rateLimitedUntil: Long = 0,
+    val rateLimitedModel: String? = null,
 )
 
 interface PoolableProvider {
     var poolEnabled: Boolean
     var poolAccounts: List<PoolAccount>
     fun withApiKey(apiKey: String): ProviderSetting
+    fun withPoolAccounts(accounts: List<PoolAccount>): ProviderSetting
 }
 
 @Serializable
@@ -42,6 +45,7 @@ sealed class ProviderSetting {
     abstract val enabled: Boolean
     abstract val name: String
     abstract val models: List<Model>
+    abstract val apiKey: String
     abstract val balanceOption: BalanceOption
 
     abstract val builtIn: Boolean
@@ -74,7 +78,7 @@ sealed class ProviderSetting {
         @Transient override val builtIn: Boolean = false,
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
-        var apiKey: String = "",
+        override var apiKey: String = "",
         var baseUrl: String = "https://api.openai.com/v1",
         var chatCompletionsPath: String = "/chat/completions",
         var useResponseApi: Boolean = false,
@@ -130,6 +134,10 @@ sealed class ProviderSetting {
         override fun withApiKey(apiKey: String): ProviderSetting {
             return copy(apiKey = apiKey)
         }
+
+        override fun withPoolAccounts(accounts: List<PoolAccount>): ProviderSetting {
+            return copy(poolAccounts = accounts)
+        }
     }
 
     @Serializable
@@ -143,7 +151,7 @@ sealed class ProviderSetting {
         @Transient override val builtIn: Boolean = false,
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
-        var apiKey: String = "",
+        override var apiKey: String = "",
         var baseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
         var vertexAI: Boolean = false,
         var useServiceAccount: Boolean = false,
@@ -201,6 +209,10 @@ sealed class ProviderSetting {
         override fun withApiKey(apiKey: String): ProviderSetting {
             return copy(apiKey = apiKey)
         }
+
+        override fun withPoolAccounts(accounts: List<PoolAccount>): ProviderSetting {
+            return copy(poolAccounts = accounts)
+        }
     }
 
     @Serializable
@@ -214,7 +226,7 @@ sealed class ProviderSetting {
         @Transient override val builtIn: Boolean = false,
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
-        var apiKey: String = "",
+        override var apiKey: String = "",
         var baseUrl: String = "https://api.anthropic.com/v1",
         var promptCaching: Boolean = false,
         var promptCacheTtl: ClaudePromptCacheTtl = ClaudePromptCacheTtl.FIVE_MINUTES,
@@ -268,6 +280,10 @@ sealed class ProviderSetting {
         override fun withApiKey(apiKey: String): ProviderSetting {
             return copy(apiKey = apiKey)
         }
+
+        override fun withPoolAccounts(accounts: List<PoolAccount>): ProviderSetting {
+            return copy(poolAccounts = accounts)
+        }
     }
 
     @Serializable
@@ -282,6 +298,7 @@ sealed class ProviderSetting {
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
     ) : ProviderSetting() {
+        override val apiKey: String get() = ""
         override fun addModel(model: Model): ProviderSetting = copy(models = models + model)
 
         override fun editModel(model: Model): ProviderSetting = copy(models = models.map { if (it.id == model.id) model.copy() else it })

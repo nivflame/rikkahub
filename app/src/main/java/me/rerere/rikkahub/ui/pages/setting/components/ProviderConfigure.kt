@@ -24,7 +24,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +43,7 @@ import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.PoolTogglePlan
+import me.rerere.rikkahub.data.ai.formatPoolCooldown
 import me.rerere.rikkahub.data.ai.planPoolToggle
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
 import me.rerere.rikkahub.utils.writeClipboardText
@@ -53,6 +56,7 @@ import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -298,6 +302,17 @@ private fun PoolAccountCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(account.rateLimitedUntil) {
+        while (account.rateLimitedUntil > System.currentTimeMillis()) {
+            delay(30_000)
+            nowMillis = System.currentTimeMillis()
+        }
+        nowMillis = System.currentTimeMillis()
+    }
+    val remainingMillis = account.rateLimitedUntil - nowMillis
+    val rateLimited = remainingMillis > 0
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -322,6 +337,19 @@ private fun PoolAccountCard(
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = JetbrainsMono,
                 )
+                if (rateLimited) {
+                    Text(
+                        text = buildString {
+                            append("Rate limited")
+                            account.rateLimitedModel?.let { append(" · $it") }
+                            append(" · ")
+                            append(formatPoolCooldown(remainingMillis))
+                            append(" left")
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(HugeIcons.Delete01, contentDescription = "Delete")
