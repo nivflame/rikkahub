@@ -43,6 +43,9 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Connect
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.data.ai.ProviderPoolSelector
+import me.rerere.rikkahub.data.ai.withFailover
+import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
 import me.rerere.rikkahub.ui.theme.extendColors
 import me.rerere.rikkahub.utils.UiState
@@ -54,6 +57,8 @@ fun ProviderConnectionTester(
 ) {
     var showTestDialog by remember { mutableStateOf(false) }
     val providerManager = koinInject<ProviderManager>()
+    val poolSelector = koinInject<ProviderPoolSelector>()
+    val settingsStore = koinInject<SettingsStore>()
     val scope = rememberCoroutineScope()
 
     IconButton(onClick = { showTestDialog = true }) {
@@ -120,43 +125,54 @@ fun ProviderConnectionTester(
                 TextButton(
                     onClick = {
                         if (model == null) return@TextButton
-                        val provider = providerManager.getProviderByType(internalProvider)
+                        val initial = poolSelector.select(internalProvider)
                         resetStates()
                         scope.launch {
                             launch {
                                 runCatching {
                                     nonStreamingState = UiState.Loading
-                                    val chunk = provider.generateText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
+                                    val text = poolSelector.withFailover(internalProvider, settingsStore, first = initial) { testProvider ->
+                                        val provider = providerManager.getProviderByType(testProvider)
+                                        val chunk = provider.generateText(
+                                            providerSetting = testProvider,
+                                            messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
+                                            params = TextGenerationParams(
+                                                model = model!!,
+                                                customHeaders = model!!.customHeaders,
+                                                customBody = model!!.customBodies
+                                            )
                                         )
-                                    )
-                                    val text = chunk.choices.firstOrNull()?.message?.parts
-                                        ?.filterIsInstance<UIMessagePart.Text>()
-                                        ?.joinToString("") { it.text } ?: ""
+                                        chunk.choices.firstOrNull()?.message?.parts
+                                            ?.filterIsInstance<UIMessagePart.Text>()
+                                            ?.joinToString("") { it.text } ?: ""
+                                    }
                                     nonStreamingState = UiState.Success(text)
                                 }.onFailure { nonStreamingState = UiState.Error(it) }
                             }
                             launch {
                                 runCatching {
                                     streamingState = UiState.Loading
-                                    val flow = provider.streamText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
+                                    poolSelector.withFailover(
+                                        internalProvider,
+                                        settingsStore,
+                                        first = initial,
+                                        emitted = { streamingText.isNotEmpty() },
+                                    ) { testProvider ->
+                                        val provider = providerManager.getProviderByType(testProvider)
+                                        val flow = provider.streamText(
+                                            providerSetting = testProvider,
+                                            messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
+                                            params = TextGenerationParams(
+                                                model = model!!,
+                                                customHeaders = model!!.customHeaders,
+                                                customBody = model!!.customBodies
+                                            )
                                         )
-                                    )
-                                    flow.collect { chunk ->
-                                        chunk.choices.firstOrNull()?.delta?.parts
-                                            ?.filterIsInstance<UIMessagePart.Text>()
-                                            ?.forEach { streamingText += it.text }
+                                        flow.collect { chunk ->
+                                            chunk.choices.firstOrNull()?.delta?.parts
+                                                ?.filterIsInstance<UIMessagePart.Text>()
+                                                ?.forEach { streamingText += it.text }
+                                        }
                                     }
                                     streamingState = UiState.Success("")
                                 }.onFailure { streamingState = UiState.Error(it) }
@@ -164,32 +180,35 @@ fun ProviderConnectionTester(
                             launch {
                                 runCatching {
                                     toolsState = UiState.Loading
-                                    val testTool = Tool(
-                                        name = "get_current_time",
-                                        description = "Get the current date and time.",
-                                        execute = { emptyList() }
-                                    )
-                                    val chunk = provider.generateText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("Use the get_current_time tool.")),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            tools = listOf(testTool),
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
+                                    val result = poolSelector.withFailover(internalProvider, settingsStore, first = initial) { testProvider ->
+                                        val provider = providerManager.getProviderByType(testProvider)
+                                        val testTool = Tool(
+                                            name = "get_current_time",
+                                            description = "Get the current date and time.",
+                                            execute = { emptyList() }
                                         )
-                                    )
-                                    val message = chunk.choices.firstOrNull()?.message
-                                    val toolCall = message?.parts
-                                        ?.filterIsInstance<UIMessagePart.Tool>()
-                                        ?.firstOrNull()
-                                    val result = if (toolCall != null) {
-                                        "调用: ${toolCall.toolName}  入参: ${toolCall.input}"
-                                    } else {
-                                        val text = message?.parts
-                                            ?.filterIsInstance<UIMessagePart.Text>()
-                                            ?.joinToString("") { it.text } ?: ""
-                                        "未调用工具，响应: $text"
+                                        val chunk = provider.generateText(
+                                            providerSetting = testProvider,
+                                            messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("Use the get_current_time tool.")),
+                                            params = TextGenerationParams(
+                                                model = model!!,
+                                                tools = listOf(testTool),
+                                                customHeaders = model!!.customHeaders,
+                                                customBody = model!!.customBodies
+                                            )
+                                        )
+                                        val message = chunk.choices.firstOrNull()?.message
+                                        val toolCall = message?.parts
+                                            ?.filterIsInstance<UIMessagePart.Tool>()
+                                            ?.firstOrNull()
+                                        if (toolCall != null) {
+                                            "调用: ${toolCall.toolName}  入参: ${toolCall.input}"
+                                        } else {
+                                            val text = message?.parts
+                                                ?.filterIsInstance<UIMessagePart.Text>()
+                                                ?.joinToString("") { it.text } ?: ""
+                                            "未调用工具，响应: $text"
+                                        }
                                     }
                                     toolsState = UiState.Success(result)
                                 }.onFailure { toolsState = UiState.Error(it) }

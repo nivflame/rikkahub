@@ -76,6 +76,37 @@ fun ProviderPoolSelector.resolve(model: Model, settings: Settings): ProviderSett
     return select(base)
 }
 
+suspend fun <T> ProviderPoolSelector.withFailover(
+    baseProvider: ProviderSetting,
+    settingsStore: SettingsStore,
+    first: ProviderSetting? = null,
+    emitted: () -> Boolean = { false },
+    block: suspend (ProviderSetting) -> T,
+): T {
+    val maxAttempts = ((baseProvider as? PoolableProvider)
+        ?.takeIf { it.poolEnabled }?.poolAccounts?.size ?: 1).coerceAtLeast(1)
+    var lastError: Throwable? = null
+    repeat(maxAttempts) { attempt ->
+        val base = if (attempt == 0) {
+            baseProvider
+        } else {
+            settingsStore.settingsFlow.value.providers
+                .firstOrNull { it.id == baseProvider.id } ?: baseProvider
+        }
+        val selected = if (attempt == 0 && first != null) first else select(base)
+        try {
+            return block(selected)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            lastError = e
+            markPoolAccountRateLimited(baseProvider, selected, e.message, settingsStore)
+            if (!isPoolRateLimitRetry(e, attempt.toLong(), maxAttempts, emitted())) throw e
+        }
+    }
+    throw lastError!!
+}
+
 /**
  * Failover contract: each retry re-runs the flow body so the selection counter advances,
  * the fresh settingsFlow read excludes the account just marked by the completed predicate,
