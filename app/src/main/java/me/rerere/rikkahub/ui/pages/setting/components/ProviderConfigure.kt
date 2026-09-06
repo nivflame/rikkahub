@@ -388,7 +388,7 @@ private fun PoolAccountDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.setting_provider_page_name)) },
+                    label = { Text(stringResource(R.string.setting_provider_page_name) + " (optional)") },
                     singleLine = true,
                 )
                 OutlinedTextField(
