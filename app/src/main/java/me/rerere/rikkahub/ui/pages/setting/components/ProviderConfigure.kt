@@ -44,6 +44,7 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.ai.PoolTogglePlan
 import me.rerere.rikkahub.data.ai.formatPoolCooldown
+import me.rerere.rikkahub.data.ai.nextAccountName
 import me.rerere.rikkahub.data.ai.planPoolToggle
 import me.rerere.rikkahub.data.datastore.DEFAULT_PROVIDERS
 import me.rerere.rikkahub.utils.writeClipboardText
