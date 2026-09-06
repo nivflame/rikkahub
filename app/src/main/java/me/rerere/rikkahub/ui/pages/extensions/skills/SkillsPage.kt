@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -338,11 +339,12 @@ private fun SkillCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { selected = isSelected }
+            .semantics { if (isSelectionMode) selected = isSelected }
             .clip(CardDefaults.shape)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
+                role = if (isSelectionMode) Role.Checkbox else null,
             ),
         colors = if (isSelected) {
             CardDefaults.cardColors(

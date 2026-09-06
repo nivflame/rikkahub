@@ -11,6 +11,7 @@ import me.rerere.hugeicons.stroke.Tick02
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -44,7 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -250,12 +252,15 @@ private fun ConversationItem(
         else -> Color.Transparent
     }
     var showDropdownMenu by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(50f)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(50f))
+            .semantics { if (isSelectionMode) this.selected = isSelected }
+            .clip(shape)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
+                role = if (isSelectionMode) Role.Checkbox else null,
                 onClick = {
                     if (isSelectionMode) {
                         onSelectionToggle(conversation.id)
@@ -271,7 +276,18 @@ private fun ConversationItem(
                     }
                 }
             )
-            .background(backgroundColor),
+            .background(backgroundColor)
+            .then(
+                if (isSelected) {
+                    Modifier.border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = shape,
+                    )
+                } else {
+                    Modifier
+                }
+            ),
     ) {
         Row(
             modifier = Modifier
@@ -279,14 +295,6 @@ private fun ConversationItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isSelectionMode) {
-                Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = { onSelectionToggle(conversation.id) },
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(Modifier.size(8.dp))
-            }
             Text(
                 text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
                 maxLines = 1,
