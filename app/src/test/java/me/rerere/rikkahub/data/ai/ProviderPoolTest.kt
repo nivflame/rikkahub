@@ -210,6 +210,30 @@ class ProviderPoolTest {
     }
 
     @Test
+    fun `next account name increments numeric names`() {
+        assertEquals("01", nextAccountName(emptyList()))
+        assertEquals(
+            "03",
+            nextAccountName(
+                listOf(
+                    PoolAccount(name = "01", apiKey = "k"),
+                    PoolAccount(name = "02", apiKey = "k"),
+                )
+            )
+        )
+        assertEquals(
+            "01",
+            nextAccountName(listOf(PoolAccount(name = "primary", apiKey = "k"))),
+        )
+        val first = PoolAccount(name = "01", apiKey = "k")
+        val second = PoolAccount(name = "02", apiKey = "k")
+        assertEquals(
+            "02",
+            nextAccountName(listOf(first, second), excludeId = second.id),
+        )
+    }
+
+    @Test
     fun `pool retry decision gates on emission attempts and error type`() {
         val cause429 = Exception("Error 429: Daily free limit reached. Try again in 2h 7m")
         val causeOther = Exception("Error 500: internal server error")
