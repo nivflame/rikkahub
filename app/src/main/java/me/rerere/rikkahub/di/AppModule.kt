@@ -76,6 +76,7 @@ val appModule = module {
             generationHandler = get(),
             templateTransformer = get(),
             providerManager = get(),
+            poolSelector = get(),
             localTools = get(),
             mcpManager = get(),
             filesManager = get(),

@@ -87,8 +87,12 @@ import me.rerere.rikkahub.data.ai.transformers.RegexOutputTransformer
 import me.rerere.rikkahub.data.ai.transformers.TemplateTransformer
 import me.rerere.rikkahub.data.ai.transformers.ThinkTagTransformer
 import me.rerere.rikkahub.data.ai.transformers.TimeReminderTransformer
+import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.findModelById
+import me.rerere.ai.provider.ProviderSetting
+import me.rerere.rikkahub.data.ai.ProviderPoolSelector
+import me.rerere.rikkahub.data.ai.resolve
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.datastore.getAssistantById
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
@@ -169,6 +173,7 @@ class ChatService(
     private val generationHandler: GenerationHandler,
     private val templateTransformer: TemplateTransformer,
     private val providerManager: ProviderManager,
+    private val poolSelector: ProviderPoolSelector,
     private val localTools: LocalTools,
     val mcpManager: McpManager,
     private val filesManager: FilesManager,
@@ -966,7 +971,7 @@ class ChatService(
         runCatching {
             val settings = settingsStore.settingsFlow.first()
             val model = settings.findModelById(settings.titleModelId, fallback = settings.fastModelId) ?: return
-            val provider = model.findProvider(settings.providers) ?: return
+            val provider = poolSelector.resolve(model, settings) ?: return
 
             val providerHandler = providerManager.getProviderByType(provider)
             val result = providerHandler.generateText(
@@ -1007,7 +1012,7 @@ class ChatService(
             val settings = settingsStore.settingsFlow.first()
             if (!settings.enableSuggestion) return
             val model = settings.findModelById(settings.suggestionModelId, fallback = settings.fastModelId) ?: return
-            val provider = model.findProvider(settings.providers) ?: return
+            val provider = poolSelector.resolve(model, settings) ?: return
 
             sessions[conversationId]?.let { session ->
                 updateConversation(
@@ -1101,7 +1106,7 @@ class ChatService(
         val model = settings.findModelById(settings.compressModelId)
             ?: settings.getCurrentChatModel()
             ?: throw IllegalStateException("No model available for compression")
-        val provider = model.findProvider(settings.providers)
+        val provider = poolSelector.resolve(model, settings)
             ?: throw IllegalStateException("Provider not found")
 
         val providerHandler = providerManager.getProviderByType(provider)

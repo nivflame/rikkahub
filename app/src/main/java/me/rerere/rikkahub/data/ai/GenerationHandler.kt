@@ -83,9 +83,9 @@ class GenerationHandler(
     private val providerManager: ProviderManager,
     private val json: Json,
     private val memoryRepo: MemoryRepository,
+    private val poolSelector: ProviderPoolSelector,
     private val settingsStore: SettingsStore? = null,
 ) {
-    private val poolSelector = ProviderPoolSelector()
 
     fun generateText(
         settings: Settings,

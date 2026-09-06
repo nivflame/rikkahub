@@ -23,6 +23,7 @@ import me.rerere.rikkahub.data.ai.AIRequestInterceptor
 import me.rerere.rikkahub.data.ai.RequestLoggingInterceptor
 import me.rerere.rikkahub.data.ai.transformers.AssistantTemplateLoader
 import me.rerere.rikkahub.data.ai.GenerationHandler
+import me.rerere.rikkahub.data.ai.ProviderPoolSelector
 import me.rerere.rikkahub.data.ai.tools.local.SubagentProgressStore
 import me.rerere.rikkahub.data.ai.transformers.TemplateTransformer
 import me.rerere.rikkahub.data.api.RikkaHubAPI
@@ -160,13 +161,16 @@ val dataSourceModule = module {
 
     single { SubagentProgressStore() }
 
+    single { ProviderPoolSelector() }
+
     single {
         GenerationHandler(
             context = get(),
             providerManager = get(),
             json = get(),
             memoryRepo = get(),
-            settingsStore = get()
+            settingsStore = get(),
+            poolSelector = get()
         )
     }
 
