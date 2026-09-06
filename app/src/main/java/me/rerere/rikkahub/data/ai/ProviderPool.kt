@@ -107,6 +107,14 @@ suspend fun <T> ProviderPoolSelector.withFailover(
     throw lastError!!
 }
 
+internal fun nextAccountName(accounts: List<PoolAccount>, excludeId: Uuid? = null): String {
+    val max = accounts.asSequence()
+        .filter { it.id != excludeId }
+        .mapNotNull { it.name.toIntOrNull() }
+        .maxOrNull() ?: 0
+    return (max + 1).toString().padStart(2, '0')
+}
+
 /**
  * Failover contract: each retry re-runs the flow body so the selection counter advances,
  * the fresh settingsFlow read excludes the account just marked by the completed predicate,

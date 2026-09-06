@@ -212,6 +212,7 @@ private fun ProviderPoolSection(
     if (showAddDialog) {
         PoolAccountDialog(
             account = null,
+            accounts = poolAccounts,
             onConfirm = { name, apiKey ->
                 onEdit(provider.updatePool(true, poolAccounts + PoolAccount(name = name, apiKey = apiKey)))
                 showAddDialog = false
@@ -223,6 +224,7 @@ private fun ProviderPoolSection(
     editTarget?.let { account ->
         PoolAccountDialog(
             account = account,
+            accounts = poolAccounts,
             onConfirm = { name, apiKey ->
                 onEdit(
                     provider.updatePool(
@@ -371,6 +373,7 @@ private fun PoolAccountCard(
 @Composable
 private fun PoolAccountDialog(
     account: PoolAccount?,
+    accounts: List<PoolAccount>,
     onConfirm: (name: String, apiKey: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -397,8 +400,13 @@ private fun PoolAccountDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name.trim(), apiKey.trim()) },
-                enabled = name.isNotBlank() && apiKey.isNotBlank(),
+                onClick = {
+                    onConfirm(
+                        name.trim().ifBlank { nextAccountName(accounts, account?.id) },
+                        apiKey.trim(),
+                    )
+                },
+                enabled = apiKey.isNotBlank(),
             ) {
                 Text(if (account == null) stringResource(R.string.setting_provider_page_add) else "Save")
             }
