@@ -302,6 +302,8 @@ private fun PoolAccountCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val toaster = LocalToaster.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(account.rateLimitedUntil) {
         while (account.rateLimitedUntil > System.currentTimeMillis()) {
@@ -350,6 +352,14 @@ private fun PoolAccountCard(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+            }
+            IconButton(
+                onClick = {
+                    context.writeClipboardText(account.apiKey, sensitive = true)
+                    toaster.show("Copied", ToastType.Success)
+                },
+            ) {
+                Icon(HugeIcons.Copy01, contentDescription = "Copy API key")
             }
             IconButton(onClick = onDelete) {
                 Icon(HugeIcons.Delete01, contentDescription = "Delete")
