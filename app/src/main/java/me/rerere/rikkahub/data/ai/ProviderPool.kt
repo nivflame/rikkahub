@@ -1,12 +1,16 @@
 package me.rerere.rikkahub.data.ai
 
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.uuid.Uuid
+import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.ProviderSetting
+import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.data.datastore.findProvider
 
 sealed interface PoolTogglePlan {
     data object ConfirmDisable : PoolTogglePlan
@@ -65,6 +69,28 @@ internal fun isPoolRateLimitError(message: String?): Boolean {
     val lower = message.lowercase()
     return lower.contains(poolRateLimitRegex) &&
         (lower.contains("limit") || lower.contains("quota") || lower.contains("rate"))
+}
+
+fun ProviderPoolSelector.resolve(model: Model, settings: Settings): ProviderSetting? {
+    val base = model.findProvider(settings.providers) ?: return null
+    return select(base)
+}
+
+/**
+ * Failover contract: each retry re-runs the flow body so the selection counter advances,
+ * the fresh settingsFlow read excludes the account just marked by the completed predicate,
+ * and `emittedContent` blocks retries once any chunk reached the UI.
+ */
+internal fun isPoolRateLimitRetry(
+    cause: Throwable,
+    attempt: Long,
+    maxAttempts: Int,
+    emittedContent: Boolean,
+): Boolean {
+    if (cause is CancellationException) return false
+    if (emittedContent) return false
+    if (attempt + 1 >= maxAttempts) return false
+    return isPoolRateLimitError(cause.message)
 }
 
 private val poolRetryAfterRegex = Regex("""(\d+(?:\.\d+)?)\s*h(?:\s*(\d+)\s*m)?|\b(\d+)\s*m\b""")

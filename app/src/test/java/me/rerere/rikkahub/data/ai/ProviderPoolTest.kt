@@ -1,9 +1,11 @@
 package me.rerere.rikkahub.data.ai
 
+import kotlinx.coroutines.CancellationException
 import kotlin.uuid.Uuid
 import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -205,6 +207,35 @@ class ProviderPoolTest {
         )
         assertEquals(null, parsePoolRateLimitedModel("Error 429: limit reached. Try again in 45m"))
         assertEquals(null, parsePoolRateLimitedModel(null))
+    }
+
+    @Test
+    fun `pool retry decision gates on emission attempts and error type`() {
+        val cause429 = Exception("Error 429: Daily free limit reached. Try again in 2h 7m")
+        val causeOther = Exception("Error 500: internal server error")
+        assertTrue(isPoolRateLimitRetry(cause429, attempt = 0, maxAttempts = 3, emittedContent = false))
+        assertTrue(isPoolRateLimitRetry(cause429, attempt = 1, maxAttempts = 3, emittedContent = false))
+        assertFalse(isPoolRateLimitRetry(cause429, attempt = 0, maxAttempts = 3, emittedContent = true))
+        assertFalse(isPoolRateLimitRetry(cause429, attempt = 2, maxAttempts = 3, emittedContent = false))
+        assertFalse(isPoolRateLimitRetry(cause429, attempt = 1, maxAttempts = 2, emittedContent = false))
+        assertFalse(isPoolRateLimitRetry(cause429, attempt = 0, maxAttempts = 1, emittedContent = false))
+        assertFalse(isPoolRateLimitRetry(causeOther, attempt = 0, maxAttempts = 3, emittedContent = false))
+        assertFalse(
+            isPoolRateLimitRetry(
+                Exception("Error 429: upstream unavailable"),
+                attempt = 0,
+                maxAttempts = 3,
+                emittedContent = false,
+            )
+        )
+        assertFalse(
+            isPoolRateLimitRetry(
+                CancellationException("cancelled"),
+                attempt = 0,
+                maxAttempts = 3,
+                emittedContent = true,
+            )
+        )
     }
 
     @Test

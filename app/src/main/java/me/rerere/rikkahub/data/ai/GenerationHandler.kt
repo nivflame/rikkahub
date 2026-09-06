@@ -10,9 +10,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
@@ -28,6 +30,7 @@ import me.rerere.ai.core.merge
 import me.rerere.ai.provider.CustomBody
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.Modality
+import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
@@ -105,8 +108,9 @@ class GenerationHandler(
         var baseProvider: ProviderSetting? = null
         var selectedProvider: ProviderSetting? = null
         return flow {
-            baseProvider = model.findProvider(settings.providers) ?: error("Provider not found")
-            val provider = poolSelector.select(baseProvider!!).also { selectedProvider = it }
+            baseProvider = resolvePoolProvider(model, settings) ?: error("Provider not found")
+            selectedProvider = baseProvider
+            val provider = baseProvider!!
         val providerImpl = providerManager.getProviderByType(provider)
 
         var messages: List<UIMessage> = messages
@@ -452,10 +456,33 @@ class GenerationHandler(
             )
         }
 
-        }.catch { e ->
-            markPoolAccountRateLimited(baseProvider, selectedProvider, e.message, settingsStore)
-            throw e
-        }.flowOn(Dispatchers.IO)
+        }
+        .poolFailover(base = { baseProvider }, selected = { selectedProvider })
+        .flowOn(Dispatchers.IO)
+    }
+
+    private fun resolvePoolProvider(model: Model, settings: Settings): ProviderSetting? {
+        val base = model.findProvider(settings.providers) ?: return null
+        val fresh = settingsStore?.settingsFlow?.value?.providers
+            ?.firstOrNull { it.id == base.id } ?: base
+        return poolSelector.select(fresh)
+    }
+
+    private fun <T> Flow<T>.poolFailover(
+        base: () -> ProviderSetting?,
+        selected: () -> ProviderSetting?,
+    ): Flow<T> {
+        var emittedContent = false
+        return onStart { emittedContent = false }
+            .onEach { emittedContent = true }
+            .retryWhen { cause, attempt ->
+                val provider = base()
+                val maxAttempts = (provider as? PoolableProvider)
+                    ?.takeIf { it.poolEnabled }?.poolAccounts?.size ?: 1
+                val shouldRetry = isPoolRateLimitRetry(cause, attempt, maxAttempts, emittedContent)
+                markPoolAccountRateLimited(provider, selected(), cause.message, settingsStore)
+                shouldRetry
+            }
     }
 
     private fun toolCallIdCtx(toolCallId: String) = ToolCallIdContextElement(toolCallId)
@@ -648,8 +675,9 @@ class GenerationHandler(
         return flow {
             val model = settings.providers.findModelById(settings.translateModeId)
                 ?: error("Translation model not found")
-            baseProvider = model.findProvider(settings.providers) ?: error("Translation provider not found")
-            val provider = poolSelector.select(baseProvider!!).also { selectedProvider = it }
+            baseProvider = resolvePoolProvider(model, settings) ?: error("Translation provider not found")
+            selectedProvider = baseProvider
+            val provider = baseProvider!!
 
         val providerHandler = providerManager.getProviderByType(provider)
 
@@ -710,9 +738,8 @@ class GenerationHandler(
                 emit(translatedText)
             }
         }
-    }.catch { e ->
-        markPoolAccountRateLimited(baseProvider, selectedProvider, e.message, settingsStore)
-        throw e
-    }.flowOn(Dispatchers.IO)
+    }
+    .poolFailover(base = { baseProvider }, selected = { selectedProvider })
+    .flowOn(Dispatchers.IO)
     }
 }
