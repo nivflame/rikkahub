@@ -38,7 +38,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.ai.provider.ModelType
-import kotlin.uuid.Uuid
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Delete01
@@ -58,7 +57,6 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
     var editName by remember { mutableStateOf("") }
     var editDesc by remember { mutableStateOf("") }
     var editSystem by remember { mutableStateOf("") }
-    var editModelId by remember { mutableStateOf<Uuid?>(null) }
 
     val toolGroups = remember(settings.mcpServers) {
         val core = listOf(
@@ -174,7 +172,6 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 SubagentPromptItem(
                     prompt = prompt,
                     toolGroups = toolGroups,
-                    providers = settings.providers,
                     modeInjections = settings.modeInjections,
                     onChange = { updated ->
                         vm.updateSettings(
@@ -193,7 +190,6 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         editName = prompt.name
                         editDesc = prompt.description
                         editSystem = prompt.systemPrompt
-                        editModelId = prompt.modelId
                     }
                 )
             }
@@ -226,28 +222,11 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
-                    Text("Model (optional)", style = MaterialTheme.typography.labelMedium)
-                    Text(
-                        text = "Override the global subagent model",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ModelSelector(
-                        modelId = editModelId,
-                        providers = settings.providers,
-                        type = ModelType.CHAT,
-                        onSelect = { editModelId = it.id }
-                    )
-                    if (editModelId != null) {
-                        TextButton(onClick = { editModelId = null }) {
-                            Text("Use global model")
-                        }
-                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val updated = prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem, modelId = editModelId)
+                    val updated = prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem)
                     val list = settings.subagentPrompts
                     val newList = if (list.any { it.id == prompt.id }) list.map { if (it.id == prompt.id) updated else it } else list + updated
                     vm.updateSettings(settings.copy(subagentPrompts = newList))
@@ -265,7 +244,6 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
 private fun SubagentPromptItem(
     prompt: SubagentPrompt,
     toolGroups: Map<String, List<String>>,
-    providers: List<me.rerere.ai.provider.ProviderSetting>,
     modeInjections: List<me.rerere.rikkahub.data.model.PromptInjection.ModeInjection>,
     onChange: (SubagentPrompt) -> Unit,
     onRemove: () -> Unit,
@@ -309,29 +287,6 @@ private fun SubagentPromptItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (expanded) {
-                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-                Text(
-                    text = "Model",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                )
-                Text(
-                    text = "Override the global subagent model (optional)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                ModelSelector(
-                    modelId = prompt.modelId,
-                    providers = providers,
-                    type = ModelType.CHAT,
-                    onSelect = { onChange(prompt.copy(modelId = it.id)) }
-                )
-                if (prompt.modelId != null) {
-                    TextButton(onClick = { onChange(prompt.copy(modelId = null)) }) {
-                        Text("Use global model")
-                    }
-                }
                 HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
                 Text(
                     text = "Prompt Injections",

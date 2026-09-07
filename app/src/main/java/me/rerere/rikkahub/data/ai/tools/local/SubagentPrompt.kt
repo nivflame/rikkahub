@@ -1,6 +1,5 @@
 package me.rerere.rikkahub.data.ai.tools.local
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
@@ -12,7 +11,6 @@ data class SubagentPrompt(
     val systemPrompt: String = "",
     val enabledTools: List<String> = emptyList(),
     val enabled: Boolean = true,
-    val modelId: Uuid? = null,
     val isBuiltIn: Boolean = false,
     val modeInjectionIds: Set<Uuid> = emptySet(),
 )
