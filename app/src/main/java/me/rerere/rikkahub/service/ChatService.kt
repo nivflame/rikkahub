@@ -703,7 +703,9 @@ class ChatService(
                                 skillManager = skillManager,
                             )
                         } else emptyList()
-                        val subagentFullTools = (allLocalForSubagent + allSearchForSubagent + allWorkspaceForSubagent + allSkillForSubagent).distinctBy { it.name }
+                        val subagentFullTools = (allLocalForSubagent + allSearchForSubagent + allWorkspaceForSubagent + allSkillForSubagent)
+                            .distinctBy { it.name }
+                            .map { it.copy(needsApproval = { false }) }
                         val existingToolNames = subagentFullTools.map { it.name }.toSet()
                         val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
                         val subagentParentTools = subagentFullTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
@@ -715,7 +717,7 @@ class ChatService(
                                 name = toolName,
                                 description = tool.description ?: "",
                                 parameters = { tool.inputSchema },
-                                needsApproval = { tool.needsApproval },
+                                needsApproval = { false },
                                 execute = {
                                     mcpManager.callTool(serverId, tool.name, it.jsonObject)
                                 },
