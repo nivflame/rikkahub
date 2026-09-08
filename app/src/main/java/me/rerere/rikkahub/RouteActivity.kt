@@ -114,6 +114,9 @@ import me.rerere.rikkahub.ui.pages.setting.SettingSearchDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
+import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailPage
+import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailInjectionsPage
+import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingWebSearchPage
@@ -478,6 +481,18 @@ class RouteActivity : ComponentActivity() {
                                 SettingSubagentPage()
                             }
 
+                            entry<Screen.SettingSubagentDetail> { key ->
+                                SettingSubagentDetailPage(promptId = Uuid.parse(key.promptId))
+                            }
+
+                            entry<Screen.SettingSubagentDetailInjections> { key ->
+                                SettingSubagentDetailInjectionsPage(promptId = Uuid.parse(key.promptId))
+                            }
+
+                            entry<Screen.SettingSubagentDetailTools> { key ->
+                                SettingSubagentDetailToolsPage(promptId = Uuid.parse(key.promptId))
+                            }
+
                             entry<Screen.SettingToolSearch> {
                                 SettingToolSearchPage()
                             }
@@ -770,6 +785,15 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingSubagent : Screen
+
+    @Serializable
+    data class SettingSubagentDetail(val promptId: String) : Screen
+
+    @Serializable
+    data class SettingSubagentDetailInjections(val promptId: String) : Screen
+
+    @Serializable
+    data class SettingSubagentDetailTools(val promptId: String) : Screen
 
     @Serializable
     data object SettingToolSearch : Screen

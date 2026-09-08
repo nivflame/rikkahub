@@ -1,31 +1,30 @@
 package me.rerere.rikkahub.ui.pages.setting
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,17 +33,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.ai.provider.ModelType
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
-import me.rerere.hugeicons.stroke.Delete01
-import me.rerere.hugeicons.stroke.Edit01
-import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
+import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
+import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
+import me.rerere.rikkahub.ui.components.ui.FormItem
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.androidx.compose.koinViewModel
@@ -53,32 +56,8 @@ import org.koin.androidx.compose.koinViewModel
 fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val nav = LocalNavController.current
     var editing by remember { mutableStateOf<SubagentPrompt?>(null) }
-    var editName by remember { mutableStateOf("") }
-    var editDesc by remember { mutableStateOf("") }
-    var editSystem by remember { mutableStateOf("") }
-
-    val toolGroups = remember(settings.mcpServers) {
-        val core = listOf(
-            "Subagent",
-            "Bash",
-            "Read",
-            "Write",
-            "Edit",
-            "AskQuestion",
-            "Skill",
-            "WebSearch",
-            "WebFetch",
-            "ToolSearch",
-        )
-        val mcpGroups = settings.mcpServers.associate { server ->
-            "MCP: ${server.commonOptions.name}" to server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }
-        }
-        linkedMapOf(
-            "Core" to core,
-            "Browser" to ALL_BROWSER_TOOL_NAMES,
-        ).apply { putAll(mcpGroups) }
-    }
 
     Scaffold(
         topBar = {
@@ -86,11 +65,8 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 title = { Text("Subagent") },
                 navigationIcon = { BackButton() },
                 actions = {
-                    IconButton(onClick = {
+                    FilledIconButton(onClick = {
                         editing = SubagentPrompt()
-                        editName = ""
-                        editDesc = ""
-                        editSystem = ""
                     }) {
                         Icon(imageVector = HugeIcons.Add01, contentDescription = "Add")
                     }
@@ -116,126 +92,100 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
-            Text(
-                text = "Global defaults applied to all subagents",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                color = CustomColors.cardColorsOnSurfaceContainer.containerColor,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Subagent model", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "The model used by all subagents.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    ModelSelector(
-                        modelId = settings.subagentModelId,
-                        providers = settings.providers,
-                        type = ModelType.CHAT,
-                        onSelect = { vm.updateSettings(settings.copy(subagentModelId = it.id)) }
-                    )
+                    FormItem(
+                        label = { Text("Subagent model") },
+                        description = { Text("The model used by all subagents.") },
+                    ) {
+                        ModelSelector(
+                            modelId = settings.subagentModelId,
+                            providers = settings.providers,
+                            type = ModelType.CHAT,
+                            onSelect = { vm.updateSettings(settings.copy(subagentModelId = it.id)) }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FormItem(
+                        label = { Text("Max concurrent subagents") },
+                        description = { Text("How many subagents can run at the same time.") },
+                    ) {
+                        var dragging by remember { mutableStateOf(false) }
+                        val thumbInteraction = remember { MutableInteractionSource() }
+                        Slider(
+                            value = settings.subagentConcurrency.toFloat(),
+                            onValueChange = {
+                                dragging = true
+                                vm.updateSettings(settings.copy(subagentConcurrency = it.toInt().coerceIn(1, 10)))
+                            },
+                            onValueChangeFinished = { dragging = false },
+                            valueRange = 1f..10f,
+                            steps = 8,
+                            interactionSource = thumbInteraction,
+                            thumb = { state ->
+                                Box(contentAlignment = Alignment.TopCenter) {
+                                    SliderDefaults.Thumb(
+                                        interactionSource = thumbInteraction,
+                                        sliderState = state,
+                                    )
+                                    if (dragging) {
+                                        val bubbleOffset = with(LocalDensity.current) {
+                                            IntOffset(0, (-38.dp).roundToPx())
+                                        }
+                                        Popup(
+                                            alignment = Alignment.TopCenter,
+                                            offset = bubbleOffset,
+                                        ) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                                modifier = Modifier.size(32.dp),
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        "${settings.subagentConcurrency}",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                    }
                 }
             }
-            Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Max concurrent subagents", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "How many subagents can run at the same time: ${settings.subagentConcurrency}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = settings.subagentConcurrency.toFloat(),
-                        onValueChange = {
-                            vm.updateSettings(settings.copy(subagentConcurrency = it.toInt().coerceIn(1, 10)))
-                        },
-                        valueRange = 1f..10f,
-                        steps = 8
-                    )
-                }
-            }
             Text(
-                text = "Prompts",
+                text = "Profiles",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
             )
-            Text(
-                text = "Create and configure subagent prompts with custom tools",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
             settings.subagentPrompts.forEach { prompt ->
                 SubagentPromptItem(
                     prompt = prompt,
-                    toolGroups = toolGroups,
-                    modeInjections = settings.modeInjections,
-                    onChange = { updated ->
-                        vm.updateSettings(
-                            settings.copy(
-                                subagentPrompts = settings.subagentPrompts.map { if (it.id == updated.id) updated else it }
-                            )
-                        )
-                    },
-                    onRemove = {
-                        vm.updateSettings(
-                            settings.copy(subagentPrompts = settings.subagentPrompts.filter { it.id != prompt.id })
-                        )
-                    },
-                    onEdit = {
-                        editing = prompt
-                        editName = prompt.name
-                        editDesc = prompt.description
-                        editSystem = prompt.systemPrompt
-                    }
+                    onClick = { nav.navigate(Screen.SettingSubagentDetail(promptId = prompt.id.toString())) },
                 )
             }
         }
     }
 
     editing?.let { prompt ->
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text(if (settings.subagentPrompts.any { it.id == prompt.id }) "Edit subagent" else "New subagent") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = editName,
-                        onValueChange = { editName = it },
-                        label = { Text("Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = editDesc,
-                        onValueChange = { editDesc = it },
-                        label = { Text("Description") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = editSystem,
-                        onValueChange = { editSystem = it },
-                        label = { Text("System prompt") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
-                }
+        SubagentDetailEditDialog(
+            prompt = prompt,
+            title = if (settings.subagentPrompts.any { it.id == prompt.id }) "Edit subagent" else "New subagent",
+            onConfirm = { updated ->
+                val list = settings.subagentPrompts
+                val newList = if (list.any { it.id == updated.id }) list.map { if (it.id == updated.id) updated else it } else list + updated
+                vm.updateSettings(settings.copy(subagentPrompts = newList))
+                editing = null
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    val updated = prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem)
-                    val list = settings.subagentPrompts
-                    val newList = if (list.any { it.id == prompt.id }) list.map { if (it.id == prompt.id) updated else it } else list + updated
-                    vm.updateSettings(settings.copy(subagentPrompts = newList))
-                    editing = null
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { editing = null }) { Text("Cancel") }
-            }
+            onDismiss = { editing = null },
         )
     }
 }
@@ -243,129 +193,28 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
 @Composable
 private fun SubagentPromptItem(
     prompt: SubagentPrompt,
-    toolGroups: Map<String, List<String>>,
-    modeInjections: List<me.rerere.rikkahub.data.model.PromptInjection.ModeInjection>,
-    onChange: (SubagentPrompt) -> Unit,
-    onRemove: () -> Unit,
-    onEdit: () -> Unit
+    onClick: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var selectedToolCategory by remember { mutableStateOf("Core") }
     Surface(
-        tonalElevation = 1.dp,
+        color = CustomColors.cardColorsOnSurfaceContainer.containerColor,
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded },
+            .clickable { onClick() },
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = prompt.name.ifBlank { "(unnamed)" },
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onEdit) {
-                    Icon(imageVector = HugeIcons.Edit01, contentDescription = "Edit")
-                }
-                if (!prompt.isBuiltIn) {
-                    IconButton(onClick = onRemove) {
-                        Icon(imageVector = HugeIcons.Delete01, contentDescription = "Remove")
-                    }
-                }
-                Switch(
-                    checked = prompt.enabled,
-                    onCheckedChange = { checked -> onChange(prompt.copy(enabled = checked)) },
-                )
-            }
+            val contentAlpha = if (prompt.enabled) 1f else 0.38f
+            Text(
+                text = prompt.name.ifBlank { "(unnamed)" },
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.alpha(contentAlpha),
+            )
             Text(
                 text = prompt.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alpha(contentAlpha)
             )
-            if (expanded) {
-                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-                Text(
-                    text = "Prompt Injections",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                )
-                if (modeInjections.isNotEmpty()) {
-                    modeInjections.forEach { injection ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = injection.name.ifBlank { "(unnamed)" },
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Switch(
-                                checked = injection.id in prompt.modeInjectionIds,
-                                onCheckedChange = { enabled ->
-                                    val next = if (enabled) prompt.modeInjectionIds + injection.id else prompt.modeInjectionIds - injection.id
-                                    onChange(prompt.copy(modeInjectionIds = next))
-                                }
-                            )
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "No mode injections configured",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-                Text(
-                    text = "Tools",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                )
-                val toolCategories = toolGroups.keys.toList()
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-                ) {
-                    items(toolCategories) { category ->
-                        FilterChip(
-                            selected = selectedToolCategory == category,
-                            onClick = { selectedToolCategory = category },
-                            label = { Text(category) },
-                        )
-                    }
-                }
-                val visibleToolGroups = linkedMapOf(selectedToolCategory to (toolGroups[selectedToolCategory] ?: emptyList()))
-                visibleToolGroups.forEach { (category, names) ->
-                    Text(
-                        text = category,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                    )
-                    names.forEach { name ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                            Switch(
-                                checked = name in prompt.enabledTools,
-                                onCheckedChange = { enabled ->
-                                    val next = if (enabled) prompt.enabledTools + name else prompt.enabledTools - name
-                                    onChange(prompt.copy(enabledTools = next))
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
