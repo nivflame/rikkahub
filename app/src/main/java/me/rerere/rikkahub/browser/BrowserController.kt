@@ -261,10 +261,19 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                     )
                 }
             } else {
+                val tokens = items.mapNotNull { it["token"]?.jsonPrimitive?.contentOrNull }
+                val resolved = resolveGotoUrls(tokens)
                 for (item in items) {
-                    val url = item["url"]?.jsonPrimitive?.contentOrNull ?: continue
+                    val token = item["token"]?.jsonPrimitive?.contentOrNull ?: continue
+                    val url = resolved[token] ?: continue
                     if (url.isNotEmpty() && seenUrls.add(url)) {
-                        allResults.add(item.toString())
+                        allResults.add(
+                            buildJsonObject {
+                                put("title", item["title"]?.jsonPrimitive?.contentOrNull.orEmpty())
+                                put("snippet", item["snippet"]?.jsonPrimitive?.contentOrNull.orEmpty())
+                                put("url", url)
+                            }.toString()
+                        )
                     }
                 }
             }
@@ -275,11 +284,12 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         }
 
         if (allResults.isEmpty()) {
-            val noResultJs = "(function(){return document.body.innerText.indexOf('did not match any documents')>=0;})();"
-            val noResultRaw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(noResultJs) }
-            val isNoResults = noResultRaw?.let { unquoteJsString(it) } == "true"
-            if (isNoResults) return "{\"error\":\"Your search did not have any results. You MUST use different query.\"}"
-            return "{\"error\":\"RATE LIMITED: You MUST wait 60s before retrying. Run 'sleep 60' via Bash, then call WebSearch again with the same query\"}"
+            val status = classifyEmptySearchPage()
+            return when (status) {
+                "no_results" -> "{\"error\":\"Your search did not have any results. You MUST use different query.\"}"
+                "rate_limited" -> "{\"error\":\"RATE LIMITED: You MUST wait 60s before retrying. Run 'sleep 60' via Bash, then call WebSearch again with the same query\"}"
+                else -> "{\"error\":\"Search failed to return results. Try rephrasing the query or retrying.\"}"
+            }
         }
 
         val jsonResults = allResults.take(resultCount).map { raw ->
@@ -288,6 +298,17 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             JsonObject(obj)
         }
         return JsonArray(jsonResults).toString()
+    }
+
+    private suspend fun classifyEmptySearchPage(): String {
+        val js = """(function(){
+var t=document.body.innerText;
+if(t.indexOf('did not match any')>=0||t.indexOf("aren't many great matches")>=0) return 'no_results';
+if(t.indexOf('unusual traffic')>=0||t.toLowerCase().indexOf('captcha')>=0||t.indexOf('not a robot')>=0) return 'rate_limited';
+return 'unknown';
+})();"""
+        val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(js) }
+        return raw?.let { unquoteJsString(it) } ?: "unknown"
     }
 
     private suspend fun resolveGotoUrls(tokens: List<String>): Map<String, String> {
@@ -1210,17 +1231,29 @@ internal class NetLogBridge(private val collector: BrowserLogCollector) {
 }
 
 private const val WEB_EXTRACT_JS = """(function(){
-var html=document.documentElement.outerHTML.replace(/\\"/g,'"');
-var re=/\["(https?:\/\/[^"\[\]]+)","([^"]+)","([^"]+)"/g;
+var anchors=document.querySelectorAll('a[href*="/goto?url="]');
 var results=[];
 var seen=new Set();
-var m;
-while((m=re.exec(html))!==null){
-var url=m[1].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&');
-if(url.indexOf('google.')>=0||url.indexOf('gstatic')>=0||url.indexOf('.svg')>=0) continue;
-if(seen.has(url)) continue;
-seen.add(url);
-results.push(JSON.stringify({title:m[2].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&'),snippet:m[3].replace(/\\u003d/g,'=').replace(/\\u0026/g,'&'),url:url}));
+for(var i=0;i<anchors.length;i++){
+var a=anchors[i];
+var href=a.href;
+if(seen.has(href)) continue;
+seen.add(href);
+var heading=a.querySelector('[role="heading"]');
+if(!heading) continue;
+var title=heading.innerText.trim();
+if(!title) continue;
+var block=a.parentElement.parentElement;
+var snippet='';
+var s=block;
+while(s&&!snippet){
+s=s.nextElementSibling;
+if(s){
+var t=(s.innerText||'').trim();
+if(t&&t.length>20&&t!==title) snippet=t;
+}
+}
+results.push(JSON.stringify({title:title,snippet:snippet,token:href.split('url=')[1]}));
 }
 return '['+results.join(',')+']';
 })();"""
