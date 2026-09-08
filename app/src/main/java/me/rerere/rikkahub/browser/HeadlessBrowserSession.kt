@@ -35,6 +35,8 @@ object HeadlessBrowserSession {
         headless?.localContentRoot = file
     }
 
+    fun getLocalContentRoot(): File? = localContentRoot
+
     private val _url = MutableStateFlow("")
     val urlFlow: StateFlow<String> = _url.asStateFlow()
 

@@ -2,7 +2,10 @@ package me.rerere.rikkahub.browser
 
 import android.app.Activity
 import android.os.Bundle
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,7 +78,22 @@ private fun ViewerScreen() {
         containerColor = CustomColors.topBarColors.containerColor,
     ) { padding ->
         AndroidView(
-            factory = { context -> WebView(context).also { webView = it } },
+            factory = { context ->
+                WebView(context).also { wv ->
+                    webView = wv
+                    wv.settings.javaScriptEnabled = true
+                    wv.settings.domStorageEnabled = true
+                    wv.webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                        ): WebResourceResponse? {
+                            val req = request ?: return null
+                            return serveWorkspaceAsset(HeadlessBrowserSession.getLocalContentRoot(), req.url)
+                        }
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)

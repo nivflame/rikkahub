@@ -40,14 +40,26 @@ import kotlin.uuid.Uuid
 import me.rerere.common.android.appTempFolder
 import me.rerere.document.PdfParser
 
+private const val VIRTUAL_ASSET_HOST = "appassets.androidplatform.net"
+
+internal fun serveWorkspaceAsset(root: File?, url: Uri): WebResourceResponse? {
+    if (root == null || url.host != VIRTUAL_ASSET_HOST) return null
+    val rel = (url.path ?: "").removePrefix("/workspace/").takeIf { it.isNotEmpty() } ?: return null
+    val base = root.canonicalFile
+    val candidate = File(base, Uri.decode(rel))
+    val relative = FileUtils.getRelativePathInFilesDir(base, candidate) ?: return null
+    val served = File(base, relative)
+    val stream = runCatching { FileInputStream(served) }.getOrNull() ?: return null
+    return WebResourceResponse(FileUtils.guessMimeType(served, served.name), null, stream)
+}
+
 /**
  * Wraps a single [WebView] and exposes the suspend operations backing the browser tools.
  * Every WebView call runs on the main thread (WebView is not thread-safe). Page loads are
  * awaited via [WebViewClient.onPageFinished] with a hard per-tool timeout so a hung page
  * cannot wedge the agent loop.
  */
-class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {
-    @Volatile
+class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {    @Volatile
     var localContentRoot: File? = null
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
@@ -118,27 +130,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                     val host = url.host ?: return@let
                     val path = url.path ?: ""
 
-                    // Serve workspace files over a virtual https origin
-                    if (host == "appassets.androidplatform.net") {
-                        val root = localContentRoot
-                        val rel = path.removePrefix("/workspace/").takeIf { it.isNotEmpty() }
-                        if (root != null && rel != null) {
-                            val base = root.canonicalFile
-                            val candidate = File(base, Uri.decode(rel))
-                            val relative = FileUtils.getRelativePathInFilesDir(base, candidate)
-                            if (relative != null) {
-                                val served = File(base, relative)
-                                val stream = runCatching { FileInputStream(served) }.getOrNull()
-                                if (stream != null) {
-                                    return WebResourceResponse(
-                                        FileUtils.guessMimeType(served, served.name),
-                                        null,
-                                        stream,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    serveWorkspaceAsset(localContentRoot, url)?.let { return it }
 
                     val lowerPath = path.lowercase()
 
