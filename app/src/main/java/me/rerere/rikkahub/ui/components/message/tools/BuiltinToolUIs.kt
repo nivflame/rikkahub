@@ -72,7 +72,6 @@ import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
 import me.rerere.rikkahub.ui.components.ui.Favicon
 import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.modifier.shimmer
-import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.utils.JsonInstantPretty
 import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 import me.rerere.rikkahub.utils.openUrl
@@ -300,34 +299,12 @@ object SubagentToolUI : ToolUIRenderer {
         return "Subagent: $type"
     }
 
-    private fun responseText(context: ToolUIContext): String {
-        val raw = context.tool.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
-        return runCatching {
-            val json = JsonInstant.parseToJsonElement(raw).jsonObject
-            json["result"]?.jsonPrimitive?.contentOrNull ?: raw
-        }.getOrDefault(raw)
-    }
-
     override fun hasSummary(context: ToolUIContext): Boolean {
-        if (context.tool.isExecuted && responseText(context).isNotBlank()) return true
-        if (context.loading) return true
-        return false
+        return context.loading
     }
 
     @Composable
     override fun Summary(context: ToolUIContext) {
-        if (context.tool.isExecuted) {
-            val text = responseText(context)
-            if (text.isBlank()) return
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            return
-        }
         if (!context.loading) return
         val progressStore: SubagentProgressStore = koinInject()
         val active by progressStore.active.collectAsStateWithLifecycle()
@@ -336,7 +313,7 @@ object SubagentToolUI : ToolUIRenderer {
         }
         if (progress == null) {
             Text(
-                text = "Working...",
+                text = "Working",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = true),
@@ -355,9 +332,10 @@ object SubagentToolUI : ToolUIRenderer {
         }
         if (progress.currentTool != null) {
             Text(
-                text = "Using ${progress.currentTool}",
+                text = progress.currentTool,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = true),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -370,9 +348,17 @@ object SubagentToolUI : ToolUIRenderer {
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
+        } else if (progress.latestThinking.isNotBlank()) {
+            Text(
+                text = "Thinking",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.shimmer(isLoading = true),
+                maxLines = 1,
+            )
         } else {
             Text(
-                text = "Working...",
+                text = "Working",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.shimmer(isLoading = true),

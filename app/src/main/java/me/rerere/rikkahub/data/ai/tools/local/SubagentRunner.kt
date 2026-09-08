@@ -120,6 +120,11 @@ class SubagentRunner(
                     ?.joinToString("") { it.text }
                     ?.takeIf { it.isNotBlank() }
                     ?: ""
+                val latestThinking = lastAssistant
+                    ?.parts?.filterIsInstance<UIMessagePart.Reasoning>()
+                    ?.joinToString("") { it.reasoning }
+                    ?.takeIf { it.isNotBlank() }
+                    ?: ""
                 val currentTool = lastAssistant
                     ?.getTools()
                     ?.lastOrNull { !it.isExecuted }
@@ -129,6 +134,7 @@ class SubagentRunner(
                     SubagentProgress(
                         currentTool = currentTool,
                         latestText = latestText,
+                        latestThinking = latestThinking,
                         step = step,
                     ),
                 )
