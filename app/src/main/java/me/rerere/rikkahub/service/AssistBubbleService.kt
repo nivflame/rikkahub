@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +34,7 @@ class AssistBubbleService : Service() {
     private var containerView: View? = null
     private var bubbleView: View? = null
     private var pulseAnimator: ValueAnimator? = null
+    private var generationWorking = false
     private var windowManager: WindowManager? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -100,6 +102,13 @@ class AssistBubbleService : Service() {
                     startX = params.x
                     startY = params.y
                     dragged = false
+                    pulseAnimator?.cancel()
+                    pulseAnimator = null
+                    bubbleView?.animate()
+                        ?.scaleX(PRESS_SCALE)
+                        ?.scaleY(PRESS_SCALE)
+                        ?.setDuration(PRESS_DURATION_MS)
+                        ?.start()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -116,6 +125,7 @@ class AssistBubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    restoreBubbleScale()
                     if (!dragged) {
                         startActivity(
                             Intent(this, AssistChatActivity::class.java).apply {
@@ -125,6 +135,10 @@ class AssistBubbleService : Service() {
                         )
                         stopSelf()
                     }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    restoreBubbleScale()
                     true
                 }
                 else -> false
@@ -143,7 +157,24 @@ class AssistBubbleService : Service() {
         return START_STICKY
     }
 
+    private fun restoreBubbleScale() {
+        val bubble = bubbleView ?: return
+        bubble.animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .alpha(1f)
+            .setDuration(POP_DURATION_MS)
+            .setInterpolator(OvershootInterpolator(2f))
+            .withEndAction {
+                if (pulseAnimator == null && generationWorking) {
+                    setWorking(true)
+                }
+            }
+            .start()
+    }
+
     private fun setWorking(working: Boolean) {
+        generationWorking = working
         val bubble = bubbleView ?: return
         if (working) {
             if (pulseAnimator?.isRunning == true) return
@@ -185,6 +216,8 @@ class AssistBubbleService : Service() {
     private companion object {
         const val BUBBLE_SIZE_DP = 56f
         const val SHADOW_MARGIN_DP = 16f
+        const val PRESS_SCALE = 0.88f
+        const val PRESS_DURATION_MS = 120L
         const val PULSE_DURATION_MS = 800L
         const val POP_DURATION_MS = 250L
     }
