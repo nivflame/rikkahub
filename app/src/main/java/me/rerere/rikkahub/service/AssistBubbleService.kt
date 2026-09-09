@@ -35,6 +35,7 @@ class AssistBubbleService : Service() {
     private var bubbleView: View? = null
     private var pulseAnimator: ValueAnimator? = null
     private var generationWorking = false
+    private var pressed = false
     private var windowManager: WindowManager? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -102,6 +103,7 @@ class AssistBubbleService : Service() {
                     startX = params.x
                     startY = params.y
                     dragged = false
+                    pressed = true
                     pulseAnimator?.cancel()
                     pulseAnimator = null
                     bubbleView?.animate()
@@ -125,6 +127,7 @@ class AssistBubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    pressed = false
                     restoreBubbleScale()
                     if (!dragged) {
                         startActivity(
@@ -138,6 +141,7 @@ class AssistBubbleService : Service() {
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
+                    pressed = false
                     restoreBubbleScale()
                     true
                 }
@@ -177,6 +181,7 @@ class AssistBubbleService : Service() {
         generationWorking = working
         val bubble = bubbleView ?: return
         if (working) {
+            if (pressed) return
             if (pulseAnimator?.isRunning == true) return
             pulseAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = PULSE_DURATION_MS
@@ -194,6 +199,7 @@ class AssistBubbleService : Service() {
         } else {
             pulseAnimator?.cancel()
             pulseAnimator = null
+            if (pressed) return
             bubble.animate()
                 .scaleX(1f)
                 .scaleY(1f)
