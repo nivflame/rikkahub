@@ -589,6 +589,7 @@ class ChatService(
             // start generating
             val session = getOrCreateSession(conversationId)
             startGenerationKeepAlive(senderName)
+            var deferredToolResolver: ((String) -> Tool?)? = null
             generationHandler.generateText(
                 settings = settings,
                 model = model,
@@ -745,7 +746,13 @@ class ChatService(
                             if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
                         }
                         if (deferred.isNotEmpty()) {
-                            active.add(buildToolSearchTool(deferred, active))
+                            val deferredMapped = deferred.map { tool ->
+                                settings.toolApprovalOverrides[tool.name]?.let { override ->
+                                    tool.copy(needsApproval = { override })
+                                } ?: tool
+                            }
+                            active.add(buildToolSearchTool(deferredMapped))
+                            deferredToolResolver = { name -> deferredMapped.firstOrNull { it.name == name } }
                         }
                         active
                     } else {
@@ -759,6 +766,7 @@ class ChatService(
                         tool
                     }
                 },
+                toolResolver = deferredToolResolver,
                 autoCompressThreshold = if (settings.autoCompressEnabled) settings.autoCompressTokenThreshold else 0,
                 onAutoCompress = if (settings.autoCompressEnabled) {
                     { msgs: List<UIMessage> ->

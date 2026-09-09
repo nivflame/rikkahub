@@ -16,7 +16,6 @@ import me.rerere.ai.ui.UIMessagePart
 
 internal fun buildToolSearchTool(
     deferredTools: List<Tool>,
-    activeTools: MutableList<Tool>,
 ): Tool = Tool(
     name = "ToolSearch",
     description = TOOL_SEARCH_DESCRIPTION,
@@ -48,12 +47,6 @@ internal fun buildToolSearchTool(
         val maxResults = input.jsonObject["max_results"]?.jsonPrimitive?.intOrNull ?: 5
 
         val matched = searchDeferredTools(deferredTools, query, maxResults)
-
-        matched.forEach { tool ->
-            if (activeTools.none { it.name == tool.name }) {
-                activeTools.add(tool)
-            }
-        }
 
         val functionsXml = matched.joinToString("\n") { tool ->
             val schema = tool.parameters()

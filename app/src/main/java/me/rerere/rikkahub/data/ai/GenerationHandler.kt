@@ -96,6 +96,7 @@ class GenerationHandler(
         assistant: Assistant,
         memories: List<AssistantMemory>? = null,
         tools: List<Tool> = emptyList(),
+        toolResolver: ((String) -> Tool?)? = null,
         maxSteps: Int = 256,
         processingStatus: MutableStateFlow<String?> = MutableStateFlow(null),
         conversationSystemPrompt: String? = null,
@@ -180,6 +181,7 @@ class GenerationHandler(
                     providerImpl = providerImpl,
                     provider = provider,
                     tools = toolsInternal,
+                    toolResolver = toolResolver,
                     memories = memories ?: emptyList(),
                     stream = assistant.streamOutput,
                     processingStatus = processingStatus,
@@ -325,6 +327,7 @@ class GenerationHandler(
                     else -> {
                         // Auto or Approved - collect for parallel execution
                         val toolDef = toolsInternal.find { toolDef -> toolDef.name == tool.toolName }
+                            ?: toolResolver?.invoke(tool.toolName)
                         if (toolDef == null) {
                             executedTools += tool.copy(
                                 output = listOf(
@@ -497,6 +500,7 @@ class GenerationHandler(
         providerImpl: Provider<ProviderSetting>,
         provider: ProviderSetting,
         tools: List<Tool>,
+        toolResolver: ((String) -> Tool?)? = null,
         memories: List<AssistantMemory>,
         stream: Boolean,
         processingStatus: MutableStateFlow<String?> = MutableStateFlow(null),
