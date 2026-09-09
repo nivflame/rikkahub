@@ -125,18 +125,21 @@ fun SettingToolApprovalPage() {
                     title = { Text(category) },
                 ) {
                     toolNames.forEach { toolName ->
-                        val needsApproval = settings.toolApprovalOverrides[toolName] ?: false
+                        val locked = toolName == "AskQuestion"
+                        val needsApproval = locked || settings.toolApprovalOverrides[toolName] ?: false
                         item(
                             headlineContent = { Text(toolName) },
                             supportingContent = {
                                 Text(
-                                    if (needsApproval) "Requires approval"
+                                    if (locked) "Always requires approval"
+                                    else if (needsApproval) "Requires approval"
                                     else "Auto-executed",
                                 )
                             },
                             trailingContent = {
                                 Switch(
                                     checked = needsApproval,
+                                    enabled = !locked,
                                     onCheckedChange = { newValue ->
                                         scope.launch {
                                             settingsStore.update { current ->

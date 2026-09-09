@@ -747,9 +747,12 @@ class ChatService(
                         }
                         if (deferred.isNotEmpty()) {
                             val deferredMapped = deferred.map { tool ->
-                                settings.toolApprovalOverrides[tool.name]?.let { override ->
+                                val override = settings.toolApprovalOverrides[tool.name]
+                                if (override != null && tool.name != "AskQuestion") {
                                     tool.copy(needsApproval = { override })
-                                } ?: tool
+                                } else {
+                                    tool
+                                }
                             }
                             active.add(buildToolSearchTool(deferredMapped))
                             deferredToolResolver = { name -> deferredMapped.firstOrNull { it.name == name } }
@@ -760,7 +763,7 @@ class ChatService(
                     }
                 }.map { tool ->
                     val override = settings.toolApprovalOverrides[tool.name]
-                    if (override != null) {
+                    if (override != null && tool.name != "AskQuestion") {
                         tool.copy(needsApproval = { override })
                     } else {
                         tool
