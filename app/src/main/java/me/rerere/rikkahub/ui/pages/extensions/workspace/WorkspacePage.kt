@@ -1,5 +1,8 @@
 package me.rerere.rikkahub.ui.pages.extensions.workspace
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +25,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -32,8 +38,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,8 +52,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,10 +63,13 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Delete01
-import me.rerere.hugeicons.stroke.Edit01
+import me.rerere.hugeicons.stroke.Download01
 import me.rerere.hugeicons.stroke.File02
+import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.MoreVertical
+import me.rerere.hugeicons.stroke.PencilEdit02
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.workspace.WorkspaceShellStatus
@@ -70,16 +84,36 @@ import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
     val navController = LocalNavController.current
+    val context = LocalContext.current
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val workspaceSizes by vm.workspaceSizes.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    var showFabMenu by rememberSaveable { mutableStateOf(false) }
+    var wsExportTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     val haptic = LocalHapticFeedback.current
+
+    val wsExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zstd"),
+    ) { uri ->
+        val entry = wsExportTarget.also { wsExportTarget = null } ?: return@rememberLauncherForActivityResult
+        if (uri == null) return@rememberLauncherForActivityResult
+        val outputStream = context.contentResolver.openOutputStream(uri) ?: return@rememberLauncherForActivityResult
+        vm.exportRootfs(entry.id, outputStream)
+    }
+    val wsImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return@rememberLauncherForActivityResult
+        vm.importWorkspace(uri, inputStream)
+    }
 
     LifecycleResumeEffect(Unit) {
         vm.refreshSizes()
@@ -96,8 +130,45 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(HugeIcons.Add01, contentDescription = null)
+            BackHandler(showFabMenu) { showFabMenu = false }
+            FloatingActionButtonMenu(
+                expanded = showFabMenu,
+                button = {
+                    ToggleFloatingActionButton(
+                        checked = showFabMenu,
+                        onCheckedChange = { showFabMenu = it },
+                    ) {
+                        val imageVector by remember {
+                            derivedStateOf { if (checkedProgress > 0.5f) HugeIcons.Cancel01 else HugeIcons.Add01 }
+                        }
+                        Icon(
+                            painter = rememberVectorPainter(imageVector),
+                            contentDescription = null,
+                            modifier = Modifier.animateIcon({ checkedProgress }),
+                        )
+                    }
+                },
+            ) {
+                FloatingActionButtonMenuItem(
+                    onClick = {
+                        showFabMenu = false
+                        showAddDialog = true
+                    },
+                    icon = { Icon(HugeIcons.Add01, contentDescription = null) },
+                    text = { Text(stringResource(R.string.workspace_page_create)) },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                FloatingActionButtonMenuItem(
+                    onClick = {
+                        showFabMenu = false
+                        wsImportLauncher.launch(arrayOf("application/zstd", "application/x-zstd", "application/gzip", "application/x-gzip", "*/*"))
+                    },
+                    icon = { Icon(HugeIcons.FileImport, contentDescription = null) },
+                    text = { Text(stringResource(R.string.workspace_page_import)) },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -129,6 +200,10 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
                         sizeBytes = workspaceSizes[workspace.id] ?: 0L,
                         onRename = { editTarget = workspace },
                         onDelete = { deleteTarget = workspace },
+                        onExport = {
+                            wsExportTarget = workspace
+                            wsExportLauncher.launch("rikkahub_workspace(${workspace.name})_${java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())}.tar.zst")
+                        },
                         onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
                         modifier = Modifier
                             .scale(if (isDragging) 0.95f else 1f)
@@ -175,6 +250,7 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
 
     RikkaConfirmDialog(
         show = deleteTarget != null,
+        destructive = true,
         title = stringResource(R.string.workspace_page_delete),
         confirmText = stringResource(R.string.common_delete),
         dismissText = stringResource(R.string.common_cancel),
@@ -222,6 +298,7 @@ private fun WorkspaceCard(
     sizeBytes: Long,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    onExport: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -239,7 +316,7 @@ private fun WorkspaceCard(
             .fillMaxWidth()
             .clickable(onClick = onOpen),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = CustomColors.cardColorsOnSurfaceContainer.containerColor,
         ),
     ) {
         Row(
@@ -313,12 +390,22 @@ private fun WorkspaceCard(
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.common_rename)) },
-                        leadingIcon = { Icon(HugeIcons.Edit01, contentDescription = null) },
+                        leadingIcon = { Icon(HugeIcons.PencilEdit02, contentDescription = null) },
                         onClick = {
                             menuExpanded = false
                             onRename()
                         },
                     )
+                    if (workspace.shellStatus == WorkspaceShellStatus.READY.name) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.common_export)) },
+                            leadingIcon = { Icon(HugeIcons.Download01, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onExport()
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
@@ -340,7 +427,7 @@ private fun WorkspaceCard(
 }
 
 @Composable
-private fun EditWorkspaceDialog(
+internal fun EditWorkspaceDialog(
     title: String,
     initialName: String,
     existingNames: Set<String>,
@@ -368,7 +455,7 @@ private fun EditWorkspaceDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            FilledTonalButton(
                 onClick = { onConfirm(trimmedName) },
                 enabled = name.isNotBlank() && !isDuplicate,
             ) {

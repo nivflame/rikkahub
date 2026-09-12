@@ -1,5 +1,8 @@
 package me.rerere.rikkahub.ui.pages.extensions.workspace
 
+import android.app.Application
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,8 +14,11 @@ import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
+import java.io.InputStream
+import java.io.OutputStream
 
 class WorkspaceVM(
+    private val application: Application,
     private val repository: WorkspaceRepository,
     private val settingsStore: SettingsStore,
 ) : ViewModel() {
@@ -50,6 +56,40 @@ class WorkspaceVM(
         viewModelScope.launch {
             runCatching { repository.create(name) }
         }
+    }
+
+    fun exportRootfs(id: String, outputStream: OutputStream) {
+        viewModelScope.launch {
+            runCatching { repository.exportRootfs(id, outputStream) }
+        }
+    }
+
+    fun importWorkspace(uri: Uri, inputStream: InputStream) {
+        viewModelScope.launch {
+            runCatching {
+                val name = application.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+                }.toWorkspaceName()
+                val workspace = repository.create(name)
+                repository.importRootfs(workspace.id, inputStream)
+            }
+        }
+    }
+
+    private fun String?.toWorkspaceName(): String {
+        if (isNullOrBlank()) return "Imported Workspace"
+        val inner = EXPORT_NAME_PATTERN.matchEntire(this)?.groupValues?.getOrNull(1)?.trim()
+        if (!inner.isNullOrBlank()) return inner
+        val stripped = EXPORT_ARCHIVE_SUFFIXES.fold(this as String) { acc, suffix ->
+            if (acc.endsWith(suffix, ignoreCase = true)) acc.dropLast(suffix.length) else acc
+        }.trim()
+        return stripped.ifBlank { "Imported Workspace" }
+    }
+
+    private companion object {
+        val EXPORT_NAME_PATTERN = Regex("^rikkahub_workspace\\((.+)\\)_.+$")
+        val EXPORT_ARCHIVE_SUFFIXES = listOf(".tar.zst", ".tar.gz", ".tgz", ".zip")
     }
 
     fun rename(workspace: WorkspaceEntity, name: String) {

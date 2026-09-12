@@ -1190,9 +1190,6 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="workspace_detail_shell_installing">安装中</string>
   <string name="workspace_detail_shell_ready">就绪</string>
   <string name="workspace_detail_shell_broken">错误</string>
-  <string name="workspace_detail_downloading">正在下载 %1$s%2$s</string>
-  <string name="workspace_detail_extracting">提取 %1$d 个项目%2$s</string>
-  <string name="workspace_detail_install_complete">安装完成</string>
   <string name="workspace_terminal_title">终端</string>
   <string name="workspace_terminal_title_with_name">%s · 终端</string>
   <string name="workspace_terminal_not_installed">请先安装 Rootfs</string>

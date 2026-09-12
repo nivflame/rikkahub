@@ -6,6 +6,7 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileSystems
 import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.Path
 import kotlin.io.path.name
 
@@ -19,9 +20,28 @@ class WorkspaceFileSystem(
         return dir.listFiles()
             .orEmpty()
             .filter { !it.name.startsWith(".l2s.") }
-            .sortedWith(compareBy<File> { !it.isDirectory }.thenBy { it.name.lowercase() })
+            .sortedWith(compareBy<File> { !it.isDirectory }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name })
             .take(config.maxListEntries)
             .map { it.toEntry(root) }
+    }
+
+    fun searchFileNames(root: File, path: String = "", query: String, recursive: Boolean): List<WorkspaceFileEntry> {
+        require(query.isNotBlank()) { "Search query is required" }
+        val dir = resolvePath(root, path)
+        require(dir.exists()) { "Path does not exist: $path" }
+        require(dir.isDirectory) { "Path is not a directory: $path" }
+        val candidates = if (recursive) {
+            dir.walkNoFollow()
+                .filter { it != dir && !it.name.startsWith(".l2s.") }
+        } else {
+            dir.listFiles().orEmpty().asSequence()
+                .filter { !it.name.startsWith(".l2s.") }
+        }
+        return candidates
+            .filter { it.name.contains(query, ignoreCase = true) }
+            .take(config.maxSearchResults)
+            .map { it.toEntry(root) }
+            .toList()
     }
 
     fun readText(root: File, path: String, charset: Charset = StandardCharsets.UTF_8): String {
@@ -80,10 +100,10 @@ class WorkspaceFileSystem(
     fun delete(root: File, path: String, recursive: Boolean = false): Boolean {
         require(path.isNotBlank() && path != ".") { "Refusing to delete workspace root" }
         val file = resolvePath(root, path)
-        if (!file.exists()) return false
-        return if (file.isDirectory) {
+        if (!file.exists() && !Files.isSymbolicLink(file.toPath())) return false
+        return if (file.isDirectory && !Files.isSymbolicLink(file.toPath())) {
             require(recursive) { "Directory delete requires recursive = true" }
-            file.deleteRecursively()
+            file.deleteTreeNoFollow()
         } else {
             file.delete()
         }
@@ -96,8 +116,8 @@ class WorkspaceFileSystem(
         require(sourceFile.exists()) { "Source does not exist: $source" }
         if (targetFile.exists()) {
             require(overwrite) { "Target already exists: $target" }
-            if (targetFile.isDirectory) {
-                targetFile.deleteRecursively()
+            if (targetFile.isDirectory && !Files.isSymbolicLink(targetFile.toPath())) {
+                targetFile.deleteTreeNoFollow()
             } else {
                 targetFile.delete()
             }
@@ -199,13 +219,40 @@ class WorkspaceFileSystem(
 
     fun resolve(root: File, path: String): File = resolvePath(root, path)
 
-    private fun File.toEntry(root: File): WorkspaceFileEntry = WorkspaceFileEntry(
-        path = relativePath(root),
-        name = name,
-        isDirectory = isDirectory,
-        sizeBytes = if (isFile) length() else 0L,
-        updatedAt = lastModified(),
-    )
+    fun directorySize(dir: File): Long {
+        if (!dir.isDirectory) return 0L
+        return runCatching {
+            dir.walkNoFollow()
+                .filter { it.isFile && !Files.isSymbolicLink(it.toPath()) }
+                .sumOf { runCatching { it.length() }.getOrDefault(0L) }
+        }.getOrDefault(0L)
+    }
+
+    fun filePermission(root: File, path: String): String {
+        val file = resolvePath(root, path)
+        return runCatching {
+            PosixFilePermissions.toString(Files.getPosixFilePermissions(file.toPath()))
+        }.getOrElse {
+            buildString {
+                append(if (file.canRead()) 'r' else '-')
+                append(if (file.canWrite()) 'w' else '-')
+                append(if (file.canExecute()) 'x' else '-')
+            }
+        }
+    }
+
+    private fun File.toEntry(root: File): WorkspaceFileEntry {
+        val symlink = Files.isSymbolicLink(toPath())
+        val directory = isDirectory && !symlink
+        return WorkspaceFileEntry(
+            path = relativePath(root),
+            name = name,
+            isDirectory = directory,
+            sizeBytes = if (isFile && !symlink) length() else if (directory) directorySize(this) else 0L,
+            updatedAt = lastModified(),
+            file = this,
+        )
+    }
 
     private fun File.relativePath(root: File): String {
         val rootCanonical = root.canonicalFile

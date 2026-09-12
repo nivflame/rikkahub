@@ -151,6 +151,57 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun symlinkLoopIsNotFollowed() {
+        val baseDir = Files.createTempDirectory("workspace-symlink-test").toFile()
+        val manager = WorkspaceManager(baseDir)
+        val root = "test-workspace"
+        manager.ensureWorkspace(root)
+
+        val jvmDir = File(manager.linuxDir(root), "usr/lib/jvm/java-21-openjdk")
+        File(jvmDir, "bin").mkdirs()
+        File(jvmDir, "bin/java").writeText("fake-jvm-binary")
+        Files.createSymbolicLink(File(jvmDir, "jre").toPath(), File(".").toPath())
+        Files.createSymbolicLink(
+            File(manager.linuxDir(root), "usr/lib/jvm/default-jvm").toPath(),
+            File("java-21-openjdk").toPath(),
+        )
+
+        val fileSystem = WorkspaceFileSystem()
+        assertEquals(15L, fileSystem.directorySize(File(manager.linuxDir(root), "usr/lib/jvm")))
+        assertEquals(15L, manager.workspaceSize(root))
+
+        val searchResults = fileSystem.searchFileNames(
+            manager.linuxDir(root),
+            query = "file",
+            recursive = true,
+        )
+        assertTrue(searchResults.none { it.path.contains("/jre/") })
+
+        val jreLink = File(jvmDir, "jre")
+        assertTrue(Files.isSymbolicLink(jreLink.toPath()))
+
+        val output = java.io.ByteArrayOutputStream()
+        val installer = RootfsInstaller(manager)
+        installer.exportDirectory(
+            File(manager.linuxDir(root), "usr/lib/jvm"),
+            output,
+        )
+        val staging = Files.createTempDirectory("workspace-export-test").toFile()
+        try {
+            val archiveFile = File(staging, "export.tar.zst")
+            archiveFile.writeBytes(output.toByteArray())
+            installer.extractTar(archiveFile, File(staging, "out")) { }
+            val extractedJre = File(staging, "out/java-21-openjdk/jre")
+            assertTrue(Files.isSymbolicLink(extractedJre.toPath()))
+            assertEquals(".", Files.readSymbolicLink(extractedJre.toPath()).toString())
+            assertTrue(File(staging, "out/java-21-openjdk/bin/java").isFile)
+            assertTrue(File(staging, "out/default-jvm").exists())
+        } finally {
+            staging.deleteTreeNoFollow()
+        }
+    }
+
+    @Test
     fun rootfsPatcherAppliesAndroidProotDefaults() {
         val linuxDir = Files.createTempDirectory("rootfs-patch-test").toFile()
         File(linuxDir, "etc").mkdirs()

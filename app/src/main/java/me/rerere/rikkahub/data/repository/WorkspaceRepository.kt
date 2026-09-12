@@ -233,6 +233,18 @@ class WorkspaceRepository(
         manager.listFiles(workspace.root, path, area)
     }
 
+    suspend fun searchFileNames(
+        id: String,
+        area: WorkspaceStorageArea,
+        path: String,
+        query: String,
+        recursive: Boolean,
+    ): List<WorkspaceFileEntry> = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: return@withContext emptyList()
+        manager.ensureWorkspace(workspace.root)
+        manager.searchFileNames(workspace.root, path, query, recursive, area)
+    }
+
     suspend fun readText(
         id: String,
         path: String,
@@ -294,6 +306,16 @@ class WorkspaceRepository(
         manager.fileSize(workspace.root, path, area)
     }
 
+    suspend fun filePermission(
+        id: String,
+        area: WorkspaceStorageArea,
+        path: String,
+    ): String = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        manager.ensureWorkspace(workspace.root)
+        manager.filePermission(workspace.root, path, area)
+    }
+
     suspend fun exportFile(
         id: String,
         area: WorkspaceStorageArea,
@@ -302,6 +324,16 @@ class WorkspaceRepository(
     ) = withContext(Dispatchers.IO) {
         val workspace = dao.getById(id) ?: error("Workspace not found: $id")
         manager.exportFile(workspace.root, path, area, outputStream)
+    }
+
+    suspend fun exportDirectory(
+        id: String,
+        area: WorkspaceStorageArea,
+        path: String,
+        outputStream: OutputStream,
+    ) = withContext(Dispatchers.IO) {
+        val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        manager.exportDirectory(workspace.root, path, area, outputStream)
     }
 
     suspend fun deleteFile(

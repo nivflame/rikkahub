@@ -15,6 +15,8 @@ class WorkspaceManager(
 ) {
     private val fileSystem = WorkspaceFileSystem(config)
 
+    private val rootfsInstaller by lazy { RootfsInstaller(this) }
+
     init {
         baseDir.mkdirs()
     }
@@ -41,14 +43,14 @@ class WorkspaceManager(
     fun hasRootfs(root: String): Boolean =
         Files.exists(File(linuxDir(root), "bin/sh").toPath(), LinkOption.NOFOLLOW_LINKS)
 
-    fun deleteWorkspace(root: String): Boolean = workspaceDir(root).deleteRecursively()
+    fun deleteWorkspace(root: String): Boolean = workspaceDir(root).deleteTreeNoFollow()
 
     fun workspaceSize(root: String): Long {
         val dir = workspaceDir(root)
         if (!dir.exists()) return 0L
         var total = 0L
-        dir.walkTopDown().forEach { file ->
-            if (file.isFile) total += file.length()
+        dir.walkNoFollow().forEach { file ->
+            if (file.isFile && !Files.isSymbolicLink(file.toPath())) total += file.length()
         }
         return total
     }
@@ -59,6 +61,15 @@ class WorkspaceManager(
         area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
     ): List<WorkspaceFileEntry> =
         fileSystem.list(areaDir(root, area), path)
+
+    fun searchFileNames(
+        root: String,
+        path: String = "",
+        query: String,
+        recursive: Boolean,
+        area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
+    ): List<WorkspaceFileEntry> =
+        fileSystem.searchFileNames(areaDir(root, area), path, query, recursive)
 
     fun readText(
         root: String,
@@ -96,6 +107,12 @@ class WorkspaceManager(
         return fileSystem.createDirectory(areaRoot, fullPath)
     }
 
+    fun filePermission(
+        root: String,
+        path: String,
+        area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
+    ): String = fileSystem.filePermission(areaDir(root, area), path)
+
     fun fileSize(
         root: String,
         path: String,
@@ -105,6 +122,18 @@ class WorkspaceManager(
         require(file.exists()) { "File does not exist: $path" }
         require(file.isFile) { "Path is not a file: $path" }
         return file.length()
+    }
+
+    fun exportDirectory(
+        root: String,
+        path: String,
+        area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
+        outputStream: OutputStream,
+    ) {
+        val dir = fileSystem.resolve(areaDir(root, area), path)
+        require(dir.exists()) { "Directory does not exist: $path" }
+        require(dir.isDirectory) { "Path is not a directory: $path" }
+        rootfsInstaller.exportDirectory(dir, outputStream)
     }
 
     fun exportFile(
@@ -187,10 +216,10 @@ class WorkspaceManager(
             val root = dir.name
             if (!root.matches(ROOT_NAME_REGEX)) continue
             // PRoot temp files
-            tempDir(root).let { if (it.exists()) it.deleteRecursively() }
+            tempDir(root).let { if (it.exists()) it.deleteTreeNoFollow() }
             // Rootfs /tmp and /var/tmp
-            File(linuxDir(root), "tmp").let { if (it.exists()) it.deleteRecursively() }
-            File(linuxDir(root), "var/tmp").let { if (it.exists()) it.deleteRecursively() }
+            File(linuxDir(root), "tmp").let { if (it.exists()) it.deleteTreeNoFollow() }
+            File(linuxDir(root), "var/tmp").let { if (it.exists()) it.deleteTreeNoFollow() }
         }
     }
 

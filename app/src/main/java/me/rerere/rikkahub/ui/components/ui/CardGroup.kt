@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import me.rerere.rikkahub.ui.theme.CustomColors
@@ -49,7 +50,7 @@ private data class CardGroupItem(
 )
 
 @DslMarker
-private annotation class CardGroupDsl
+annotation class CardGroupDsl
 
 @CardGroupDsl
 interface CardGroupScope {
@@ -98,6 +99,7 @@ private fun CardGroupListItem(
     item: CardGroupItem,
     count: Int,
     index: Int,
+    innerCorner: Dp,
 ) {
     val isFirst = index == 0
     val isLast = index == count - 1
@@ -106,11 +108,11 @@ private fun CardGroupListItem(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val topCorner by animateDpAsState(
-        targetValue = if (isPressed || count == 1 || isFirst) CardGroupCorner else CardGroupInnerCorner,
+        targetValue = if (isPressed || count == 1 || isFirst) CardGroupCorner else innerCorner,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
     )
     val bottomCorner by animateDpAsState(
-        targetValue = if (isPressed || count == 1 || isLast) CardGroupCorner else CardGroupInnerCorner,
+        targetValue = if (isPressed || count == 1 || isLast) CardGroupCorner else innerCorner,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
     )
 
@@ -147,6 +149,8 @@ private fun CardGroupListItem(
 fun CardGroup(
     modifier: Modifier = Modifier,
     title: (@Composable () -> Unit)? = null,
+    itemSpacing: Dp = CardGroupItemSpacing,
+    innerCorner: Dp = CardGroupInnerCorner,
     content: CardGroupScope.() -> Unit,
 ) {
     val scope = CardGroupScopeImpl()
@@ -164,9 +168,9 @@ fun CardGroup(
         }
         val count = scope.items.size
         scope.items.fastForEachIndexed { index, item ->
-            CardGroupListItem(item = item, count = count, index = index)
+            CardGroupListItem(item = item, count = count, index = index, innerCorner = innerCorner)
             if (index != count - 1) {
-                Spacer(modifier = Modifier.height(CardGroupItemSpacing))
+                Spacer(modifier = Modifier.height(itemSpacing))
             }
         }
     }

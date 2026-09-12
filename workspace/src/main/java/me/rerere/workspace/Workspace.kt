@@ -1,5 +1,32 @@
 package me.rerere.workspace
 
+import java.io.File
+import java.nio.file.Files
+
+internal fun File.walkNoFollow(): Sequence<File> = sequence {
+    val stack = ArrayDeque<File>()
+    stack.add(this@walkNoFollow)
+    while (stack.isNotEmpty()) {
+        val current = stack.removeLast()
+        yield(current)
+        if (current.isDirectory && !Files.isSymbolicLink(current.toPath())) {
+            val children = runCatching { current.listFiles().orEmpty() }.getOrDefault(emptyArray())
+            for (index in children.indices.reversed()) {
+                stack.add(children[index])
+            }
+        }
+    }
+}
+
+internal fun File.deleteTreeNoFollow(): Boolean {
+    var ok = true
+    val entries = walkNoFollow().toList()
+    for (index in entries.indices.reversed()) {
+        if (!entries[index].delete()) ok = false
+    }
+    return ok
+}
+
 data class Workspace(
     val id: String,
     val name: String,
@@ -50,6 +77,7 @@ data class WorkspaceFileEntry(
     val isDirectory: Boolean,
     val sizeBytes: Long,
     val updatedAt: Long,
+    val file: File? = null,
 )
 
 data class WorkspaceSearchMatch(

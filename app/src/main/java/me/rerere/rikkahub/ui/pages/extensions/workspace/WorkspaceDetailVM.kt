@@ -6,6 +6,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
@@ -43,6 +44,8 @@ class WorkspaceDetailVM(
         refresh()
     }
 
+    private var refreshJob: Job? = null
+
     fun selectArea(area: WorkspaceStorageArea) {
         _state.update {
             it.copy(
@@ -75,16 +78,31 @@ class WorkspaceDetailVM(
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            val area = state.value.area
+            val path = state.value.path
+            val sortBy = state.value.sortBy
+            val ascending = state.value.ascending
+            val query = state.value.query.trim()
+            val recursive = state.value.recursive
             _state.update { it.copy(loading = true, error = null) }
             runCatching {
-                repository.listFiles(
-                    id = id,
-                    area = state.value.area,
-                    path = state.value.path,
-                )
+                if (query.isNotBlank()) {
+                    repository.searchFileNames(id = id, area = area, path = path, query = query, recursive = recursive)
+                } else {
+                    repository.listFiles(id = id, area = area, path = path)
+                }
             }.onSuccess { entries ->
-                _state.update { it.copy(entries = entries, loading = false) }
+                val keyComparator: Comparator<WorkspaceFileEntry> = when (sortBy) {
+                    WorkspaceSortBy.NAME -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+                    WorkspaceSortBy.DATE -> compareBy { it.updatedAt }
+                    WorkspaceSortBy.SIZE -> compareBy { it.sizeBytes }
+                }
+                val comparator = compareBy<WorkspaceFileEntry> { !it.isDirectory }
+                    .then(if (ascending) keyComparator else keyComparator.reversed())
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+                _state.update { it.copy(entries = entries.sortedWith(comparator), loading = false) }
             }.onFailure { error ->
                 _state.update {
                     it.copy(
@@ -93,6 +111,53 @@ class WorkspaceDetailVM(
                         error = error.message ?: "加载工作区文件失败",
                     )
                 }
+            }
+        }
+    }
+
+    fun setSortBy(sortBy: WorkspaceSortBy) {
+        _state.update { it.copy(sortBy = sortBy) }
+        refresh()
+    }
+
+    fun toggleOrder() {
+        _state.update { it.copy(ascending = !it.ascending) }
+        refresh()
+    }
+
+    fun setSearch(query: String, recursive: Boolean) {
+        _state.update { it.copy(query = query, recursive = recursive) }
+        refresh()
+    }
+
+    fun clearSearch() {
+        _state.update { it.copy(query = "", recursive = true) }
+        refresh()
+    }
+
+    suspend fun permissionOf(entry: WorkspaceFileEntry): String {
+        return runCatching {
+            repository.filePermission(id = id, area = state.value.area, path = entry.path)
+        }.getOrDefault("")
+    }
+
+    fun rename(entry: WorkspaceFileEntry, newName: String) {
+        viewModelScope.launch {
+            runCatching {
+                val trimmed = newName.trim()
+                require(trimmed.isNotBlank() && !trimmed.contains('/')) { "Invalid name" }
+                val parent = entry.path.substringBeforeLast('/', "")
+                val destinationPath = if (parent.isBlank()) trimmed else "$parent/$trimmed"
+                repository.moveFile(
+                    id = id,
+                    source = entry.path,
+                    target = destinationPath,
+                    overwrite = false,
+                )
+            }.onSuccess {
+                refresh()
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "重命名失败") }
             }
         }
     }
@@ -171,7 +236,12 @@ class WorkspaceDetailVM(
             runCatching {
                 withContext(Dispatchers.IO) {
                     val tree = DocumentFile.fromTreeUri(context, treeUri) ?: return@withContext
-                    val basePath = state.value.path
+                    val folderName = tree.name?.trim().takeUnless { it.isNullOrBlank() } ?: "folder"
+                    val basePath = if (state.value.path.isBlank()) folderName else "${state.value.path}/$folderName"
+                    try {
+                        repository.createDirectory(id = id, area = state.value.area, path = basePath)
+                    } catch (_: Throwable) {
+                    }
                     importDocumentTree(tree, basePath, context)
                 }
             }.onSuccess {
@@ -211,34 +281,23 @@ class WorkspaceDetailVM(
     fun exportFile(entry: WorkspaceFileEntry, outputStream: OutputStream) {
         viewModelScope.launch {
             runCatching {
-                repository.exportFile(
-                    id = id,
-                    area = state.value.area,
-                    path = entry.path,
-                    outputStream = outputStream,
-                )
-            }.onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "导出文件失败") }
-            }
-        }
-    }
-
-    fun shareFile(entry: WorkspaceFileEntry, cacheDir: File, onReady: (File) -> Unit) {
-        viewModelScope.launch {
-            runCatching {
-                val dir = File(cacheDir, "workspace_share").apply { mkdirs() }
-                val file = File(dir, entry.name)
-                file.outputStream().use { output ->
+                if (entry.isDirectory) {
+                    repository.exportDirectory(
+                        id = id,
+                        area = state.value.area,
+                        path = entry.path,
+                        outputStream = outputStream,
+                    )
+                } else {
                     repository.exportFile(
                         id = id,
                         area = state.value.area,
                         path = entry.path,
-                        outputStream = output,
+                        outputStream = outputStream,
                     )
                 }
-                file
-            }.onSuccess(onReady).onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "分享文件失败") }
+            }.onFailure { error ->
+                _state.update { it.copy(error = error.message ?: "导出文件失败") }
             }
         }
     }
@@ -312,9 +371,19 @@ data class WorkspaceDetailState(
     val area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
     val path: String = "",
     val entries: List<WorkspaceFileEntry> = emptyList(),
+    val sortBy: WorkspaceSortBy = WorkspaceSortBy.NAME,
+    val ascending: Boolean = true,
+    val query: String = "",
+    val recursive: Boolean = true,
     val loading: Boolean = false,
     val error: String? = null,
 )
+
+enum class WorkspaceSortBy {
+    NAME,
+    DATE,
+    SIZE,
+}
 
 data class WorkspaceTerminalState(
     val input: String = "",

@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.IBinder
 import android.net.ConnectivityManager
 import android.util.Log
 import android.view.KeyEvent
@@ -234,8 +235,16 @@ internal class WorkspaceTerminalViewClient(
     var terminalView: TerminalView? = null
     var controlDown: Boolean = false
     var altDown: Boolean = false
+    var onConsumeOneShotModifiers: () -> Unit = {}
+    var onChangeFontSize: ((Boolean) -> Unit)? = null
 
-    override fun onScale(scale: Float): Float = scale.coerceIn(0.8f, 1.25f)
+    override fun onScale(scale: Float): Float {
+        if (scale < 0.9f || scale > 1.1f) {
+            onChangeFontSize?.invoke(scale > 1f)
+            return 1.0f
+        }
+        return scale
+    }
 
     override fun onSingleTapUp(e: MotionEvent) {
         if (openUrlAtTap(e)) return
@@ -305,6 +314,14 @@ internal class WorkspaceTerminalViewClient(
         }
     }
 
+    fun hideKeyboard(fallbackToken: IBinder? = null) {
+        val view = terminalView
+        val inputMethodManager = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val token = view?.windowToken ?: fallbackToken ?: return
+        inputMethodManager.hideSoftInputFromWindow(token, 0)
+        view?.clearFocus()
+    }
+
     override fun shouldBackButtonBeMappedToEscape(): Boolean = false
 
     override fun shouldEnforceCharBasedInput(): Boolean = true
@@ -329,7 +346,10 @@ internal class WorkspaceTerminalViewClient(
 
     override fun readFnKey(): Boolean = false
 
-    override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean = false
+    override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean {
+        onConsumeOneShotModifiers()
+        return false
+    }
 
     override fun onEmulatorSet() = Unit
 

@@ -33,11 +33,11 @@ class RootfsInstaller(
         val linuxDir = manager.linuxDir(root)
 
         try {
-            stagingDir.deleteRecursively()
+            stagingDir.deleteTreeNoFollow()
             stagingDir.mkdirs()
             download(url, archive, onProgress)
             extractTar(archive, stagingDir, format, onProgress)
-            linuxDir.deleteRecursively()
+            linuxDir.deleteTreeNoFollow()
             require(stagingDir.renameTo(linuxDir)) {
                 "Failed to move rootfs into workspace"
             }
@@ -45,7 +45,63 @@ class RootfsInstaller(
             onProgress(RootfsInstallProgress(stage = RootfsInstallStage.INSTALLED))
         } finally {
             archive.delete()
-            stagingDir.deleteRecursively()
+            stagingDir.deleteTreeNoFollow()
+        }
+    }
+
+    fun exportDirectory(
+        dir: File,
+        outputStream: OutputStream,
+    ) {
+        ZstdOutputStream(outputStream).use { zstd ->
+            zstd.setLevel(-1)
+            val cores = Runtime.getRuntime().availableProcessors()
+            if (cores > 1) {
+                zstd.setWorkers(cores)
+            }
+            val tarWriter = TarWriter(zstd)
+            val basePath = dir.canonicalFile
+            basePath.walkNoFollow().forEach { file ->
+                checkInterrupted()
+                val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
+                if (relativePath.isBlank()) return@forEach
+
+                val isSymlink = Files.isSymbolicLink(file.toPath())
+                val isDir = file.isDirectory && !isSymlink
+
+                if (isSymlink) {
+                    val linkTarget = Files.readSymbolicLink(file.toPath()).toString()
+                    tarWriter.writeEntry(
+                        name = relativePath,
+                        size = 0L,
+                        mode = 0b111_101_101,
+                        type = TarEntryType.SYMLINK,
+                        isSymlink = true,
+                        linkName = linkTarget,
+                    ) { }
+                } else if (isDir) {
+                    tarWriter.writeEntry(
+                        name = "$relativePath/",
+                        size = 0L,
+                        mode = 0b111_101_101,
+                        type = TarEntryType.DIRECTORY,
+                        isSymlink = false,
+                        linkName = "",
+                    ) { }
+                } else {
+                    val mode = getFileMode(file)
+                    tarWriter.writeEntry(
+                        name = relativePath,
+                        size = file.length(),
+                        mode = mode,
+                        type = TarEntryType.FILE,
+                        isSymlink = false,
+                        linkName = "",
+                    ) {
+                        file.inputStream().use { input -> input.copyTo(it) }
+                    }
+                }
+            }
         }
     }
 
@@ -66,7 +122,7 @@ class RootfsInstaller(
             val basePath = linuxDir.canonicalFile
             val totalEntries = countEntries(basePath)
             var entries = 0
-            basePath.walkTopDown().forEach { file ->
+            basePath.walkNoFollow().forEach { file ->
                 checkInterrupted()
                 val relativePath = basePath.toPath().relativize(file.toPath()).joinToString("/")
                 if (relativePath.isBlank()) return@forEach
@@ -138,23 +194,23 @@ class RootfsInstaller(
         val linuxDir = manager.linuxDir(root)
 
         try {
-            stagingDir.deleteRecursively()
+            stagingDir.deleteTreeNoFollow()
             stagingDir.mkdirs()
             extractTarFromStream(inputStream, stagingDir, onProgress)
-            linuxDir.deleteRecursively()
+            linuxDir.deleteTreeNoFollow()
             require(stagingDir.renameTo(linuxDir)) {
                 "Failed to move imported rootfs into workspace"
             }
             patcher.patch(linuxDir)
             onProgress(RootfsInstallProgress(stage = RootfsInstallStage.INSTALLED))
         } finally {
-            stagingDir.deleteRecursively()
+            stagingDir.deleteTreeNoFollow()
         }
     }
 
     private fun countEntries(dir: File): Int {
         var count = 0
-        dir.walkTopDown().forEach { count++ }
+        dir.walkNoFollow().forEach { count++ }
         return count
     }
 

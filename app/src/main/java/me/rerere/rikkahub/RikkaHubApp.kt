@@ -47,6 +47,7 @@ import coil3.network.cachecontrol.CacheControlCacheStrategy
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
+import coil3.video.VideoFrameDecoder
 import okhttp3.OkHttpClient
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
@@ -79,6 +80,7 @@ class RikkaHubApp : Application(), SingletonImageLoader.Factory, KoinComponent {
                     add(GifDecoder.Factory())
                 }
                 add(SvgDecoder.Factory(scaleToDensity = true))
+                add(VideoFrameDecoder.Factory())
             }
             .build()
     }

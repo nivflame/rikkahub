@@ -1165,9 +1165,6 @@
   <string name="workspace_detail_shell_installing">正在安裝</string>
   <string name="workspace_detail_shell_ready">就緒</string>
   <string name="workspace_detail_shell_broken">錯誤</string>
-  <string name="workspace_detail_downloading">正在下載 %1$s%2$s</string>
-  <string name="workspace_detail_extracting">正在提取 %1$d 個項目%2$s</string>
-  <string name="workspace_detail_install_complete">安裝完成</string>
   <string name="workspace_terminal_title">終端</string>
   <string name="workspace_terminal_title_with_name">%s · 終端機</string>
   <string name="workspace_terminal_not_installed">請先安裝 Rootfs</string>

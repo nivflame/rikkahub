@@ -1167,9 +1167,6 @@
   <string name="workspace_detail_shell_installing">Установка</string>
   <string name="workspace_detail_shell_ready">Готово</string>
   <string name="workspace_detail_shell_broken">Ошибка</string>
-  <string name="workspace_detail_downloading">Загрузка %1$s%2$s</string>
-  <string name="workspace_detail_extracting">Извлечение %1$d элементов%2$s</string>
-  <string name="workspace_detail_install_complete">Установка завершена</string>
   <string name="workspace_terminal_title">Терминал</string>
   <string name="workspace_terminal_title_with_name">%s · Терминал</string>
   <string name="workspace_terminal_not_installed">Пожалуйста, сначала установите Rootfs</string>
