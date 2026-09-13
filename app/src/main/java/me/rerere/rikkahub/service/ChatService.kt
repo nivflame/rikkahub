@@ -777,7 +777,6 @@ class ChatService(
                         val compressed = compressMessagesList(
                             messages = msgs,
                             additionalPrompt = "",
-                            targetTokens = 4000,
                             keepRecentMessages = keepRecent
                         ).getOrThrow()
                         val conv = getConversationFlow(conversationId).value
@@ -1073,12 +1072,11 @@ class ChatService(
         conversationId: Uuid,
         conversation: Conversation,
         additionalPrompt: String,
-        targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Job = launchWithConversationReference(conversationId) {
         startGenerationKeepAlive(context.getString(R.string.chat_page_compressing))
         try {
-            compressConversation(conversationId, conversation, additionalPrompt, targetTokens, keepRecentMessages)
+            compressConversation(conversationId, conversation, additionalPrompt, keepRecentMessages)
                 .onFailure {
                     addError(it, title = context.getString(R.string.error_title_compress_conversation))
                 }
@@ -1091,14 +1089,12 @@ class ChatService(
         conversationId: Uuid,
         conversation: Conversation,
         additionalPrompt: String,
-        targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Result<Unit> = runCatching {
         val allMessages = conversation.currentMessages
         val newMessages = compressMessagesList(
             messages = allMessages,
             additionalPrompt = additionalPrompt,
-            targetTokens = targetTokens,
             keepRecentMessages = keepRecentMessages
         ).getOrThrow()
 
@@ -1112,7 +1108,6 @@ class ChatService(
     private suspend fun compressMessagesList(
         messages: List<UIMessage>,
         additionalPrompt: String,
-        targetTokens: Int,
         keepRecentMessages: Int = 32
     ): Result<List<UIMessage>> = runCatching {
         val settings = settingsStore.settingsFlow.first()
@@ -1150,10 +1145,12 @@ class ChatService(
         }
 
         suspend fun compressChunk(messages: List<UIMessage>): String {
-            val contentToCompress = messages.joinToString("\n\n") { it.summaryAsText(maxLength = 2000) }
+            val keepFrom = (messages.size - keepRecentMessages).coerceAtLeast(0)
+            val contentToCompress = messages.mapIndexed { index, message ->
+                message.forCompaction(keepOutput = index >= keepFrom).toFullText()
+            }.joinToString("\n\n")
             val prompt = settings.compressPrompt.applyPlaceholders(
                 "content" to contentToCompress,
-                "target_tokens" to targetTokens.toString(),
                 "additional_context" to if (additionalPrompt.isNotBlank()) {
                     "Additional instructions from user: $additionalPrompt"
                 } else "",
@@ -1172,6 +1169,7 @@ class ChatService(
 
             return sb.toString().trim()
                 .ifBlank { throw IllegalStateException("Failed to generate compressed summary") }
+                .extractSummary()
         }
 
         val compressedSummaries = coroutineScope {
@@ -1186,6 +1184,13 @@ class ChatService(
             }
             addAll(messagesToKeep)
         }
+    }
+
+    private fun String.extractSummary(): String {
+        val start = indexOf("<summary>")
+        val end = lastIndexOf("</summary>")
+        if (start < 0 || end < 0 || end <= start) return this
+        return substring(start + "<summary>".length, end).trim().ifBlank { this }
     }
 
     // ---- 通知 ----

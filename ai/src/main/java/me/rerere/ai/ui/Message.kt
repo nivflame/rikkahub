@@ -157,6 +157,46 @@ data class UIMessage(
         return if (text.length > maxLength) text.take(maxLength) + "..." else text
     }
 
+    fun forCompaction(keepOutput: Boolean = false): UIMessage {
+        if (keepOutput) return this
+        return copy(
+            parts = parts.map { part ->
+                if (part is UIMessagePart.Tool && part.isExecuted) {
+                    val size = part.output.sumOf { output ->
+                        if (output is UIMessagePart.Text) output.text.length else 0
+                    }
+                    part.copy(
+                        output = listOf(
+                            UIMessagePart.Text("[tool output cleared, was ~$size chars]")
+                        )
+                    )
+                } else part
+            }
+        )
+    }
+
+    fun toFullText() = "[${role.name}]: " + parts.joinToString(separator = "\n") { part ->
+        when (part) {
+            is UIMessagePart.Text -> part.text
+            is UIMessagePart.Tool -> buildString {
+                append("[tool: ")
+                append(part.toolName)
+                if (part.input.isNotBlank()) {
+                    append(" ")
+                    append(part.input)
+                }
+                append("]")
+                part.output.forEach { output ->
+                    if (output is UIMessagePart.Text) {
+                        append("\n")
+                        append(output.text)
+                    }
+                }
+            }
+            else -> ""
+        }
+    }
+
     fun toText() = parts.joinToString(separator = "\n") { part ->
         when (part) {
             is UIMessagePart.Text -> part.text

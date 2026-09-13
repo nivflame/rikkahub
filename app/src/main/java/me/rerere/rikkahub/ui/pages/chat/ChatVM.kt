@@ -209,12 +209,11 @@ class ChatVM(
         }
     }
 
-    fun handleCompressContext(additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int): Job {
+    fun handleCompressContext(additionalPrompt: String, keepRecentMessages: Int): Job {
         val job = chatService.launchCompressConversation(
             _conversationId,
             conversation.value,
             additionalPrompt,
-            targetTokens,
             keepRecentMessages
         )
         _compressJob.value = job

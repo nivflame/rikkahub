@@ -40,16 +40,14 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 fun CompressContextDialog(
     isCompressing: Boolean = false,
     onDismiss: () -> Unit,
-    onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
+    onConfirm: (additionalPrompt: String, keepRecentMessages: Int) -> Job,
     autoCompressEnabled: Boolean = false,
     autoCompressTokenThreshold: Int = 300000,
     autoCompressKeepPercentage: Int = 50,
     onUpdateAutoCompressSettings: (Boolean, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     var additionalPrompt by remember { mutableStateOf("") }
-    var selectedTokens by remember { mutableIntStateOf(4000) }
     var keepRecentMessages by remember { mutableIntStateOf(32) }
-    val tokenOptions = listOf(4000, 8000, 16000, 32000)
     val keepRecentOptions = listOf(0, 8, 16, 32, 64)
     var currentJob by remember { mutableStateOf<Job?>(null) }
     val isLoading = isCompressing || currentJob?.isActive == true
@@ -192,28 +190,6 @@ fun CompressContextDialog(
                             color = MaterialTheme.colorScheme.error
                         )
                     } else {
-                        // Token size selector
-                        Text(
-                            text = stringResource(R.string.chat_page_compress_target_tokens),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            tokenOptions.forEachIndexed { index, tokens ->
-                                SegmentedButton(
-                                    selected = selectedTokens == tokens,
-                                    onClick = { selectedTokens = tokens },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = tokenOptions.size
-                                    )
-                                ) {
-                                    Text("$tokens")
-                                }
-                            }
-                        }
-
                         // Keep recent messages selector
                         Text(
                             text = stringResource(R.string.chat_page_compress_keep_recent),
@@ -272,7 +248,7 @@ fun CompressContextDialog(
                 }
             } else if (!autoCompressEnabled) {
                 TextButton(onClick = {
-                    currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
+                    currentJob = onConfirm(additionalPrompt, keepRecentMessages)
                 }) {
                     Text(stringResource(R.string.confirm))
                 }
