@@ -4,11 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -28,7 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -48,7 +57,6 @@ fun CompressContextDialog(
 ) {
     var additionalPrompt by remember { mutableStateOf("") }
     var keepRecentMessages by remember { mutableIntStateOf(32) }
-    val keepRecentOptions = listOf(0, 8, 16, 32, 64)
     var currentJob by remember { mutableStateOf<Job?>(null) }
     val isLoading = isCompressing || currentJob?.isActive == true
 
@@ -81,7 +89,10 @@ fun CompressContextDialog(
             }
         },
         title = {
-            Text(stringResource(R.string.chat_page_compress_context_title))
+            Text(
+                text = stringResource(R.string.chat_page_compress_context_title),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
         },
         text = {
             Column(
@@ -102,8 +113,6 @@ fun CompressContextDialog(
                         Text(stringResource(R.string.chat_page_compressing))
                     }
                 } else {
-                    Text(stringResource(R.string.chat_page_compress_context_desc))
-
                     // Auto Compression toggle at top
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -111,8 +120,8 @@ fun CompressContextDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Auto Compression",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "Auto Compaction",
+                            style = MaterialTheme.typography.titleSmall,
                         )
                         Switch(
                             checked = autoCompressEnabled,
@@ -121,15 +130,25 @@ fun CompressContextDialog(
                     }
 
                     if (autoCompressEnabled) {
-                        Text(
-                            text = "Token Threshold",
-                            style = MaterialTheme.typography.labelMedium
-                        )
                         val thresholdRange = 100000f..500000f
                         var thresholdValue by remember(autoCompressTokenThreshold) {
                             mutableFloatStateOf(autoCompressTokenThreshold.toFloat().coerceIn(thresholdRange))
                         }
-                        Text("${(thresholdValue / 1000f).roundToInt()}K")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Token Threshold",
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = "${(thresholdValue / 1000f).roundToInt()}K",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                         Slider(
                             value = thresholdValue,
                             onValueChange = {
@@ -141,7 +160,7 @@ fun CompressContextDialog(
                         )
                         Text(
                             text = "Keep Recent Percentage",
-                            style = MaterialTheme.typography.labelMedium
+                            style = MaterialTheme.typography.titleSmall
                         )
                         val percentageOptions = listOf(25, 50, 75)
                         SingleChoiceSegmentedButtonRow(
@@ -161,28 +180,6 @@ fun CompressContextDialog(
                                 }
                             }
                         }
-                        Text(
-                            text = "Automatically compresses context during generation when prompt tokens exceed the threshold. Keeps the specified percentage of recent messages.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-                        // Additional context input (still useful for auto-compress)
-                        OutlinedTextField(
-                            value = additionalPrompt,
-                            onValueChange = { additionalPrompt = it },
-                            label = {
-                                Text(stringResource(R.string.chat_page_compress_additional_prompt))
-                            },
-                            placeholder = {
-                                Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 4,
-                        )
-
                         // Warning text
                         Text(
                             text = stringResource(R.string.chat_page_compress_warning),
@@ -193,23 +190,53 @@ fun CompressContextDialog(
                         // Keep recent messages selector
                         Text(
                             text = stringResource(R.string.chat_page_compress_keep_recent),
-                            style = MaterialTheme.typography.labelMedium
+                            style = MaterialTheme.typography.titleSmall
                         )
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth()
+                        var keepRecentInput by remember(keepRecentMessages) {
+                            mutableStateOf(keepRecentMessages.toString())
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            keepRecentOptions.forEachIndexed { index, count ->
-                                SegmentedButton(
-                                    selected = keepRecentMessages == count,
-                                    onClick = { keepRecentMessages = count },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = keepRecentOptions.size
-                                    )
-                                ) {
-                                    Text("$count")
-                                }
+                            Slider(
+                                value = keepRecentMessages.toFloat(),
+                                onValueChange = {
+                                    keepRecentMessages = it.roundToInt()
+                                    keepRecentInput = keepRecentMessages.toString()
+                                },
+                                valueRange = 0f..64f,
+                                modifier = Modifier.weight(1f),
+                            )
+                            val focusManager = LocalFocusManager.current
+                            val imeVisible = WindowInsets.isImeVisible
+                            LaunchedEffect(imeVisible) {
+                                if (!imeVisible) focusManager.clearFocus()
                             }
+                            OutlinedTextField(
+                                value = keepRecentInput,
+                                onValueChange = { input ->
+                                    keepRecentInput = input.filter { it.isDigit() }
+                                    keepRecentInput.toIntOrNull()?.let {
+                                        keepRecentMessages = it.coerceIn(0, 64)
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = { focusManager.clearFocus() }
+                                ),
+                                singleLine = true,
+                                shape = CircleShape,
+                                textStyle = MaterialTheme.typography.titleLarge.copy(
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.primary,
+                                ),
+                                modifier = Modifier.width(72.dp),
+                            )
                         }
 
                         // Additional context input
@@ -257,9 +284,14 @@ fun CompressContextDialog(
         dismissButton = {
             if (!isLoading) {
                 TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.cancel))
+                    Text(
+                        stringResource(
+                            if (autoCompressEnabled) R.string.close
+                            else R.string.cancel
+                        )
+                    )
                 }
             }
-        }
+        },
     )
 }

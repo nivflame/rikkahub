@@ -1154,7 +1154,6 @@ class ChatService(
                 "additional_context" to if (additionalPrompt.isNotBlank()) {
                     "Additional instructions from user: $additionalPrompt"
                 } else "",
-                "locale" to Locale.getDefault().displayName
             )
 
             val sb = StringBuilder()

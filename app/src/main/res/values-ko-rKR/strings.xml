@@ -263,7 +263,6 @@
   <string name="chat_page_compress_additional_prompt">추가 지침(선택 사항)</string>
   <string name="chat_page_compress_additional_prompt_hint">보존하거나 집중할 내용을 지정하세요</string>
   <string name="chat_page_compress_context">기록 압축</string>
-  <string name="chat_page_compress_context_desc">대화를 요약하여 토큰을 절약하세요</string>
   <string name="chat_page_compress_context_title">대화 기록 압축</string>
   <string name="chat_page_compress_keep_recent">최근 메시지 유지</string>
   <string name="chat_page_compress_not_enough_messages">압축할 메시지가 부족합니다. 유지할 메시지 수를 줄이거나 더 많은 메시지를 추가하세요.</string>

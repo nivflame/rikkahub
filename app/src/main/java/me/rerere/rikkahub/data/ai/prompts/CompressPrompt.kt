@@ -21,12 +21,11 @@ internal val DEFAULT_COMPRESS_PROMPT = """
 
     Requirements:
     1. Quote file paths, symbol names, error messages, and other technical details exactly as they appear; do not paraphrase them
-    3. Preserve key facts, decisions, and important context that would be needed to continue the conversation
-    4. Keep the summary in the same language as the original conversation
-    5. Output the summary directly without any explanations or meta-commentary
-    6. Format the summary as context information that can be used to continue the conversation
-    7. Use {locale} language
-    8. Start the output with a clear indicator that this is a summary (e.g., "[Summary of previous conversation]" or equivalent in the target language)
+    2. Preserve key facts, decisions, and important context that would be needed to continue the conversation
+    3. Keep the summary in the same language as the original conversation
+    4. Output an <analysis> block followed by a <summary> block, without any explanations or meta-commentary outside them
+    5. Format the summary as context information that can be used to continue the conversation
+    6. Start the <summary> block with a clear indicator that this is a summary (e.g., "[Summary of previous conversation]" or equivalent in the target language)
 
     {additional_context}
 
