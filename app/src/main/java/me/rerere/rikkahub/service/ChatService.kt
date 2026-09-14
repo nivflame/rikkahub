@@ -986,7 +986,8 @@ class ChatService(
             val provider = poolSelector.resolve(model, settings) ?: return
 
             val providerHandler = providerManager.getProviderByType(provider)
-            val result = providerHandler.generateText(
+            val sb = StringBuilder()
+            providerHandler.streamText(
                 providerSetting = provider,
                 messages = listOf(
                     UIMessage.user(
@@ -997,13 +998,16 @@ class ChatService(
                     ),
                 ),
                 params = backgroundTextGenerationParams(model),
-            )
+            ).collect { chunk ->
+                val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
+                message?.toText()?.let { sb.append(it) }
+            }
 
             // 生成完，conversation可能不是最新了，因此需要重新获取
             conversationRepo.getConversationById(conversation.id)?.let {
                 saveConversation(
                     conversationId,
-                    it.copy(title = result.choices[0].message?.toText()?.trim() ?: "")
+                    it.copy(title = sb.toString().trim())
                 )
             }
         }.onFailure {
