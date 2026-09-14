@@ -26,6 +26,10 @@ import androidx.compose.ui.unit.dp
 import com.dokar.sonner.ToastType
 import kotlinx.coroutines.launch
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.data.sync.BACKUP_EXTENSION
+import me.rerere.rikkahub.data.sync.BACKUP_LEGACY_EXTENSION
+import me.rerere.rikkahub.data.sync.BACKUP_MIME_ZSTD
+import me.rerere.rikkahub.data.sync.BACKUP_MIME_ZIP
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.StickyHeader
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -50,9 +54,11 @@ fun ImportExportTab(
     // 导入类型：local 为本地备份，chatbox 为 Chatbox 导入，cherry 为 Cherry Studio 导入
     var importType by remember { mutableStateOf("local") }
 
+    val backupMimeTypes = arrayOf(BACKUP_MIME_ZSTD, "application/x-zstd", BACKUP_MIME_ZIP, "*/*")
+
     // 创建文件保存的launcher
     val createDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip")
+        contract = ActivityResultContracts.CreateDocument(BACKUP_MIME_ZSTD)
     ) { uri ->
         uri?.let { targetUri ->
             scope.launch {
@@ -97,9 +103,8 @@ fun ImportExportTab(
                 runCatching {
                     when (importType) {
                         "local" -> {
-                            // 本地备份导入：处理zip文件
                             val tempFile =
-                                File(context.cacheDir, "temp_restore_${System.currentTimeMillis()}.zip")
+                                File(context.cacheDir, "temp_restore_${System.currentTimeMillis()}.backup")
 
                             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                                 FileOutputStream(tempFile).use { outputStream ->
@@ -186,7 +191,7 @@ fun ImportExportTab(
                         {
                             val timestamp = LocalDateTime.now()
                                 .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                            createDocumentLauncher.launch("rikkahub_backup_$timestamp.zip")
+                            createDocumentLauncher.launch("rikkahub_backup_$timestamp$BACKUP_EXTENSION")
                         }
                     } else null,
                     headlineContent = { Text(stringResource(R.string.backup_page_local_backup_export)) },
@@ -212,7 +217,7 @@ fun ImportExportTab(
                     onClick = if (!isRestoring) {
                         {
                             importType = "local"
-                            openDocumentLauncher.launch(arrayOf("application/zip"))
+                            openDocumentLauncher.launch(backupMimeTypes)
                         }
                     } else null,
                     headlineContent = { Text(stringResource(R.string.backup_page_local_backup_import)) },

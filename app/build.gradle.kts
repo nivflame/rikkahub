@@ -289,6 +289,9 @@ dependencies {
     // sqlite-android (requery SQLite for Android)
     implementation(libs.sqlite.android)
 
+    // zstd (backup archives, same artifact as :workspace)
+    implementation("com.github.luben:zstd-jni:1.5.7-12@aar")
+
     // modules
     implementation(project(":ai"))
     implementation(project(":web"))

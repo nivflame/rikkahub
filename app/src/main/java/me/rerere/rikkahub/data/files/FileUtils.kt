@@ -171,6 +171,7 @@ object FileUtils {
         if (header.startsWithBytes(0x50, 0x4B, 0x03, 0x04)) return "application/zip"
         if (header.startsWithBytes(0x50, 0x4B, 0x05, 0x06)) return "application/zip"
         if (header.startsWithBytes(0x50, 0x4B, 0x07, 0x08)) return "application/zip"
+        if (header.startsWithBytes(0x28, 0xB5, 0x2F, 0xFD)) return "application/zstd"
         if (header.startsWithBytes(0x52, 0x49, 0x46, 0x46) && header.sliceArray(8..11)
                 .contentEquals(byteArrayOf(0x57, 0x45, 0x42, 0x50))
         ) {
