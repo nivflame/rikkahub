@@ -40,6 +40,9 @@ class WorkspaceRepository(
     private val _installProgress = MutableStateFlow<RootfsInstallProgress?>(null)
     val installProgress = _installProgress.asStateFlow()
 
+    private val _installTargetId = MutableStateFlow<String?>(null)
+    val installTargetId = _installTargetId.asStateFlow()
+
     private val _installError = MutableStateFlow<String?>(null)
     val installError = _installError.asStateFlow()
 
@@ -139,10 +142,12 @@ class WorkspaceRepository(
         installJob?.cancel()
         _installError.value = null
         _installProgress.value = RootfsInstallProgress(stage = RootfsInstallStage.DOWNLOADING)
+        _installTargetId.value = id
         installJob = appScope.launch(Dispatchers.IO) {
             val workspace = dao.getById(id)
             if (workspace == null) {
                 _installProgress.value = null
+                _installTargetId.value = null
                 return@launch
             }
             WorkspaceTerminalSessionHolder.remove(workspace.root)
@@ -168,6 +173,7 @@ class WorkspaceRepository(
                 updateShellState(workspace, WorkspaceShellStatus.BROKEN.name)
             } finally {
                 _installProgress.value = null
+                _installTargetId.value = null
             }
         }
         return installJob!!
@@ -179,20 +185,24 @@ class WorkspaceRepository(
 
     suspend fun exportRootfs(id: String, outputStream: OutputStream) = withContext(Dispatchers.IO) {
         val workspace = dao.getById(id) ?: error("Workspace not found: $id")
+        _installTargetId.value = id
         rootfsInstaller.export(workspace.root, outputStream) { progress ->
             _installProgress.value = progress
         }
         _installProgress.value = null
+        _installTargetId.value = null
     }
 
     fun importRootfs(id: String, inputStream: InputStream): Job {
         installJob?.cancel()
         _installError.value = null
         _installProgress.value = RootfsInstallProgress(stage = RootfsInstallStage.EXTRACTING)
+        _installTargetId.value = id
         installJob = appScope.launch(Dispatchers.IO) {
             val workspace = dao.getById(id)
             if (workspace == null) {
                 _installProgress.value = null
+                _installTargetId.value = null
                 return@launch
             }
             WorkspaceTerminalSessionHolder.remove(workspace.root)
@@ -218,6 +228,7 @@ class WorkspaceRepository(
                 updateShellState(workspace, WorkspaceShellStatus.BROKEN.name)
             } finally {
                 _installProgress.value = null
+                _installTargetId.value = null
             }
         }
         return installJob!!

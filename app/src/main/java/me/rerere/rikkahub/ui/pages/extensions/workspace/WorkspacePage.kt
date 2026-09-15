@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,6 +43,7 @@ import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,12 +63,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dokar.sonner.ToastType
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Codesandbox
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Download01
-import me.rerere.hugeicons.stroke.File02
 import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.PencilEdit02
@@ -80,6 +83,8 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.context.LocalNavController
+import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.workspace.RootfsInstallStage
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
@@ -91,6 +96,8 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
     val context = LocalContext.current
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val workspaceSizes by vm.workspaceSizes.collectAsStateWithLifecycle()
+    val installProgress by vm.installProgress.collectAsStateWithLifecycle()
+    val installTargetId by vm.installTargetId.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showFabMenu by rememberSaveable { mutableStateOf(false) }
@@ -98,6 +105,13 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     val haptic = LocalHapticFeedback.current
+    val toaster = LocalToaster.current
+
+    LaunchedEffect(Unit) {
+        vm.importError.collect { messageRes ->
+            toaster.show(context.getString(messageRes), type = ToastType.Error)
+        }
+    }
 
     val wsExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zstd"),
@@ -198,6 +212,9 @@ fun WorkspacePage(vm: WorkspaceVM = koinViewModel()) {
                     WorkspaceCard(
                         workspace = workspace,
                         sizeBytes = workspaceSizes[workspace.id] ?: 0L,
+                        installStage = installTargetId
+                            .takeIf { it == workspace.id }
+                            ?.let { installProgress?.stage },
                         onRename = { editTarget = workspace },
                         onDelete = { deleteTarget = workspace },
                         onExport = {
@@ -274,7 +291,7 @@ private fun EmptyWorkspaceState() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = HugeIcons.File02,
+            imageVector = HugeIcons.Codesandbox,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -296,6 +313,7 @@ private fun EmptyWorkspaceState() {
 private fun WorkspaceCard(
     workspace: WorkspaceEntity,
     sizeBytes: Long,
+    installStage: RootfsInstallStage?,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onExport: () -> Unit,
@@ -303,13 +321,6 @@ private fun WorkspaceCard(
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    val shellStatus = workspace.shellStatus.toShellStatusLabel()
-    val statusColor = when (workspace.shellStatus) {
-        WorkspaceShellStatus.READY.name -> MaterialTheme.colorScheme.primary
-        WorkspaceShellStatus.INSTALLING.name -> MaterialTheme.colorScheme.tertiary
-        WorkspaceShellStatus.BROKEN.name -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.outline
-    }
 
     Card(
         modifier = modifier
@@ -325,18 +336,14 @@ private fun WorkspaceCard(
                 .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier.size(36.dp),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = HugeIcons.File02,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
+                if (installStage != null) {
+                    CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
+                } else {
+                    Icon(HugeIcons.Codesandbox, null)
                 }
             }
             Column(
@@ -351,34 +358,19 @@ private fun WorkspaceCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(statusColor),
-                    )
-                    Text(
-                        text = shellStatus,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = formatBytes(sizeBytes),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
+                Text(
+                    text = when (installStage) {
+                        RootfsInstallStage.DOWNLOADING -> "Downloading rootfs..."
+                        RootfsInstallStage.EXTRACTING -> "Extracting..."
+                        RootfsInstallStage.ARCHIVING -> "Archiving..."
+                        RootfsInstallStage.INSTALLED,
+                        null,
+                        -> formatBytes(sizeBytes)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {

@@ -5,12 +5,15 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.db.entity.WorkspaceEntity
 import me.rerere.rikkahub.data.repository.WorkspaceRepository
@@ -42,6 +45,12 @@ class WorkspaceVM(
     private val _workspaceSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
     val workspaceSizes = _workspaceSizes.asStateFlow()
 
+    val installProgress = repository.installProgress
+    val installTargetId = repository.installTargetId
+
+    private val _importError = MutableSharedFlow<Int>()
+    val importError: SharedFlow<Int> = _importError
+
     fun refreshSizes() {
         viewModelScope.launch {
             val sizes = mutableMapOf<String, Long>()
@@ -66,13 +75,26 @@ class WorkspaceVM(
 
     fun importWorkspace(uri: Uri, inputStream: InputStream) {
         viewModelScope.launch {
+            val displayName = application.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+            }
+            if (displayName == null ||
+                (!displayName.endsWith(".tar.zst") && !displayName.endsWith(".tar.gz"))
+            ) {
+                _importError.emit(R.string.workspace_page_import_unsupported)
+                return@launch
+            }
+            val name = displayName.toWorkspaceName()
+            if (repository.isNameTaken(name, excludeId = null)) {
+                _importError.emit(R.string.workspace_page_import_duplicate)
+                return@launch
+            }
             runCatching {
-                val name = application.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
-                }.toWorkspaceName()
                 val workspace = repository.create(name)
                 repository.importRootfs(workspace.id, inputStream)
+            }.onFailure {
+                _importError.emit(R.string.workspace_page_import_unsupported)
             }
         }
     }
