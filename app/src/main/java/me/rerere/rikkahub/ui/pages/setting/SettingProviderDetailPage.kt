@@ -573,18 +573,17 @@ private fun ModelSettingsForm(
                         OutlinedTextField(
                             value = model.modelId,
                             onValueChange = {
-                                if (!isEdit) {
+                                if (isEdit) {
+                                    onModelChange(model.copy(modelId = it.trim()))
+                                } else {
                                     setModelId(it.trim())
                                 }
                             },
                             label = { Text(stringResource(R.string.setting_provider_page_model_id)) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = {
-                                if (!isEdit) {
-                                    Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
-                                }
+                                Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
                             },
-                            enabled = !isEdit
                         )
 
                         OutlinedTextField(
