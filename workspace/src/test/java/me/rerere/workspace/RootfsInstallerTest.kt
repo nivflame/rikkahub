@@ -49,14 +49,37 @@ class RootfsInstallerTest {
         assertEquals("content", File(target, "dir/file.txt").readText())
     }
 
+    @Test
+    fun `extract restores self-referential symlink`() {
+        val archive = tmp.newFile("rootfs.tar.gz")
+        GZIPOutputStream(archive.outputStream()).use { out ->
+            out.writeTarEntry("jdk/", '5', ByteArray(0))
+            out.writeTarEntry("jdk/jre", '2', ByteArray(0), linkName = ".")
+            out.write(ByteArray(TAR_BLOCK * 2))
+        }
+
+        val target = tmp.newFolder("out")
+        createInstaller().extractTar(archive, target) {}
+
+        val link = File(target, "jdk/jre").toPath()
+        assertEquals(true, java.nio.file.Files.isSymbolicLink(link))
+        assertEquals(".", java.nio.file.Files.readSymbolicLink(link).toString())
+    }
+
     private fun createInstaller() = RootfsInstaller(WorkspaceManager(tmp.newFolder()))
 
-    private fun OutputStream.writeTarEntry(name: String, type: Char, data: ByteArray) {
+    private fun OutputStream.writeTarEntry(
+        name: String,
+        type: Char,
+        data: ByteArray,
+        linkName: String = "",
+    ) {
         val header = ByteArray(TAR_BLOCK)
         name.toByteArray(Charsets.UTF_8).copyInto(header, 0)
         "0000755".toByteArray().copyInto(header, 100)
         data.size.toLong().toOctalField().copyInto(header, 124)
         header[156] = type.code.toByte()
+        linkName.toByteArray(Charsets.UTF_8).copyInto(header, 157)
         write(header)
         write(data)
         val padding = (TAR_BLOCK - data.size % TAR_BLOCK) % TAR_BLOCK

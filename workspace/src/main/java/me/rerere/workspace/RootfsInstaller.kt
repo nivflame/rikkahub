@@ -555,6 +555,7 @@ class RootfsInstaller(
                 "Symlink escapes rootfs: ${target.name}"
             }
             (target.parentFile ?: root).toPath().relativize(resolved.toPath()).toFile()
+                .takeIf { it.path.isNotBlank() } ?: File(".")
         }
         target.delete()
         Files.createSymbolicLink(target.toPath(), linkTarget.toPath())
