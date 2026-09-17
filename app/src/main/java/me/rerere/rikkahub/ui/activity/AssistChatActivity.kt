@@ -551,15 +551,20 @@ private fun AssistResponseSheet(
                             val fadePx = 28.dp.toPx()
                             if (size.height > fadePx * 2) {
                                 val edge = (fadePx / size.height).coerceAtMost(0.5f)
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        0f to Color.Transparent,
-                                        edge to Color.Black,
-                                        (1f - edge) to Color.Black,
-                                        1f to Color.Transparent,
-                                    ),
-                                    blendMode = BlendMode.DstIn,
-                                )
+                                val canScrollUp = scrollState.value > 0
+                                val canScrollDown = scrollState.value < scrollState.maxValue
+                                if (canScrollUp || canScrollDown) {
+                                    val stops = buildList {
+                                        add(0f to if (canScrollUp) Color.Transparent else Color.Black)
+                                        if (canScrollUp) add(edge to Color.Black)
+                                        if (canScrollDown) add((1f - edge) to Color.Black)
+                                        add(1f to if (canScrollDown) Color.Transparent else Color.Black)
+                                    }
+                                    drawRect(
+                                        brush = Brush.verticalGradient(*stops.toTypedArray()),
+                                        blendMode = BlendMode.DstIn,
+                                    )
+                                }
                             }
                         }
                         .verticalScroll(scrollState)
