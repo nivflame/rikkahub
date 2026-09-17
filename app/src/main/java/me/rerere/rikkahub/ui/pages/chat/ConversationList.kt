@@ -92,7 +92,7 @@ fun ColumnScope.ConversationList(
 ) {
     var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
-    LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
+    LaunchedEffect(current.id) {
         if (hasScrolledToCurrent) return@LaunchedEffect
         val currentIndex = conversations.itemSnapshotList.items.indexOfFirst {
             (it as? ConversationListItem.Item)?.conversation?.id == current.id
