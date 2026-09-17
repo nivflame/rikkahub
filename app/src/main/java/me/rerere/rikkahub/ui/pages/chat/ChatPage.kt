@@ -334,6 +334,7 @@ private fun ChatPageContent(
             bottomBar = {
                 ChatInput(
                     state = inputState,
+                    showSearchButton = false,
                     loading = loadingJob != null,
                     settings = setting,
                     hazeState = hazeState,
