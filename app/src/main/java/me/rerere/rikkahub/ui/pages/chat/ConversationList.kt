@@ -300,8 +300,8 @@ private fun ConversationItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            Spacer(Modifier.weight(1f))
 
             AnimatedVisibility(conversation.isPinned) {
                 Icon(
