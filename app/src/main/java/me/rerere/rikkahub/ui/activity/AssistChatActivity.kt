@@ -39,9 +39,11 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -82,6 +84,8 @@ import me.rerere.ai.ui.UIMessagePart
 import me.rerere.ai.ui.isEmptyInputMessage
 import me.rerere.highlight.Highlighter
 import me.rerere.highlight.LocalHighlighter
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.RouteActivity
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.service.AssistBubbleService
@@ -385,11 +389,31 @@ private fun AssistChatPage(
                             }
                         }
                     } else {
-                        AssistCapsule(
-                            generating = generating,
-                            statusText = capsuleStatus,
-                            onClick = { expanded = true },
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AssistCapsule(
+                                generating = generating,
+                                statusText = capsuleStatus,
+                                onClick = { expanded = true },
+                            )
+                            if (generating) {
+                                Surface(
+                                    onClick = { vm.stopGeneration() },
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    tonalElevation = 3.dp,
+                                    shadowElevation = 6.dp,
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.Cancel01,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
