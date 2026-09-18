@@ -158,7 +158,7 @@ class ImgGenVM(
                     prompt = requestPrompt,
                     numOfImages = _numberOfImages.value,
                     aspectRatio = _aspectRatio.value,
-                    customHeaders = model.customHeaders,
+                    customHeaders = providerSetting.customHeaders,
                     customBody = model.customBodies
                 )
 
@@ -207,7 +207,7 @@ class ImgGenVM(
                     images = sourceImages,
                     numOfImages = _numberOfImages.value,
                     aspectRatio = _aspectRatio.value,
-                    customHeaders = model.customHeaders,
+                    customHeaders = providerSetting.customHeaders,
                     customBody = model.customBodies
                 )
 

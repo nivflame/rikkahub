@@ -125,10 +125,11 @@ private const val TAG = "ChatService"
 internal fun backgroundTextGenerationParams(
     model: Model,
     reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
+    provider: ProviderSetting? = null,
 ): TextGenerationParams = TextGenerationParams(
     model = model,
     reasoningLevel = reasoningLevel,
-    customHeaders = model.customHeaders,
+    customHeaders = provider?.customHeaders ?: emptyList(),
     customBody = model.customBodies,
 )
 
@@ -997,7 +998,7 @@ class ChatService(
                                 .takeLast(4).joinToString("\n\n") { it.summaryAsText(maxLength = 500) })
                     ),
                 ),
-                params = backgroundTextGenerationParams(model),
+                params = backgroundTextGenerationParams(model, provider = provider),
             ).collect { chunk ->
                 val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
                 message?.toText()?.let { sb.append(it) }
@@ -1048,7 +1049,7 @@ class ChatService(
                                 .takeLast(8).joinToString("\n\n") { it.summaryAsText(maxLength = 500) }),
                     )
                 ),
-                params = backgroundTextGenerationParams(model),
+                params = backgroundTextGenerationParams(model, provider = provider),
             )
             val suggestions =
                 result.choices[0].message?.toText()?.split("\n")?.map { it.trim() }
@@ -1164,7 +1165,7 @@ class ChatService(
             providerHandler.streamText(
                 providerSetting = provider,
                 messages = listOf(UIMessage.user(prompt)),
-                params = backgroundTextGenerationParams(model),
+                params = backgroundTextGenerationParams(model, provider = provider),
             ).collect { chunk ->
                 val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
                 message?.toText()?.let { sb.append(it) }

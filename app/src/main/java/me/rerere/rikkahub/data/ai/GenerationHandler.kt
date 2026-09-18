@@ -574,8 +574,8 @@ class GenerationHandler(
             tools = tools,
             reasoningLevel = assistant.reasoningLevel,
             customHeaders = buildList {
+                addAll(provider.customHeaders)
                 addAll(assistant.customHeaders)
-                addAll(model.customHeaders)
             },
             customBody = buildList {
                 addAll(assistant.customBodies)

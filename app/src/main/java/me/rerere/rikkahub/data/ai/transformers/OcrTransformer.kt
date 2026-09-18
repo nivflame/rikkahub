@@ -103,7 +103,7 @@ object OcrTransformer : InputMessageTransformer, KoinComponent {
             ),
             params = TextGenerationParams(
                 model = model,
-                customHeaders = model.customHeaders,
+                customHeaders = providerSetting.customHeaders,
                 customBody = model.customBodies,
             ),
         )

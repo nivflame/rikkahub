@@ -279,6 +279,13 @@ private fun SettingProviderConfigPage(
             }
         )
 
+        if (internalProvider !is ProviderSetting.Codex) {
+            CustomHeaders(
+                headers = internalProvider.customHeaders,
+                onUpdate = { internalProvider = internalProvider.updateHeaders(it) }
+            )
+        }
+
         if (internalProvider is ProviderSetting.OpenAI) {
             SettingProviderBalanceOption(
                 provider = internalProvider,
@@ -645,13 +652,6 @@ private fun ModelSettingsForm(
                                 onModelChange(model.copy(providerOverwrite = providerOverride))
                             },
                             parentProvider = parentProvider
-                        )
-
-                        CustomHeaders(
-                            headers = model.customHeaders,
-                            onUpdate = { headers ->
-                                onModelChange(model.copy(customHeaders = headers))
-                            }
                         )
 
                         CustomBodies(

@@ -47,6 +47,7 @@ sealed class ProviderSetting {
     abstract val models: List<Model>
     abstract val apiKey: String
     abstract val balanceOption: BalanceOption
+    abstract val customHeaders: List<CustomHeader>
 
     abstract val builtIn: Boolean
     abstract val description: @Composable() () -> Unit
@@ -56,6 +57,7 @@ sealed class ProviderSetting {
     abstract fun editModel(model: Model): ProviderSetting
     abstract fun delModel(model: Model): ProviderSetting
     abstract fun moveMove(from: Int, to: Int): ProviderSetting
+    abstract fun updateHeaders(headers: List<CustomHeader>): ProviderSetting
     abstract fun copyProvider(
         id: Uuid = this.id,
         enabled: Boolean = this.enabled,
@@ -84,6 +86,7 @@ sealed class ProviderSetting {
         var useResponseApi: Boolean = false,
         var includeHistoryReasoning: Boolean = true,
         var autoRetry: Boolean = false,
+        override var customHeaders: List<CustomHeader> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -107,6 +110,10 @@ sealed class ProviderSetting {
                 val model = removeAt(from)
                 add(to, model)
             })
+        }
+
+        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
+            return copy(customHeaders = headers)
         }
 
         override fun copyProvider(
@@ -159,6 +166,7 @@ sealed class ProviderSetting {
         var serviceAccountEmail: String = "", // only for vertex AI service account
         var location: String = "us-central1", // only for vertex AI service account
         var projectId: String = "", // only for vertex AI service account
+        override var customHeaders: List<CustomHeader> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -182,6 +190,10 @@ sealed class ProviderSetting {
                 val model = removeAt(from)
                 add(to, model)
             })
+        }
+
+        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
+            return copy(customHeaders = headers)
         }
 
         override fun copyProvider(
@@ -230,6 +242,7 @@ sealed class ProviderSetting {
         var baseUrl: String = "https://api.anthropic.com/v1",
         var promptCaching: Boolean = false,
         var promptCacheTtl: ClaudePromptCacheTtl = ClaudePromptCacheTtl.FIVE_MINUTES,
+        override var customHeaders: List<CustomHeader> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -253,6 +266,10 @@ sealed class ProviderSetting {
                 val model = removeAt(from)
                 add(to, model)
             })
+        }
+
+        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
+            return copy(customHeaders = headers)
         }
 
         override fun copyProvider(
@@ -299,6 +316,7 @@ sealed class ProviderSetting {
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
+        override val customHeaders: List<CustomHeader> get() = emptyList()
         override fun addModel(model: Model): ProviderSetting = copy(models = models + model)
 
         override fun editModel(model: Model): ProviderSetting = copy(models = models.map { if (it.id == model.id) model.copy() else it })
@@ -309,6 +327,8 @@ sealed class ProviderSetting {
             val model = removeAt(from)
             add(to, model)
         })
+
+        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting = this
 
         override fun copyProvider(
             id: Uuid,

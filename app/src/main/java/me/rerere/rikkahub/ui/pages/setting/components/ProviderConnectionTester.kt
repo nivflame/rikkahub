@@ -138,7 +138,7 @@ fun ProviderConnectionTester(
                                             messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
                                             params = TextGenerationParams(
                                                 model = model!!,
-                                                customHeaders = model!!.customHeaders,
+                                                customHeaders = testProvider.customHeaders,
                                                 customBody = model!!.customBodies
                                             )
                                         )
@@ -164,7 +164,7 @@ fun ProviderConnectionTester(
                                             messages = listOf(UIMessage.system("You are a helpful assistant"), UIMessage.user("hello")),
                                             params = TextGenerationParams(
                                                 model = model!!,
-                                                customHeaders = model!!.customHeaders,
+                                                customHeaders = testProvider.customHeaders,
                                                 customBody = model!!.customBodies
                                             )
                                         )
@@ -193,7 +193,7 @@ fun ProviderConnectionTester(
                                             params = TextGenerationParams(
                                                 model = model!!,
                                                 tools = listOf(testTool),
-                                                customHeaders = model!!.customHeaders,
+                                                customHeaders = testProvider.customHeaders,
                                                 customBody = model!!.customBodies
                                             )
                                         )

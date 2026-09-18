@@ -10,7 +10,6 @@ data class Model(
     val displayName: String = "",
     val id: Uuid = Uuid.random(),
     val type: ModelType = ModelType.CHAT,
-    val customHeaders: List<CustomHeader> = emptyList(),
     val customBodies: List<CustomBody> = emptyList(),
     val inputModalities: List<Modality> = listOf(Modality.TEXT),
     val outputModalities: List<Modality> = listOf(Modality.TEXT),
