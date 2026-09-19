@@ -43,7 +43,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -463,10 +462,17 @@ private fun AssistCapsule(
                         textAlign = TextAlign.Center,
                     ),
                 )
-                IconButton(onClick = onStopClick) {
+                Surface(
+                    onClick = onStopClick,
+                    shape = RoundedCornerShape(percent = 50),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                ) {
                     Icon(
                         imageVector = HugeIcons.Cancel01,
                         contentDescription = null,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(20.dp),
                     )
                 }
             } else {
