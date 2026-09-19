@@ -39,11 +39,11 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -389,31 +389,12 @@ private fun AssistChatPage(
                             }
                         }
                     } else {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            AssistCapsule(
-                                generating = generating,
-                                statusText = capsuleStatus,
-                                onClick = { expanded = true },
-                            )
-                            if (generating) {
-                                Surface(
-                                    onClick = { vm.stopGeneration() },
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    tonalElevation = 3.dp,
-                                    shadowElevation = 6.dp,
-                                ) {
-                                    Icon(
-                                        imageVector = HugeIcons.Cancel01,
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(12.dp),
-                                    )
-                                }
-                            }
-                        }
+                        AssistCapsule(
+                            generating = generating,
+                            statusText = capsuleStatus,
+                            onClick = { expanded = true },
+                            onStopClick = { vm.stopGeneration() },
+                        )
                     }
                 }
             }
@@ -436,10 +417,10 @@ private fun AssistCapsule(
     generating: Boolean,
     statusText: String,
     onClick: () -> Unit,
+    onStopClick: () -> Unit,
 ) {
     Surface(
-        onClick = onClick,
-        enabled = !generating,
+        onClick = { if (!generating) onClick() },
         shape = RoundedCornerShape(percent = 50),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
@@ -448,6 +429,7 @@ private fun AssistCapsule(
         Row(
             modifier = Modifier.padding(horizontal = 28.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (generating) {
                 val transition = rememberInfiniteTransition(label = "shimmer")
@@ -481,6 +463,12 @@ private fun AssistCapsule(
                         textAlign = TextAlign.Center,
                     ),
                 )
+                IconButton(onClick = onStopClick) {
+                    Icon(
+                        imageVector = HugeIcons.Cancel01,
+                        contentDescription = null,
+                    )
+                }
             } else {
                 Text(
                     text = "Ask something",
