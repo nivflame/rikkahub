@@ -295,13 +295,31 @@ private fun ConversationItem(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Text(
+                    text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 12.dp),
+                )
+                if (loading) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.extendColors.green6)
+                            .size(4.dp)
+                            .semantics {
+                                contentDescription = "Loading"
+                            }
+                    )
+                }
+            }
 
             AnimatedVisibility(conversation.isPinned) {
                 Icon(
@@ -309,17 +327,6 @@ private fun ConversationItem(
                     contentDescription = "Pinned",
                     modifier = Modifier.size(12.dp),
                     tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                )
-            }
-            AnimatedVisibility(loading) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.extendColors.green6)
-                        .size(4.dp)
-                        .semantics {
-                            contentDescription = "Loading"
-                        }
                 )
             }
             if (!isSelectionMode) {
