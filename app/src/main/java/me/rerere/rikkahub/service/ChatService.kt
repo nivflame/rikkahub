@@ -20,6 +20,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -189,6 +191,8 @@ class ChatService(
     private val sessions = ConcurrentHashMap<Uuid, ConversationSession>()
     private val _sessionsVersion = MutableStateFlow(0L)
 
+    private val _generatingIds = MutableStateFlow<Set<Uuid>>(emptySet())
+
     // 工作区工具状态 (workspaceId -> state), 跨生成保持, 使 Read 记录在后续 Write 中可用
     private val workspaceToolStates = ConcurrentHashMap<String, WorkspaceToolState>()
 
@@ -317,16 +321,17 @@ class ChatService(
     }
 
     fun getConversationJobs(): Flow<Map<Uuid, Job?>> {
-        return _sessionsVersion.flatMapLatest {
-            val currentSessions = sessions.values.toList()
-            if (currentSessions.isEmpty()) {
-                flowOf(emptyMap())
-            } else {
-                combine(currentSessions.map { s ->
-                    s.generationJob.map { job -> s.id to job }
-                }) { pairs ->
-                    pairs.filter { it.second != null }.toMap()
-                }
+        return _generatingIds.map { ids -> ids.associateWith { null } }
+    }
+
+    private fun setGenerationJob(conversationId: Uuid, job: Job?) {
+        sessions[conversationId]?.setJob(job)
+        _generatingIds.update { ids ->
+            if (job == null || job.isCompleted) ids - conversationId else ids + conversationId
+        }
+        if (job != null) {
+            job.invokeOnCompletion {
+                _generatingIds.update { ids -> ids - conversationId }
             }
         }
     }
@@ -401,7 +406,7 @@ class ChatService(
                 addError(e, conversationId, title = context.getString(R.string.error_title_send_message))
             }
         }
-        session.setJob(job)
+        setGenerationJob(conversationId, job)
     }
 
     private fun preprocessUserInputParts(parts: List<UIMessagePart>, assistant: Assistant): List<UIMessagePart> {
@@ -483,7 +488,7 @@ class ChatService(
             }
         }
 
-        session.setJob(job)
+        setGenerationJob(conversationId, job)
     }
 
     // ---- 处理工具调用审批 ----
@@ -546,7 +551,7 @@ class ChatService(
             }
         }
 
-        session.setJob(job)
+        setGenerationJob(conversationId, job)
     }
 
     // ---- 处理消息补全 ----
