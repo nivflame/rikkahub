@@ -306,14 +306,14 @@ private fun ConversationItem(
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color.Unspecified,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(end = 12.dp),
+                        .padding(end = 16.dp),
                 )
                 if (loading) {
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(MaterialTheme.extendColors.green6)
-                            .size(4.dp)
+                            .size(10.dp)
                             .semantics {
                                 contentDescription = "Loading"
                             }
