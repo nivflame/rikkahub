@@ -419,6 +419,7 @@ private fun AssistChatPage(
                                     autoFocus = true,
                                     showInputBorder = false,
                                     showSearchButton = false,
+                                    showFullscreenButton = false,
                                     onToggleSearch = {
                                         vm.updateSettings(setting.copy(enableWebSearch = !setting.enableWebSearch))
                                     },

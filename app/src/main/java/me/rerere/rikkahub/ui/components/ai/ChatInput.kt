@@ -130,6 +130,7 @@ fun ChatInput(
     autoFocus: Boolean = false,
     showInputBorder: Boolean = true,
     showSearchButton: Boolean = true,
+    showFullscreenButton: Boolean = true,
     onUpdateChatModel: (Model) -> Unit,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateSearchService: (Int) -> Unit,
@@ -243,6 +244,7 @@ fun ChatInput(
                         state = state,
                         completionProviders = completionProviders,
                         autoFocus = autoFocus,
+                        showFullscreenButton = showFullscreenButton,
                         onSendMessage = { sendMessage() }
                     )
 
@@ -437,6 +439,7 @@ private fun TextInputRow(
     state: ChatInputState,
     completionProviders: List<ChatCompletionProvider>,
     autoFocus: Boolean = false,
+    showFullscreenButton: Boolean = true,
     onSendMessage: () -> Unit,
 ) {
     val settings = LocalSettings.current
@@ -600,7 +603,7 @@ private fun TextInputRow(
                 unfocusedContainerColor = Color.Transparent,
             ),
             trailingIcon = {
-                if (isFocused) {
+                if (isFocused && showFullscreenButton) {
                     IconButton(
                         onClick = {
                             isFullScreen = !isFullScreen
