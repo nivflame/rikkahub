@@ -1,9 +1,12 @@
 package me.rerere.rikkahub.ui.activity
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -54,9 +57,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -78,16 +83,23 @@ import com.dokar.sonner.Toaster
 import com.dokar.sonner.rememberToasterState
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.dokar.sonner.ToastType
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.ai.ui.isEmptyInputMessage
 import me.rerere.highlight.Highlighter
 import me.rerere.highlight.LocalHighlighter
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Camera01
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.rikkahub.BuildConfig
 import me.rerere.rikkahub.RouteActivity
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
+import me.rerere.rikkahub.data.files.FilesManager
+import me.rerere.rikkahub.service.ScreenshotService
 import me.rerere.rikkahub.service.AssistBubbleService
 import me.rerere.rikkahub.ui.components.ai.ChatInput
 import me.rerere.rikkahub.ui.components.richtext.MarkdownBlock
@@ -106,6 +118,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
+import java.io.File
 
 class AssistChatActivity : ComponentActivity() {
     private var overlayConversationId: Uuid = Uuid.random()
@@ -197,6 +210,53 @@ private fun AssistChatPage(
     var responseText by remember { mutableStateOf("") }
     var capsuleStatus by remember { mutableStateOf("Generating") }
     val inputState = vm.inputState
+    val filesManager: FilesManager = koinInject()
+    var capturing by remember { mutableStateOf(false) }
+    var dismissLockUntil by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(capturing) {
+        if (!capturing) return@LaunchedEffect
+        try {
+            withTimeoutOrNull(1000) {
+                repeat(3) { withFrameNanos {} }
+            }
+            when (val result = ScreenshotService.capture()) {
+                is ScreenshotService.CaptureResult.Success -> {
+                    val bitmap = result.bitmap
+                    val metrics = context.getSystemService(WindowManager::class.java)
+                    .currentWindowMetrics
+                val statusBarPx = metrics.windowInsets
+                    .getInsets(android.view.WindowInsets.Type.statusBars()).top
+                val cropped = Bitmap.createBitmap(
+                    bitmap, 0,
+                    minOf(statusBarPx, bitmap.height - 1),
+                    bitmap.width, bitmap.height - minOf(statusBarPx, bitmap.height - 1),
+                )
+                val file = File(context.cacheDir, "screenshot-${Uuid.random()}.png")
+                file.outputStream().use { cropped.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                bitmap.recycle()
+                if (!cropped.isRecycled) cropped.recycle()
+                val uri = FileProvider.getUriForFile(
+                    context, "${BuildConfig.APPLICATION_ID}.fileprovider", file,
+                )
+                inputState.addImages(filesManager.createChatFilesByContents(listOf(uri)))
+                file.delete()
+                expanded = true
+                }
+
+                is ScreenshotService.CaptureResult.Failed -> {
+                    toastState.show("Screenshot failed", type = ToastType.Error)
+                }
+
+                is ScreenshotService.CaptureResult.Throttled -> {
+                    toastState.show("Screenshot failed", type = ToastType.Error)
+                }
+            }
+        } finally {
+            dismissLockUntil = SystemClock.uptimeMillis() + 300
+            capturing = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         prefillText?.let { inputState.setMessageText(it) }
@@ -265,13 +325,15 @@ private fun AssistChatPage(
             }
         },
     ) {
-        Toaster(
-            state = toastState,
-            darkTheme = LocalDarkMode.current,
-            richColors = true,
-            alignment = Alignment.TopCenter,
-            showCloseButton = true,
-        )
+        if (!capturing) {
+            Toaster(
+                state = toastState,
+                darkTheme = LocalDarkMode.current,
+                richColors = true,
+                alignment = Alignment.TopCenter,
+                showCloseButton = true,
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -279,18 +341,21 @@ private fun AssistChatPage(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) {
-                    if ((generating || conversation.currentMessages.isNotEmpty()) &&
-                        Settings.canDrawOverlays(context)
-                    ) {
-                        context.startService(
-                            Intent(context, AssistBubbleService::class.java)
-                                .putExtra("conversationId", conversationId.toString())
-                        )
+                    if (!capturing && SystemClock.uptimeMillis() > dismissLockUntil) {
+                        if ((generating || conversation.currentMessages.isNotEmpty()) &&
+                            Settings.canDrawOverlays(context)
+                        ) {
+                            context.startService(
+                                Intent(context, AssistBubbleService::class.java)
+                                    .putExtra("conversationId", conversationId.toString())
+                            )
+                        }
+                        onDismiss()
                     }
-                    onDismiss()
                 },
         ) {
-            Column(
+            if (!capturing) {
+                Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 16.dp)
@@ -393,6 +458,32 @@ private fun AssistChatPage(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !generating) {
+                                Surface(
+                                    onClick = {
+                                        if (!capturing) {
+                                            if (ScreenshotService.isEnabled()) {
+                                                capturing = true
+                                            } else {
+                                                context.startActivity(
+                                                    Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                )
+                                            }
+                                        }
+                                    },
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    tonalElevation = 3.dp,
+                                    shadowElevation = 6.dp,
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.Camera01,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(12.dp),
+                                    )
+                                }
+                            }
                             AssistCapsule(
                                 generating = generating,
                                 statusText = capsuleStatus,
@@ -416,6 +507,7 @@ private fun AssistChatPage(
                         }
                     }
                 }
+            }
             }
         }
         if (showFilesSheet) {
