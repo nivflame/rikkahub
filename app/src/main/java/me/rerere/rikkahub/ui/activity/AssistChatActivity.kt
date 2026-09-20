@@ -540,11 +540,11 @@ private fun AssistResponseSheet(
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Spacer(modifier = Modifier.weight(1f))
                     Text(
                         text = "Swipe to open",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
                     )
                     Surface(
                         onClick = onClose,
