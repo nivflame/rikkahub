@@ -363,7 +363,7 @@ private fun AssistChatPage(
                         if (imeVisible) {
                             Modifier.padding(bottom = 8.dp)
                         } else {
-                            Modifier.padding(bottom = 64.dp)
+                            Modifier.padding(bottom = 32.dp)
                         }
                     )
                     .fillMaxWidth()
