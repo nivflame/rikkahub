@@ -402,7 +402,7 @@ private fun AssistChatPage(
                                 Surface(
                                     onClick = { vm.stopGeneration() },
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                                     tonalElevation = 3.dp,
                                     shadowElevation = 6.dp,
                                 ) {
@@ -441,7 +441,7 @@ private fun AssistCapsule(
         onClick = onClick,
         enabled = !generating,
         shape = RoundedCornerShape(percent = 50),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 3.dp,
         shadowElevation = 6.dp,
     ) {
