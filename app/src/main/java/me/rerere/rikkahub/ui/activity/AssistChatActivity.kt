@@ -49,10 +49,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -96,7 +93,6 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Camera01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.BuildConfig
-import me.rerere.rikkahub.RouteActivity
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.service.ScreenshotService
@@ -151,7 +147,6 @@ class AssistChatActivity : ComponentActivity() {
                 AssistChatPage(
                     conversationId = overlayConversationId,
                     prefillText = prefillText,
-                    onOpenConversation = { openConversation(it) },
                     onDismiss = { finish() },
                 )
             }
@@ -168,24 +163,12 @@ class AssistChatActivity : ComponentActivity() {
         finish()
         startActivity(intent)
     }
-
-    private fun openConversation(id: Uuid) {
-        startActivity(
-            Intent(this, RouteActivity::class.java).apply {
-                action = RouteActivity.ACTION_OPEN_CONVERSATION
-                putExtra("conversationId", id.toString())
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        )
-        finish()
-    }
 }
 
 @Composable
 private fun AssistChatPage(
     conversationId: Uuid,
     prefillText: String?,
-    onOpenConversation: (Uuid) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val vm: ChatVM = koinViewModel(
@@ -380,7 +363,6 @@ private fun AssistChatPage(
                     AssistResponseSheet(
                         text = responseText,
                         selectable = !generating,
-                        onOpen = { onOpenConversation(conversationId) },
                         onClose = onDismiss,
                     )
                 }
@@ -593,32 +575,16 @@ private fun AssistCapsule(
 private fun AssistResponseSheet(
     text: String,
     selectable: Boolean,
-    onOpen: () -> Unit,
     onClose: () -> Unit,
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.StartToEnd || value == SwipeToDismissBoxValue.EndToStart) {
-                onOpen()
-                true
-            } else {
-                false
-            }
-        }
-    )
     val scrollState = rememberScrollState()
     LaunchedEffect(text) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {},
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) {},
@@ -632,18 +598,12 @@ private fun AssistResponseSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
                 ) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "Swipe to open",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     Surface(
                         onClick = onClose,
                         shape = RoundedCornerShape(percent = 50),
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.padding(start = 8.dp),
                     ) {
                         Text(
                             text = "Close",
@@ -693,5 +653,4 @@ private fun AssistResponseSheet(
                 }
             }
         }
-    }
 }
