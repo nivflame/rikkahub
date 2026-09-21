@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.ui.components.ai
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -450,6 +452,7 @@ private fun TextInputRow(
     }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     LaunchedEffect(autoFocus) {
         if (autoFocus) {
@@ -602,6 +605,14 @@ private fun TextInputRow(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
             ),
+            contentPadding = if (isLandscape) {
+                TextFieldDefaults.contentPaddingWithoutLabel(
+                    top = 4.dp,
+                    bottom = 4.dp,
+                )
+            } else {
+                TextFieldDefaults.contentPaddingWithoutLabel()
+            },
             trailingIcon = {
                 if (isFocused && showFullscreenButton) {
                     IconButton(
