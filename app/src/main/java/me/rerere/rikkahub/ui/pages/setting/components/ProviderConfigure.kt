@@ -159,7 +159,7 @@ private fun ProviderPoolSection(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "Account Rotation", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Account Rotation")
         Switch(
             checked = poolEnabled,
             onCheckedChange = { enable ->
