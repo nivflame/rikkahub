@@ -56,8 +56,7 @@ fun ToolsButton(
     val allMcpTools = runCatching { mcpManager.getAllAvailableTools() }.getOrDefault(emptyList())
     val mcpCountByServer = allMcpTools.groupingBy { it.first }.eachCount()
     val localCount = assistant.localTools.sumOf {
-        if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1
-    }
+        if (it == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1    }
     val mcpCount = allMcpTools.count { it.first in assistant.mcpServers }
     val total = localCount + mcpCount + (if (enableSearch) 1 else 0)
 
@@ -109,7 +108,13 @@ fun ToolsButton(
                 val toolEntries = localToolOptions().map { option ->
                     ToolEntry(
                         label = localToolLabel(option),
-                        count = if (option == LocalToolOption.Browser) settings.enabledBrowserTools.size else 1,
+                        count = if (option == LocalToolOption.Browser) {
+            settings.enabledBrowserTools.size
+        } else if (option == LocalToolOption.Device) {
+            settings.enabledDeviceTools.size
+        } else {
+            1
+        },
                         checked = option in assistant.localTools,
                         onCheckedChange = { checked ->
                             val newTools = if (checked) assistant.localTools + option else assistant.localTools - option
@@ -234,12 +239,14 @@ private fun localToolOptions(): List<LocalToolOption> = listOf(
     LocalToolOption.WebSearch,
     LocalToolOption.WebFetch,
     LocalToolOption.Browser,
+    LocalToolOption.Device,
     LocalToolOption.ToolSearch,
 )
 
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
     LocalToolOption.AskQuestion -> "AskQuestion"
     LocalToolOption.Browser -> "Browser"
+    LocalToolOption.Device -> "Device"
     LocalToolOption.WebSearch -> "WebSearch"
     LocalToolOption.WebFetch -> "WebFetch"
     LocalToolOption.Subagent -> "Subagent"

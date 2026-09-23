@@ -14,6 +14,10 @@ sealed class LocalToolOption {
     data object Browser : LocalToolOption()
 
     @Serializable
+    @SerialName("device")
+    data object Device : LocalToolOption()
+
+    @Serializable
     @SerialName("web_search")
     data object WebSearch : LocalToolOption()
 

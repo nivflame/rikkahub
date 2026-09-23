@@ -49,7 +49,10 @@ import me.rerere.rikkahub.ui.theme.CustomTheme
 import me.rerere.rikkahub.ui.theme.PresetThemes
 import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ASK_QUESTION_DESCRIPTION
+import me.rerere.rikkahub.data.ai.tools.local.ALL_BROWSER_TOOL_NAMES
+import me.rerere.rikkahub.data.ai.tools.local.ALL_DEVICE_TOOL_NAMES
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
+import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_DEVICE_TOOLS
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
 import me.rerere.rikkahub.data.ai.tools.local.loadDefaultSubagentPrompts
 import me.rerere.rikkahub.utils.toMutableStateFlow
@@ -94,6 +97,7 @@ class SettingsStore(
         val WEB_SEARCH_RESULT_COUNT = intPreferencesKey("web_search_result_count")
         val WEB_SEARCH_DELAY = intPreferencesKey("web_search_delay")
         val ENABLED_BROWSER_TOOLS = stringPreferencesKey("enabled_browser_tools")
+        val ENABLED_DEVICE_TOOLS = stringPreferencesKey("enabled_device_tools")
         val BROWSER_LAST_URL = stringPreferencesKey("browser_last_url")
         val BROWSER_TOOL_DESCRIPTIONS = stringPreferencesKey("browser_tool_descriptions")
         val SUBAGENT_PROMPTS = stringPreferencesKey("subagent_prompts")
@@ -201,6 +205,9 @@ class SettingsStore(
                 enabledBrowserTools = preferences[ENABLED_BROWSER_TOOLS]?.let {
                     JsonInstant.decodeFromString<Set<String>>(it).filter { it in ALL_BROWSER_TOOL_NAMES }.toSet()
                 } ?: DEFAULT_ENABLED_BROWSER_TOOLS,
+                enabledDeviceTools = preferences[ENABLED_DEVICE_TOOLS]?.let {
+                    JsonInstant.decodeFromString<Set<String>>(it).filter { it in ALL_DEVICE_TOOL_NAMES }.toSet()
+                } ?: DEFAULT_ENABLED_DEVICE_TOOLS,
                 browserLastUrl = preferences[BROWSER_LAST_URL]?.takeIf { it.isNotBlank() },
                 browserToolDescriptions = preferences[BROWSER_TOOL_DESCRIPTIONS]?.let {
                     JsonInstant.decodeFromString<Map<String, String>>(it)
@@ -427,6 +434,7 @@ class SettingsStore(
             preferences[WEB_SEARCH_RESULT_COUNT] = settings.webSearchResultCount
             preferences[WEB_SEARCH_DELAY] = settings.webSearchDelay
             preferences[ENABLED_BROWSER_TOOLS] = JsonInstant.encodeToString(settings.enabledBrowserTools)
+            preferences[ENABLED_DEVICE_TOOLS] = JsonInstant.encodeToString(settings.enabledDeviceTools)
             preferences[BROWSER_LAST_URL] = settings.browserLastUrl ?: ""
             preferences[BROWSER_TOOL_DESCRIPTIONS] = JsonInstant.encodeToString(settings.browserToolDescriptions)
             preferences[SUBAGENT_PROMPTS] = JsonInstant.encodeToString(settings.subagentPrompts)
@@ -603,6 +611,7 @@ data class Settings(
     val webSearchResultCount: Int = 10,
     val webSearchDelay: Int = 3,
     val enabledBrowserTools: Set<String> = DEFAULT_ENABLED_BROWSER_TOOLS,
+    val enabledDeviceTools: Set<String> = DEFAULT_ENABLED_DEVICE_TOOLS,
     val browserLastUrl: String? = null,
     val browserToolDescriptions: Map<String, String> = emptyMap(),
     val subagentPrompts: List<SubagentPrompt> = emptyList(),

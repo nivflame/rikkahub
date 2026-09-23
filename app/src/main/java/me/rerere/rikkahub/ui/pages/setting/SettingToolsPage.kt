@@ -55,6 +55,12 @@ fun SettingToolsPage() {
                 headlineContent = { Text("Browser") },
             )
             item(
+                onClick = { navController.navigate(Screen.SettingDevice) },
+                leadingContent = { Icon(HugeIcons.Earth, null) },
+                supportingContent = { Text("Enable or disable individual device tools") },
+                headlineContent = { Text("Device") },
+            )
+            item(
                 onClick = { navController.navigate(Screen.SettingWebSearch) },
                 leadingContent = { Icon(HugeIcons.Search02, null) },
                 supportingContent = { Text("Search engine and result count for the WebSearch tool") },

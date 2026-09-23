@@ -113,6 +113,7 @@ import me.rerere.rikkahub.ui.pages.setting.SettingProviderPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingBrowserPage
+import me.rerere.rikkahub.ui.pages.setting.SettingDevicePage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailInjectionsPage
@@ -477,6 +478,10 @@ class RouteActivity : ComponentActivity() {
                                 SettingBrowserPage()
                             }
 
+                            entry<Screen.SettingDevice> {
+                                SettingDevicePage()
+                            }
+
                             entry<Screen.SettingSubagent> {
                                 SettingSubagentPage()
                             }
@@ -782,6 +787,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object SettingBrowser : Screen
+
+    @Serializable
+    data object SettingDevice : Screen
 
     @Serializable
     data object SettingSubagent : Screen

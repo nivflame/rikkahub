@@ -627,7 +627,7 @@ class ChatService(
                     if (settings.enableWebSearch) {
                         addAll(createSearchTools(settings))
                     }
-                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription, settings.webSearchEngine, settings.webSearchResultCount, settings.webSearchDelay.toLong() * 1000))
+                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription, settings.webSearchEngine, settings.webSearchResultCount, settings.webSearchDelay.toLong() * 1000, settings.enabledDeviceTools))
                     if (assistant.enableRecentChatsReference) {
                         addAll(createConversationTools(conversationRepo, assistant.id))
                     }
@@ -689,6 +689,7 @@ class ChatService(
                             listOf(
                                 LocalToolOption.AskQuestion,
                                 LocalToolOption.Browser,
+                                LocalToolOption.Device,
                                 LocalToolOption.WebSearch,
                                 LocalToolOption.WebFetch,
                                 LocalToolOption.Subagent,
