@@ -68,6 +68,10 @@ class AssistBubbleService : Service() {
         val bubbleSizePx = (BUBBLE_SIZE_DP * density).roundToInt()
         val marginPx = (SHADOW_MARGIN_DP * density).roundToInt()
         val containerSizePx = bubbleSizePx + marginPx * 2
+        val bubblePrefs = getSharedPreferences(BUBBLE_PREFS, MODE_PRIVATE)
+        fun saveBubblePosition(x: Int, y: Int) {
+            bubblePrefs.edit().putInt(KEY_BUBBLE_X, x).putInt(KEY_BUBBLE_Y, y).apply()
+        }
         val dismissSizePx = (DISMISS_SIZE_DP * density).roundToInt()
         val dismissMarginPx = (DISMISS_MARGIN_BOTTOM_DP * density).roundToInt()
         val screenLoc = IntArray(2)
@@ -94,8 +98,14 @@ class AssistBubbleService : Service() {
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = (screenWidth - containerSizePx).coerceAtLeast(0)
-            y = (screenHeight / 3)
+            x = bubblePrefs.getInt(
+                KEY_BUBBLE_X,
+                (screenWidth - containerSizePx).coerceAtLeast(0),
+            ).coerceIn(0, (screenWidth - containerSizePx).coerceAtLeast(0))
+            y = bubblePrefs.getInt(
+                KEY_BUBBLE_Y,
+                (screenHeight / 3),
+            ).coerceIn(0, (screenHeight - containerSizePx).coerceAtLeast(0))
         }
 
         val container = FrameLayout(this).apply {
@@ -249,6 +259,7 @@ class AssistBubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     pressed = false
+                    if (dragged) saveBubblePosition(params.x, params.y)
                     if (dragged && inDismissRange(event.rawX, event.rawY)) {
                         inTarget = false
                         val fromY = params.y
@@ -385,6 +396,9 @@ class AssistBubbleService : Service() {
     }
 
     private companion object {
+        const val BUBBLE_PREFS = "assist_bubble"
+        const val KEY_BUBBLE_X = "bubble_x"
+        const val KEY_BUBBLE_Y = "bubble_y"
         const val BUBBLE_SIZE_DP = 56f
         const val SHADOW_MARGIN_DP = 16f
         const val PRESS_SCALE = 0.88f
