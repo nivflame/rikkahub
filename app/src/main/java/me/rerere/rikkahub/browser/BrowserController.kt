@@ -80,7 +80,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
-        webView.settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+        webView.settings.userAgentString = MOBILE_UA
         webView.addJavascriptInterface(NetLogBridge(logCollector), NET_BRIDGE_NAME)
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
@@ -152,9 +152,11 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     suspend fun navigate(
         url: String,
         type: String = "url",
+        viewport: String? = null,
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
             lastRequestAt = System.currentTimeMillis()
+            if (viewport != null) applyViewport(viewport)
             when (type) {
                 "back" -> {
                     if (!webView.canGoBack()) return@withContext "no history to go back to"
@@ -188,6 +190,26 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             webView.url ?: ""
         }
     } ?: "timeout navigating"
+
+    private fun applyViewport(viewport: String) {
+        val (width, height, desktop) = when (viewport.lowercase()) {
+            "desktop" -> Triple(DESKTOP_WIDTH_PX, DESKTOP_HEIGHT_PX, true)
+            "mobile" -> Triple(displayW, displayH, false)
+            else -> {
+                val parts = viewport.lowercase().split("x")
+                val w = parts.getOrNull(0)?.toIntOrNull()
+                val h = parts.getOrNull(1)?.toIntOrNull()
+                if (w == null || h == null || w <= 0 || h <= 0) return
+                Triple(w, h, w >= DESKTOP_WIDTH_PX)
+            }
+        }
+        webView.settings.userAgentString = if (desktop) {
+            DESKTOP_UA
+        } else {
+            MOBILE_UA
+        }
+        layoutForCapture(width, height)
+    }
 
     suspend fun currentUrl(): String = withContext(Dispatchers.Main) {
         webView.url ?: ""
@@ -1103,6 +1125,13 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val RAW_FETCH_MAX_BYTES = 5L * 1024 * 1024
         const val MAX_DOM_NODES = 200
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
+
+        const val DESKTOP_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        const val MOBILE_UA =
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+        const val DESKTOP_WIDTH_PX = 1280
+        const val DESKTOP_HEIGHT_PX = 800
 
         private const val NET_BRIDGE_NAME = "__rkNetBridge"
 

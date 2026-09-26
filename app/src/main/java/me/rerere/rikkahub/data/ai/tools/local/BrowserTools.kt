@@ -45,14 +45,19 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         })
                         put("description", "Navigation type. Defaults to \"url\"")
                     })
+                    put("viewport", buildJsonObject {
+                        put("type", "string")
+                        put("description", "Viewport emulation: \"mobile\" (default), \"desktop\" (1280x800 with desktop user agent), or custom \"WIDTHxHEIGHT\" (e.g. \"390x844\"). Applied before the page loads. Useful for mobile vs desktop view comparison")
+                    })
                 }
             )
         },
         execute = {
             val url = it.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: ""
             val type = it.jsonObject["type"]?.jsonPrimitive?.contentOrNull ?: "url"
+            val viewport = it.jsonObject["viewport"]?.jsonPrimitive?.contentOrNull
             val result = HeadlessBrowserSession.withController(context) { controller ->
-                controller.navigate(url, type)
+                controller.navigate(url, type, viewport)
             }
             listOf(UIMessagePart.Text("navigated to: $result"))
         }
