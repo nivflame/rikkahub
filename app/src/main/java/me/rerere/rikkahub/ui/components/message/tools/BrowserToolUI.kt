@@ -104,7 +104,6 @@ internal fun getImageDimensions(url: String, context: android.content.Context): 
 
 private fun browserActionLabel(toolName: String): String = when (toolName) {
     "browser_navigate" -> "Navigate"
-    "browser_get_content" -> "Get Content"
     "browser_screenshot" -> "Screenshot"
     "browser_interact" -> "Interact"
     "browser_dom_snapshot" -> "DOM Snapshot"

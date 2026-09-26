@@ -16,7 +16,6 @@ import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_navigate",
-    "browser_get_content",
     "browser_screenshot",
     "browser_interact",
     "browser_dom_snapshot",
@@ -63,29 +62,8 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         }
     ),
     Tool(
-        name = "browser_get_content",
-        description = "Read the current page as markdown (main article content with links resolved to absolute URLs), paginated.\n\nUsage notes:\n- Use this to read content from a page you have already navigated to and possibly interacted with\n- For reading a new URL, use WebFetch instead (it combines navigation and content extraction in one call)\n- For search results or structured list pages, use browser_dom_snapshot instead\n- If the result ends with a truncation notice, call this tool again with the start_index from that notice until the whole page is read",
-        parameters = {
-            InputSchema.Obj(
-                properties = buildJsonObject {
-                    put("start_index", buildJsonObject {
-                        put("type", "number")
-                        put("description", "Line number to start reading from. Defaults to 0. Use the start_index from a truncation notice to continue reading")
-                    })
-                }
-            )
-        },
-        execute = {
-            val startIndex = it.jsonObject["start_index"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0
-            val content = HeadlessBrowserSession.withController(context) {
-                it.getContent(BrowserController.MAX_CONTENT_CHARS, startIndex)
-            }
-            listOf(UIMessagePart.Text(content))
-        }
-    ),
-    Tool(
         name = "browser_screenshot",
-        description = "Capture the current page as a JPEG image.\n\nUsage notes:\n- Use this to see the visual layout, not for reading text (use browser_get_content for text)\n- Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page",
+        description = "Capture the current page as a JPEG image.\n\nUsage notes:\n- Use this to see the visual layout, not for reading text (use browser_dom_snapshot for text)\n- Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -165,7 +143,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_dom_snapshot",
-        description = "Return an accessibility tree of the current page: semantic roles, names, links, and interactive elements, capped to ${BrowserController.MAX_DOM_NODES} nodes.\n\nUsage notes:\n- Use this to inspect page structure and find elements to interact with\n- Interactive elements are tagged with a ref, e.g. [ref=e1]. Pass that as the selector [data-rkref=\"e1\"] to browser_interact\n- For reading article text, prefer browser_get_content. For search results or structured list pages, prefer this tool\n- Scope the snapshot to a subtree by providing a selector",
+        description = "Return an accessibility tree of the current page: semantic roles, names, links, and interactive elements, capped to ${BrowserController.MAX_DOM_NODES} nodes.\n\nUsage notes:\n- Use this to inspect page structure and find elements to interact with\n- Interactive elements are tagged with a ref, e.g. [ref=e1]. Pass that as the selector [data-rkref=\"e1\"] to browser_interact\n- For reading article text, prefer WebFetch. For search results or structured list pages, prefer this tool\n- Scope the snapshot to a subtree by providing a selector",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
