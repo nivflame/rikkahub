@@ -30,7 +30,7 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_navigate",
-        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- url may also be a workspace-relative file path (e.g. \"index.html\") to open an HTML file from the workspace\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
+        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- url may also be a workspace-relative file path (e.g. \"index.html\") to open an HTML file from the workspace\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL\n- Set viewport to mobile, desktop (1280x800) or custom resolution to display different viewports",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -45,14 +45,19 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         })
                         put("description", "Navigation type. Defaults to \"url\"")
                     })
+                    put("viewport", buildJsonObject {
+                        put("type", "string")
+                        put("description", "Set to change the viewport (default: mobile)")
+                    })
                 }
             )
         },
         execute = {
             val url = it.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: ""
             val type = it.jsonObject["type"]?.jsonPrimitive?.contentOrNull ?: "url"
+            val viewport = it.jsonObject["viewport"]?.jsonPrimitive?.contentOrNull
             val result = HeadlessBrowserSession.withController(context) { controller ->
-                controller.navigate(url, type)
+                controller.navigate(url, type, viewport)
             }
             listOf(UIMessagePart.Text("navigated to: $result"))
         }
