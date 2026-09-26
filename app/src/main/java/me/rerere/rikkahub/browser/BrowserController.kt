@@ -77,6 +77,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     private val displayW: Int = webView.context.resources.displayMetrics.widthPixels.coerceAtLeast(1)
     private val displayH: Int = webView.context.resources.displayMetrics.heightPixels.coerceAtLeast(1)
 
+    private var viewportW: Int = displayW
+    private var viewportH: Int = displayH
+
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -113,7 +116,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
-                layoutForCapture(displayW, displayH)
+                layoutForCapture(viewportW, viewportH)
                 onUrlChanged?.invoke(url ?: "")
             }
 
@@ -208,6 +211,8 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         } else {
             MOBILE_UA
         }
+        viewportW = width
+        viewportH = height
         layoutForCapture(width, height)
     }
 
@@ -1027,7 +1032,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
     }
 
     suspend fun executeScript(expression: String): String = withContext(Dispatchers.Main) {
-        if (webView.measuredWidth <= 0) layoutForCapture(displayW, displayH)
+        if (webView.measuredWidth <= 0) layoutForCapture(viewportW, viewportH)
         val raw = evaluateJavascriptAsync(expression)
         raw?.let { unquoteJsString(it) } ?: "null"
     }
@@ -1042,18 +1047,15 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         fullPage: Boolean = false
     ): String? = withTimeoutOrNull(perToolTimeoutMs) {
         val bitmap = withContext(Dispatchers.Main) {
-            val metrics = context.resources.displayMetrics
-            val displayW = metrics.widthPixels.coerceAtLeast(1)
-            val displayH = metrics.heightPixels.coerceAtLeast(1)
             // Use the WebView's current on-screen size when it is already laid out (what the user
-            // sees), otherwise fall back to the device display size for the headless WebView.
+            // sees), otherwise fall back to the active viewport for the headless WebView.
             if (fullPage) {
                 val sh = evaluateJavascriptAsync("document.documentElement.scrollHeight")
-                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: displayH
-                val fw = webView.measuredWidth.takeIf { it > 0 } ?: displayW
+                    ?.let { unquoteJsString(it) }?.toIntOrNull() ?: viewportH
+                val fw = webView.measuredWidth.takeIf { it > 0 } ?: viewportW
                 layoutForCapture(fw, sh.coerceIn(1, maxHeightPx))
             } else if (webView.measuredWidth <= 0 || webView.measuredHeight <= 0) {
-                layoutForCapture(displayW, displayH)
+                layoutForCapture(viewportW, viewportH)
             }
             val w = webView.measuredWidth.coerceAtLeast(1)
             val h = webView.measuredHeight.coerceAtLeast(1)
