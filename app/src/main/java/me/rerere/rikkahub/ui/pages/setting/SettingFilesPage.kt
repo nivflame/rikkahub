@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
@@ -82,6 +83,7 @@ fun SettingFilesPage(
     val visibleFiles = remember(files, selectedType) {
         files.filter { selectedType.matches(it.mimeType) }
     }
+    val sections = remember(visibleFiles) { groupByDay(visibleFiles) }
 
     if (pendingDelete != null) {
         val target = pendingDelete!!
@@ -159,12 +161,25 @@ fun SettingFilesPage(
                     state = gridState,
                     columns = StaggeredGridCells.Fixed(2)
                 ) {
-                    items(visibleFiles, key = { it.id }) { file ->
-                        FileItem(
-                            file = file,
-                            fileOnDisk = filesManager.getFile(file),
-                            onDelete = { pendingDelete = file }
-                        )
+                    sections.forEach { section ->
+                        item(
+                            key = "header-${section.dayStart}",
+                            span = StaggeredGridItemSpan.FullLine,
+                        ) {
+                            Text(
+                                text = section.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                            )
+                        }
+                        items(section.files, key = { it.id }) { file ->
+                            FileItem(
+                                file = file,
+                                fileOnDisk = filesManager.getFile(file),
+                                onDelete = { pendingDelete = file }
+                            )
+                        }
                     }
                 }
             }
@@ -233,6 +248,38 @@ private fun PdfCover(
             .aspectRatio(4f / 3f),
         contentScale = ContentScale.Crop
     )
+}
+
+private data class FileDateSection(
+    val dayStart: Long,
+    val label: String,
+    val files: List<ManagedFileEntity>,
+)
+
+private fun groupByDay(files: List<ManagedFileEntity>): List<FileDateSection> {
+    if (files.isEmpty()) return emptyList()
+    val dayOf = { time: Long ->
+        java.util.Calendar.getInstance().apply {
+            timeInMillis = time
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+    return files.sortedByDescending { it.createdAt }
+        .groupBy { dayOf(it.createdAt) }
+        .map { (day, dayFiles) -> FileDateSection(day, dayLabel(day), dayFiles) }
+}
+
+private fun dayLabel(dayStart: Long): String {
+    val now = System.currentTimeMillis()
+    val dayMs = 24 * 60 * 60 * 1000L
+    return when ((now - dayStart) / dayMs) {
+        0L -> "Today"
+        1L -> "Yesterday"
+        else -> java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date(dayStart))
+    }
 }
 
 @Composable
