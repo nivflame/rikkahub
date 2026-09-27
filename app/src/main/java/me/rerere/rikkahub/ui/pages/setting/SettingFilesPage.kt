@@ -1,12 +1,16 @@
 package me.rerere.rikkahub.ui.pages.setting
 
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowLeft02
+import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.MusicNote03
 import me.rerere.hugeicons.stroke.Pdf02
 import me.rerere.hugeicons.stroke.Doc02
 import me.rerere.hugeicons.stroke.Video01
 import me.rerere.hugeicons.stroke.Delete01
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +27,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -37,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -71,37 +77,66 @@ fun SettingFilesPage(
 
     var selectedFolder by remember { mutableStateOf(FileFolders.UPLOAD) }
     var selectedType by remember { mutableStateOf(FileTypeFilter.All) }
-    var pendingDelete by remember { mutableStateOf<ManagedFileEntity?>(null) }
+    val selectedIds = remember { mutableStateSetOf<Long>() }
+    var confirmDelete by remember { mutableStateOf(false) }
     val files by filesManager.observe(selectedFolder).collectAsState(initial = emptyList())
     val visibleFiles = remember(files, selectedType) {
         files.filter { selectedType.matches(it.mimeType) }
     }
     val sections = remember(visibleFiles) { groupByDay(visibleFiles) }
+    val selecting = selectedIds.isNotEmpty()
 
-    if (pendingDelete != null) {
-        val target = pendingDelete!!
+    BackHandler(enabled = selecting) { selectedIds.clear() }
+
+    if (confirmDelete) {
+        val targets = visibleFiles.filter { it.id in selectedIds }
         RikkaConfirmDialog(
             show = true,
             title = stringResource(R.string.setting_files_page_delete_file_title),
-            text = { Text(target.displayName) },
+            text = { Text("Are you sure you want to remove ${targets.size} files?") },
             confirmText = stringResource(R.string.setting_files_page_delete_action),
             dismissText = stringResource(R.string.setting_files_page_cancel_action),
             destructive = true,
             onConfirm = {
                 scope.launch {
-                    filesManager.delete(target.id, deleteFromDisk = true)
-                    pendingDelete = null
+                    filesManager.deleteMany(selectedIds.toSet(), deleteFromDisk = true)
+                    selectedIds.clear()
+                    confirmDelete = false
                 }
             },
-            onDismiss = { pendingDelete = null },
+            onDismiss = { confirmDelete = false },
         )
     }
 
     Scaffold(
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.setting_files_page_title)) },
-                navigationIcon = { BackButton() },
+                title = {
+                    if (selecting) {
+                        Text("${selectedIds.size} selected")
+                    } else {
+                        Text(stringResource(R.string.setting_files_page_title))
+                    }
+                },
+                navigationIcon = {
+                    if (selecting) {
+                        IconButton(onClick = { selectedIds.clear() }) {
+                            Icon(HugeIcons.ArrowLeft02, null)
+                        }
+                    } else {
+                        BackButton()
+                    }
+                },
+                actions = {
+                    if (selecting) {
+                        IconButton(onClick = { confirmDelete = true }) {
+                            Icon(
+                                HugeIcons.Delete01,
+                                contentDescription = stringResource(R.string.setting_files_page_delete_content_description)
+                            )
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
                 colors = CustomColors.topBarColors
             )
@@ -117,12 +152,18 @@ fun SettingFilesPage(
             FolderRow(
                 folders = folders,
                 selectedFolder = selectedFolder,
-                onFolderSelected = { selectedFolder = it }
+                onFolderSelected = {
+                    selectedFolder = it
+                    selectedIds.clear()
+                }
             )
 
             TypeFilterRow(
                 selectedType = selectedType,
-                onTypeSelected = { selectedType = it }
+                onTypeSelected = {
+                    selectedType = it
+                    selectedIds.clear()
+                }
             )
 
             if (visibleFiles.isEmpty()) {
@@ -158,7 +199,13 @@ fun SettingFilesPage(
                             FileItem(
                                 file = file,
                                 fileOnDisk = filesManager.getFile(file),
-                                onDelete = { pendingDelete = file }
+                                selected = file.id in selectedIds,
+                                selecting = selecting,
+                                onLongPress = { selectedIds.add(file.id) },
+                                onToggle = {
+                                    if (file.id in selectedIds) selectedIds.remove(file.id)
+                                    else selectedIds.add(file.id)
+                                },
                             )
                         }
                     }
@@ -292,14 +339,23 @@ private fun folderDisplayName(folder: String): String = when (folder) {
     else -> folder
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FileItem(
     file: ManagedFileEntity,
     fileOnDisk: File,
-    onDelete: () -> Unit,
+    selected: Boolean,
+    selecting: Boolean,
+    onLongPress: () -> Unit,
+    onToggle: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { if (selecting) onToggle() },
+                onLongClick = onLongPress,
+            ),
         colors = CardDefaults.cardColors(containerColor = CustomColors.listItemColors.containerColor)
     ) {
         Column {
@@ -335,13 +391,14 @@ private fun FileItem(
                     }
                 }
 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
+                if (selected) {
                     Icon(
-                        HugeIcons.Delete01,
-                        contentDescription = stringResource(R.string.setting_files_page_delete_content_description)
+                        HugeIcons.CheckmarkCircle02,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
                     )
                 }
             }

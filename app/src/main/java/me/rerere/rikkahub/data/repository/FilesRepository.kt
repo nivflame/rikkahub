@@ -24,6 +24,8 @@ class FilesRepository(
 
     suspend fun deleteById(id: Long): Int = dao.deleteById(id)
 
+    suspend fun deleteByIds(ids: List<Long>): Int = dao.deleteByIds(ids)
+
     suspend fun deleteByPath(relativePath: String): Int = dao.deleteByPath(relativePath)
 
     suspend fun deleteByFolder(folder: String): Int = dao.deleteByFolder(folder)

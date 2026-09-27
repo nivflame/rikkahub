@@ -28,6 +28,9 @@ interface ManagedFileDAO {
     @Query("DELETE FROM managed_files WHERE id = :id")
     suspend fun deleteById(id: Long): Int
 
+    @Query("DELETE FROM managed_files WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>): Int
+
     @Query("DELETE FROM managed_files WHERE relative_path = :relativePath")
     suspend fun deleteByPath(relativePath: String): Int
 

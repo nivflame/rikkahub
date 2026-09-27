@@ -372,11 +372,19 @@ class FilesManager(
     }
 
     suspend fun delete(id: Long, deleteFromDisk: Boolean = true): Boolean = withContext(Dispatchers.IO) {
-        val entity = repository.getById(id) ?: return@withContext false
+        deleteMany(setOf(id), deleteFromDisk) > 0
+    }
+
+    suspend fun deleteMany(ids: Set<Long>, deleteFromDisk: Boolean = true): Int = withContext(Dispatchers.IO) {
+        if (ids.isEmpty()) return@withContext 0
         if (deleteFromDisk) {
-            runCatching { getFile(entity).delete() }
+            ids.forEach { id ->
+                runCatching {
+                    repository.getById(id)?.let { getFile(it).delete() }
+                }
+            }
         }
-        repository.deleteById(id) > 0
+        repository.deleteByIds(ids.toList())
     }
 
     private fun createTargetFile(folder: String, displayName: String, mimeType: String?): File {
