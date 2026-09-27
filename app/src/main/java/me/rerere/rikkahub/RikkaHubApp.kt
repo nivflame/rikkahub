@@ -33,6 +33,8 @@ import me.rerere.rikkahub.di.repositoryModule
 import me.rerere.rikkahub.di.viewModelModule
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.utils.PdfCoverFetcher
+import me.rerere.rikkahub.utils.PdfCoverKeyer
 import me.rerere.rikkahub.service.WebServerService
 import me.rerere.rikkahub.utils.CrashHandler
 import me.rerere.rikkahub.utils.DatabaseUtil
@@ -81,6 +83,8 @@ class RikkaHubApp : Application(), SingletonImageLoader.Factory, KoinComponent {
                 }
                 add(SvgDecoder.Factory(scaleToDensity = true))
                 add(VideoFrameDecoder.Factory())
+                add(PdfCoverFetcher.Factory())
+                add(PdfCoverKeyer())
             }
             .build()
     }
