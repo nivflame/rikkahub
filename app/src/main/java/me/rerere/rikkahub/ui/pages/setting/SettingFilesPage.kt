@@ -273,7 +273,7 @@ private fun PdfCover(
         contentDescription = contentDescription,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(4f / 3f),
+            .aspectRatio(1f),
         contentScale = ContentScale.Crop
     )
 }
@@ -368,7 +368,7 @@ private fun FileItem(
                         contentDescription = file.displayName,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(4f / 3f),
+                            .aspectRatio(1f),
                         contentScale = ContentScale.Crop
                     )
                 } else if (file.mimeType == "application/pdf") {
@@ -380,7 +380,7 @@ private fun FileItem(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(4f / 3f),
+                            .aspectRatio(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
