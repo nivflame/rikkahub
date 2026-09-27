@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -504,7 +505,8 @@ private fun MessagePartsBlock(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .clip(MaterialTheme.shapes.medium)
-                                    .height(72.dp)
+                                    .size(72.dp),
+                                contentScale = ContentScale.Crop,
                             )
                         }
                     }
