@@ -15,7 +15,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,9 +31,9 @@ fun CropOverlay(
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    val handleRadius = with(density) { 10.dp.toPx() }
     val handleTouchRadius = with(density) { 24.dp.toPx() }
-    val borderWidth = with(density) { 2.dp.toPx() }
+    val cornerLength = with(density) { 24.dp.toPx() }
+    val cornerWidth = with(density) { 4.dp.toPx() }
 
     var cropRect by remember { mutableStateOf<Rect?>(null) }
     var imageRect by remember { mutableStateOf<Rect?>(null) }
@@ -168,30 +167,22 @@ fun CropOverlay(
         }
         drawPath(dimPath, Color.Black.copy(alpha = 0.5f))
 
-        drawRect(
-            color = Color.White,
-            topLeft = cr.topLeft,
-            size = cr.size,
-            style = Stroke(
-                width = borderWidth,
-                join = StrokeJoin.Miter,
-                cap = StrokeCap.Square,
-            ),
+        val corners = listOf(
+            cr.topLeft to Pair(Offset(1f, 0f), Offset(0f, 1f)),
+            cr.topRight to Pair(Offset(-1f, 0f), Offset(0f, 1f)),
+            cr.bottomLeft to Pair(Offset(1f, 0f), Offset(0f, -1f)),
+            cr.bottomRight to Pair(Offset(-1f, 0f), Offset(0f, -1f)),
         )
-
-        listOf(
-            cr.topLeft,
-            cr.topRight,
-            cr.bottomLeft,
-            cr.bottomRight,
-        ).forEach { corner ->
-            drawCircle(Color.White, handleRadius, corner)
-            drawCircle(
-                color = Color.Black,
-                radius = handleRadius,
-                center = corner,
-                style = Stroke(width = borderWidth / 2f),
-            )
+        corners.forEach { (corner, arms) ->
+            arms.toList().forEach { dir ->
+                drawLine(
+                    color = Color.White,
+                    start = corner,
+                    end = corner + Offset(dir.x * cornerLength, dir.y * cornerLength),
+                    strokeWidth = cornerWidth,
+                    cap = StrokeCap.Square,
+                )
+            }
         }
     }
 }

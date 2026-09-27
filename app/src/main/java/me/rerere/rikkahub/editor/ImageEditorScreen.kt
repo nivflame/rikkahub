@@ -250,7 +250,9 @@ fun ImageEditorScreen(
                         state.cropRect = rect
                         imageRect = imgRect
                     },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
                 )
             } else {
                 DrawingCanvas(
