@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,7 +50,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.rerere.document.PdfParser
 import me.rerere.rikkahub.data.db.entity.ManagedFileEntity
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.files.FileFolders
@@ -220,6 +224,39 @@ private enum class FileTypeFilter(
 }
 
 @Composable
+private fun PdfCover(
+    file: File,
+    contentDescription: String?,
+) {
+    val cover by produceState<ByteArray?>(initialValue = null, file) {
+        value = withContext(Dispatchers.IO) { PdfParser.renderCover(file) }
+    }
+    if (cover != null) {
+        AsyncImage(
+            model = cover,
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(4f / 3f),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(4f / 3f),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = HugeIcons.Image02,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun FolderRow(
     folders: List<String>,
     selectedFolder: String,
@@ -270,6 +307,11 @@ private fun FileItem(
                             .fillMaxWidth()
                             .aspectRatio(4f / 3f),
                         contentScale = ContentScale.Crop
+                    )
+                } else if (file.mimeType == "application/pdf") {
+                    PdfCover(
+                        file = fileOnDisk,
+                        contentDescription = file.displayName,
                     )
                 } else {
                     Box(
