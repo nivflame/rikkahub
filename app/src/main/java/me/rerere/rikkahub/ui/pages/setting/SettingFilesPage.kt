@@ -2,6 +2,10 @@ package me.rerere.rikkahub.ui.pages.setting
 
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Image02
+import me.rerere.hugeicons.stroke.MusicNote03
+import me.rerere.hugeicons.stroke.Pdf02
+import me.rerere.hugeicons.stroke.Doc02
+import me.rerere.hugeicons.stroke.Video01
 import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,8 +75,12 @@ fun SettingFilesPage(
     val deleteFailedToast = stringResource(R.string.setting_files_page_delete_failed_toast)
 
     var selectedFolder by remember { mutableStateOf(FileFolders.UPLOAD) }
+    var selectedType by remember { mutableStateOf(FileTypeFilter.All) }
     var pendingDelete by remember { mutableStateOf<ManagedFileEntity?>(null) }
     val files by filesManager.observe(selectedFolder).collectAsState(initial = emptyList())
+    val visibleFiles = remember(files, selectedType) {
+        files.filter { selectedType.matches(it.mimeType) }
+    }
 
     if (pendingDelete != null) {
         val target = pendingDelete!!
@@ -128,7 +136,12 @@ fun SettingFilesPage(
                 onFolderSelected = { selectedFolder = it }
             )
 
-            if (files.isEmpty()) {
+            TypeFilterRow(
+                selectedType = selectedType,
+                onTypeSelected = { selectedType = it }
+            )
+
+            if (visibleFiles.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -145,7 +158,7 @@ fun SettingFilesPage(
                     state = gridState,
                     columns = StaggeredGridCells.Fixed(2)
                 ) {
-                    items(files, key = { it.id }) { file ->
+                    items(visibleFiles, key = { it.id }) { file ->
                         FileItem(
                             file = file,
                             fileOnDisk = filesManager.getFile(file),
@@ -156,6 +169,54 @@ fun SettingFilesPage(
             }
         }
     }
+}
+
+@Composable
+private fun TypeFilterRow(
+    selectedType: FileTypeFilter,
+    onTypeSelected: (FileTypeFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FileTypeFilter.entries.forEach { filter ->
+            FilterChip(
+                selected = selectedType == filter,
+                onClick = { onTypeSelected(filter) },
+                label = { Text(filter.name) },
+                leadingIcon = filter.icon,
+            )
+        }
+    }
+}
+
+private enum class FileTypeFilter(
+    val icon: (@Composable () -> Unit)?,
+    val matches: (String) -> Boolean,
+) {
+    All(null, { true }),
+    Image({ Icon(HugeIcons.Image02, null) }, { it.startsWith("image/") }),
+    Video({ Icon(HugeIcons.Video01, null) }, { it.startsWith("video/") }),
+    Audio({ Icon(HugeIcons.MusicNote03, null) }, { it.startsWith("audio/") }),
+    Pdf(
+        { Icon(HugeIcons.Pdf02, null) },
+        { it == "application/pdf" },
+    ),
+    Docx(
+        { Icon(HugeIcons.Doc02, null) },
+        { mime ->
+            mime.startsWith("text/") ||
+                "word" in mime ||
+                "spreadsheet" in mime ||
+                "presentation" in mime ||
+                mime == "application/msword" ||
+                mime == "application/rtf"
+        },
+    ),
 }
 
 @Composable
