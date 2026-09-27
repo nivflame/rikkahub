@@ -34,6 +34,7 @@ fun CropOverlay(
     val handleTouchRadius = with(density) { 24.dp.toPx() }
     val cornerLength = with(density) { 24.dp.toPx() }
     val cornerWidth = with(density) { 4.dp.toPx() }
+    val minCropPx = with(density) { 80.dp.toPx() }
 
     var cropRect by remember { mutableStateOf<Rect?>(null) }
     var imageRect by remember { mutableStateOf<Rect?>(null) }
@@ -95,28 +96,28 @@ fun CropOverlay(
                                 }
                             }
                             CropHandle.TopLeft -> Rect(
-                                left = pos.x.coerceIn(currentImage.left, currentCrop.right),
-                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom),
+                                left = pos.x.coerceIn(currentImage.left, currentCrop.right - minCropPx),
+                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom - minCropPx),
                                 right = currentCrop.right,
                                 bottom = currentCrop.bottom,
                             )
                             CropHandle.TopRight -> Rect(
                                 left = currentCrop.left,
-                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom),
-                                right = pos.x.coerceIn(currentCrop.left, currentImage.right),
+                                top = pos.y.coerceIn(currentImage.top, currentCrop.bottom - minCropPx),
+                                right = pos.x.coerceIn(currentCrop.left + minCropPx, currentImage.right),
                                 bottom = currentCrop.bottom,
                             )
                             CropHandle.BottomLeft -> Rect(
-                                left = pos.x.coerceIn(currentImage.left, currentCrop.right),
+                                left = pos.x.coerceIn(currentImage.left, currentCrop.right - minCropPx),
                                 top = currentCrop.top,
                                 right = currentCrop.right,
-                                bottom = pos.y.coerceIn(currentCrop.top, currentImage.bottom),
+                                bottom = pos.y.coerceIn(currentCrop.top + minCropPx, currentImage.bottom),
                             )
                             CropHandle.BottomRight -> Rect(
                                 left = currentCrop.left,
                                 top = currentCrop.top,
-                                right = pos.x.coerceIn(currentCrop.left, currentImage.right),
-                                bottom = pos.y.coerceIn(currentCrop.top, currentImage.bottom),
+                                right = pos.x.coerceIn(currentCrop.left + minCropPx, currentImage.right),
+                                bottom = pos.y.coerceIn(currentCrop.top + minCropPx, currentImage.bottom),
                             )
                         }
                         imageRect?.let { img -> onCropRectChange(cropRect!!, img) }
