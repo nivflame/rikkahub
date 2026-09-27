@@ -160,10 +160,19 @@ internal fun curvedArrowheadEndpoints(
 ): Pair<Offset, Offset>? {
     if (points.size < 2) return null
     val end = points.last()
-    val before = points[points.size - 2]
+    var anchor = points.first()
+    var arc = 0f
+    for (i in points.size - 1 downTo 1) {
+        arc += distance(points[i], points[i - 1])
+        if (arc >= ARROW_TANGENT_ARC_PX) {
+            anchor = points[i - 1]
+            break
+        }
+    }
+    if (anchor == end) anchor = points[points.size - 2]
     val headLen = max(strokeWidth * 4f, 20f)
     val headAngle = 30f * (Math.PI / 180f).toFloat()
-    val angle = atan2(end.y - before.y, end.x - before.x)
+    val angle = atan2(end.y - anchor.y, end.x - anchor.x)
     val left = Offset(
         end.x + headLen * cos(angle + Math.PI.toFloat() - headAngle),
         end.y + headLen * sin(angle + Math.PI.toFloat() - headAngle),
@@ -173,6 +182,14 @@ internal fun curvedArrowheadEndpoints(
         end.y + headLen * sin(angle + Math.PI.toFloat() + headAngle),
     )
     return left to right
+}
+
+private const val ARROW_TANGENT_ARC_PX = 48f
+
+private fun distance(a: Offset, b: Offset): Float {
+    val dx = a.x - b.x
+    val dy = a.y - b.y
+    return sqrt(dx * dx + dy * dy)
 }
 
 private fun distanceToSegment(point: Offset, start: Offset, end: Offset): Float {
