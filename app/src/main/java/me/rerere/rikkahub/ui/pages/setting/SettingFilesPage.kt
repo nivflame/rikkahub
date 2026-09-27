@@ -56,7 +56,6 @@ import me.rerere.rikkahub.data.files.FileFolders
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
-import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.CustomColors
 import org.koin.compose.koinInject
 import java.io.File
@@ -68,12 +67,7 @@ fun SettingFilesPage(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyStaggeredGridState()
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
     val folders = remember { listOf(FileFolders.UPLOAD) }
-
-    // 预先获取字符串资源
-    val deletedToast = stringResource(R.string.setting_files_page_deleted_toast)
-    val deleteFailedToast = stringResource(R.string.setting_files_page_delete_failed_toast)
 
     var selectedFolder by remember { mutableStateOf(FileFolders.UPLOAD) }
     var selectedType by remember { mutableStateOf(FileTypeFilter.All) }
@@ -95,12 +89,7 @@ fun SettingFilesPage(
             destructive = true,
             onConfirm = {
                 scope.launch {
-                    val ok = filesManager.delete(target.id, deleteFromDisk = true)
-                    if (ok) {
-                        toaster.show(deletedToast)
-                    } else {
-                        toaster.show(deleteFailedToast)
-                    }
+                    filesManager.delete(target.id, deleteFromDisk = true)
                     pendingDelete = null
                 }
             },
