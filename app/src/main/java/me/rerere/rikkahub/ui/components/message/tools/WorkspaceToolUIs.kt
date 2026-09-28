@@ -180,7 +180,7 @@ object ReadFileToolUI : ToolUIRenderer {
 
     @Composable
     override fun title(context: ToolUIContext): String {
-        val path = context.arguments.getStringContent("path")
+        val path = context.arguments.getStringContent("file_path")
         return if (path != null) stringResource(R.string.tool_ui_read_file, path) else stringResource(R.string.tool_ui_read_file_default)
     }
 
