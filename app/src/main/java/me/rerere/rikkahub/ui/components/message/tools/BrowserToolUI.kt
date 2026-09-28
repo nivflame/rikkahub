@@ -23,6 +23,11 @@ private fun browserLabel(context: ToolUIContext): String = when (context.tool.to
         "reload" -> "Reload page"
         else -> "Navigate: ${context.arguments.getStringContent("url") ?: ""}"
     }
+    "browser_resize_window" -> {
+        val width = context.arguments.getStringContent("width") ?: ""
+        val height = context.arguments.getStringContent("height") ?: ""
+        "Resize: ${width}x${height}"
+    }
     "browser_screenshot" -> {
         val selector = context.arguments.getStringContent("selector")
         val fullPage = context.arguments?.jsonObjectOrNull?.get("fullPage")?.jsonPrimitiveOrNull?.booleanOrNull

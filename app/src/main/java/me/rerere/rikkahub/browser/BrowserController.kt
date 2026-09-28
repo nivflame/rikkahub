@@ -155,11 +155,9 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     suspend fun navigate(
         url: String,
         type: String = "url",
-        viewport: String? = null,
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
             lastRequestAt = System.currentTimeMillis()
-            if (viewport != null) applyViewport(viewport)
             when (type) {
                 "back" -> {
                     if (!webView.canGoBack()) return@withContext "no history to go back to"
@@ -193,6 +191,12 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             webView.url ?: ""
         }
     } ?: "timeout navigating"
+
+    suspend fun resizeWindow(width: Int, height: Int): String = withContext(Dispatchers.Main) {
+        if (width <= 0 || height <= 0) return@withContext "invalid dimensions"
+        applyViewport("${width}x${height}")
+        "${viewportW}x${viewportH}"
+    }
 
     private fun applyViewport(viewport: String) {
         val (width, height, desktop) = when (viewport.lowercase()) {

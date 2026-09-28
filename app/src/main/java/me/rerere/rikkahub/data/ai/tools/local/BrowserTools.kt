@@ -16,6 +16,7 @@ import me.rerere.rikkahub.browser.HeadlessBrowserSession
 
 internal val ALL_BROWSER_TOOL_NAMES: List<String> = listOf(
     "browser_navigate",
+    "browser_resize_window",
     "browser_screenshot",
     "browser_interact",
     "browser_dom_snapshot",
@@ -29,7 +30,7 @@ val DEFAULT_ENABLED_BROWSER_TOOLS: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet()
 internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     Tool(
         name = "browser_navigate",
-        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- url may also be a workspace-relative file path (e.g. \"index.html\") to open an HTML file from the workspace\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL\n- Set viewport to mobile, desktop (1280x800) or custom resolution to display different viewports",
+        description = "Navigate the in-app browser to a URL, or go back, forward, or reload.\n\nUsage notes:\n- The page is fully loaded and ready when this tool returns\n- url may also be a workspace-relative file path (e.g. \"index.html\") to open an HTML file from the workspace\n- Set type to \"back\", \"forward\", or \"reload\" to navigate history instead of opening a URL",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -44,21 +45,47 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         })
                         put("description", "Navigation type. Defaults to \"url\"")
                     })
-                    put("viewport", buildJsonObject {
-                        put("type", "string")
-                        put("description", "Set to change the viewport (default: mobile)")
-                    })
                 }
             )
         },
         execute = {
             val url = it.jsonObject["url"]?.jsonPrimitive?.contentOrNull ?: ""
             val type = it.jsonObject["type"]?.jsonPrimitive?.contentOrNull ?: "url"
-            val viewport = it.jsonObject["viewport"]?.jsonPrimitive?.contentOrNull
             val result = HeadlessBrowserSession.withController(context) { controller ->
-                controller.navigate(url, type, viewport)
+                controller.navigate(url, type)
             }
             listOf(UIMessagePart.Text("navigated to: $result"))
+        }
+    ),
+    Tool(
+        name = "browser_resize_window",
+        description = "Resize the current browser window to specified dimensions. Useful for testing responsive designs or setting up specific screen sizes",
+        parameters = {
+            InputSchema.Obj(
+                properties = buildJsonObject {
+                    put("width", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Target window width in pixels")
+                    })
+                    put("height", buildJsonObject {
+                        put("type", "number")
+                        put("description", "Target window height in pixels")
+                    })
+                },
+                required = listOf("width", "height")
+            )
+        },
+        execute = {
+            val width = it.jsonObject["width"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+            val height = it.jsonObject["height"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
+            if (width == null || height == null) {
+                listOf(UIMessagePart.Text("invalid dimensions"))
+            } else {
+                val result = HeadlessBrowserSession.withController(context) { controller ->
+                    controller.resizeWindow(width, height)
+                }
+                listOf(UIMessagePart.Text("resized to: $result"))
+            }
         }
     ),
     Tool(

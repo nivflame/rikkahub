@@ -118,6 +118,7 @@ object ToolUIRegistry {
         WebToolUI("WebSearch"),
         WebToolUI("WebFetch"),
         BrowserToolUI("browser_navigate"),
+        BrowserToolUI("browser_resize_window"),
         BrowserToolUI("browser_screenshot"),
         BrowserToolUI("browser_interact"),
         BrowserToolUI("browser_dom_snapshot"),
