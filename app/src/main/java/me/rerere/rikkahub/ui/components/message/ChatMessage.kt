@@ -489,25 +489,23 @@ private fun MessagePartsBlock(
                     }
 
                     is UIMessagePart.Image -> {
-                        val isImageLoading =
-                            part.url.isBlank() || part.url.matches(Regex("^data:image/[^;]*;base64,\\s*$"))
-                        if (isImageLoading) {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .shimmer(isLoading = true)
-                            )
-                        } else {
-                            ZoomableAsyncImage(
-                                model = part.url,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .size(72.dp),
-                                contentScale = ContentScale.Crop,
-                            )
+                        val images = buildList {
+                            add(part)
+                            var nextIndex = block.index + 1
+                            while (nextIndex < parts.size && parts[nextIndex] is UIMessagePart.Image) {
+                                add(parts[nextIndex] as UIMessagePart.Image)
+                                nextIndex++
+                            }
+                        }
+                        if (block.index == 0 || parts[block.index - 1] !is UIMessagePart.Image) {
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                images.fastForEach { image ->
+                                    ImageThumb(url = image.url)
+                                }
+                            }
                         }
                     }
 
@@ -595,6 +593,30 @@ private fun MessagePartsBlock(
                 Text(stringResource(R.string.citations_count, annotations.size))
             }
         }
+    }
+}
+
+@Composable
+private fun ImageThumb(url: String) {
+    val isImageLoading =
+        url.isBlank() || url.matches(Regex("^data:image/[^;]*;base64,\\s*$"))
+    if (isImageLoading) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .shimmer(isLoading = true)
+        )
+    } else {
+        ZoomableAsyncImage(
+            model = url,
+            contentDescription = null,
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.medium)
+                .size(72.dp),
+            contentScale = ContentScale.Crop,
+        )
     }
 }
 
