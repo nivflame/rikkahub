@@ -54,6 +54,11 @@ import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.utils.generateUnifiedDiff
 import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 
+private fun shortenPath(path: String): String {
+    val home = "/data/data/com.termux/files/home/"
+    return if (path.startsWith(home)) "~/" + path.removePrefix(home) else path
+}
+
 /**
  * 工作空间编辑文件: 摘要显示增删统计与精简 diff, 详情为完整 diff view
  */
@@ -67,14 +72,14 @@ object EditFileToolUI : ToolUIRenderer {
     @Composable
     override fun title(context: ToolUIContext): String {
         val path = context.arguments.getStringContent("file_path")
-        return if (path != null) stringResource(R.string.tool_ui_edit_file, path) else stringResource(R.string.tool_ui_edit_file_default)
+        return if (path != null) stringResource(R.string.tool_ui_edit_file, shortenPath(path)) else stringResource(R.string.tool_ui_edit_file_default)
     }
 
     private fun pathOf(context: ToolUIContext): String? =
         context.arguments.getStringContent("file_path")
 
-    private fun displayName(path: String?): String? =
-        path?.substringAfterLast('/')?.ifBlank { null }
+    private fun displayPath(context: ToolUIContext): String? =
+        pathOf(context)?.let(::shortenPath)
 
     /**
      * 执行后读取输出部件 metadata 中的全文件 diff;
@@ -101,7 +106,7 @@ object EditFileToolUI : ToolUIRenderer {
 
     @Composable
     override fun Label(context: ToolUIContext) {
-        val name = displayName(pathOf(context))
+        val name = displayPath(context)
         val stats = remember(context) { statsOf(context) }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -181,7 +186,7 @@ object ReadFileToolUI : ToolUIRenderer {
     @Composable
     override fun title(context: ToolUIContext): String {
         val path = context.arguments.getStringContent("file_path")
-        return if (path != null) stringResource(R.string.tool_ui_read_file, path) else stringResource(R.string.tool_ui_read_file_default)
+        return if (path != null) stringResource(R.string.tool_ui_read_file, shortenPath(path)) else stringResource(R.string.tool_ui_read_file_default)
     }
 
     @Composable
@@ -257,7 +262,7 @@ object WriteFileToolUI : ToolUIRenderer {
     @Composable
     override fun title(context: ToolUIContext): String {
         val path = context.arguments.getStringContent("file_path")
-        return if (path != null) stringResource(R.string.tool_ui_write_file, path) else stringResource(R.string.tool_ui_write_file_default)
+        return if (path != null) stringResource(R.string.tool_ui_write_file, shortenPath(path)) else stringResource(R.string.tool_ui_write_file_default)
     }
 
     private fun textOf(context: ToolUIContext): String? =
@@ -266,8 +271,8 @@ object WriteFileToolUI : ToolUIRenderer {
     private fun pathOf(context: ToolUIContext): String? =
         context.arguments.getStringContent("file_path")
 
-    private fun displayName(path: String?): String? =
-        path?.substringAfterLast('/')?.ifBlank { null }
+    private fun displayPath(context: ToolUIContext): String? =
+        pathOf(context)?.let(::shortenPath)
 
     private fun diffOf(context: ToolUIContext): String? {
         context.tool.output.firstOrNull()?.metadataAs<DiffMetadata>()?.diff?.let { return it }
@@ -286,7 +291,7 @@ object WriteFileToolUI : ToolUIRenderer {
 
     @Composable
     override fun Label(context: ToolUIContext) {
-        val name = displayName(pathOf(context))
+        val name = displayPath(context)
         val stats = remember(context) { statsOf(context) }
         Row(
             verticalAlignment = Alignment.CenterVertically,
