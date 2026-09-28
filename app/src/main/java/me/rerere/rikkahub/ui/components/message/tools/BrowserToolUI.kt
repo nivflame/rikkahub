@@ -1,53 +1,51 @@
 package me.rerere.rikkahub.ui.components.message.tools
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import kotlinx.serialization.json.booleanOrNull
+import me.rerere.common.http.jsonObjectOrNull
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Earth
+import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 
 class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
     override fun icon(context: ToolUIContext) = HugeIcons.Earth
 
     @Composable
-    override fun title(context: ToolUIContext): String = "Browser: ${browserActionLabel(toolName)}"
+    override fun title(context: ToolUIContext): String = browserLabel(context)
 
-    override fun hasSummary(context: ToolUIContext): Boolean = toolName == "browser_navigate"
-
-    @Composable
-    override fun Summary(context: ToolUIContext) {
-        if (toolName != "browser_navigate") return
-        val url = context.arguments.getStringContent("url") ?: ""
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = url,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
+    override fun hasSummary(context: ToolUIContext): Boolean = false
 }
 
-private fun browserActionLabel(toolName: String): String = when (toolName) {
-    "browser_navigate" -> "Navigate"
-    "browser_screenshot" -> "Screenshot"
-    "browser_interact" -> "Interact"
-    "browser_dom_snapshot" -> "DOM Snapshot"
-    "browser_execute_script" -> "Execute Script"
-    "browser_waitfor" -> "Wait"
-    else -> toolName
+private fun browserLabel(context: ToolUIContext): String = when (context.tool.toolName) {
+    "browser_navigate" -> when (context.arguments.getStringContent("type")) {
+        "back" -> "Navigate back"
+        "forward" -> "Navigate forward"
+        "reload" -> "Reload page"
+        else -> "Navigate: ${context.arguments.getStringContent("url") ?: ""}"
+    }
+    "browser_screenshot" -> {
+        val selector = context.arguments.getStringContent("selector")
+        val fullPage = context.arguments?.jsonObjectOrNull?.get("fullPage")?.jsonPrimitiveOrNull?.booleanOrNull
+        when {
+            selector != null -> "Screenshot: $selector"
+            fullPage == true -> "Screenshot: full page"
+            else -> "Screenshot page"
+        }
+    }
+    "browser_interact" -> {
+        val action = context.arguments.getStringContent("action")?.replaceFirstChar { it.uppercase() } ?: "Interact"
+        val target = context.arguments.getStringContent("selector")
+            ?: context.arguments.getStringContent("value")
+            ?: context.arguments.getStringContent("key")
+            ?: context.arguments.getStringContent("text")
+        if (target != null) "Interact: $action $target" else "Interact: $action"
+    }
+    "browser_dom_snapshot" -> {
+        val selector = context.arguments.getStringContent("selector")
+        if (selector != null) "Inspect page: $selector" else "Inspect page"
+    }
+    "browser_execute_script" -> "Execute script"
+    "browser_waitfor" -> "Wait: ${context.arguments.getStringContent("selector") ?: ""}"
+    "browser_logs" -> "Inspect logs"
+    else -> context.tool.toolName
 }
