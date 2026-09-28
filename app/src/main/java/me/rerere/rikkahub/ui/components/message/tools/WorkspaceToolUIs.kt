@@ -189,39 +189,6 @@ object ReadFileToolUI : ToolUIRenderer {
         return if (path != null) stringResource(R.string.tool_ui_read_file, shortenPath(path)) else stringResource(R.string.tool_ui_read_file_default)
     }
 
-    @Composable
-    override fun Label(context: ToolUIContext) {
-        val image = context.tool.output.firstOrNull { it is UIMessagePart.Image } as? UIMessagePart.Image
-        val dimensions = image?.let { getImageDimensions(it.url, LocalContext.current) }
-        if (dimensions != null) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = title(context),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                ) {
-                    Text(
-                        text = "${dimensions.first}x${dimensions.second}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
-                    )
-                }
-            }
-        } else {
-            super.Label(context)
-        }
-    }
-
     /** 已执行时从输出 JSON 读取文件内容 */
     private fun textOf(context: ToolUIContext): String? =
         context.content.getStringContent("text")
