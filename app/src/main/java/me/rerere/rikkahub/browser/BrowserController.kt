@@ -1087,8 +1087,8 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         }
         withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "browser-shots").apply { mkdirs() }
-            val file = dir.resolve("shot-${System.currentTimeMillis()}.jpg")
-            FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 60, it) }
+            val file = dir.resolve("shot-${System.currentTimeMillis()}.png")
+            FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             bitmap.recycle()
             file.absolutePath
         }
