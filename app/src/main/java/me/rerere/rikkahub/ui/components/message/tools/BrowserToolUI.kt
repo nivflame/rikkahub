@@ -30,7 +30,7 @@ private fun browserLabel(context: ToolUIContext): String = when (context.tool.to
     }
     "browser_screenshot" -> {
         val selector = context.arguments.getStringContent("selector")
-        val fullPage = context.arguments?.jsonObjectOrNull?.get("fullPage")?.jsonPrimitiveOrNull?.booleanOrNull
+        val fullPage = context.arguments?.jsonObjectOrNull?.get("full_page")?.jsonPrimitiveOrNull?.booleanOrNull
         when {
             selector != null -> "Screenshot: $selector"
             fullPage == true -> "Screenshot: full page"

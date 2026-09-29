@@ -90,7 +90,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
     ),
     Tool(
         name = "browser_screenshot",
-        description = "Capture the current page as a JPEG image.\n\nUsage notes:\n- Use this to see the visual layout, not for reading text (use browser_dom_snapshot for text)\n- Omit selector to capture the viewport, or set fullPage to capture the entire scrollable page",
+        description = "Capture the current page as a JPEG image.\n\nUsage notes:\n- Use this to see the visual layout, not for reading text (use browser_dom_snapshot for text)\n- Omit selector to capture the viewport, or set full_page to capture the entire scrollable page",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -98,7 +98,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
                         put("type", "string")
                         put("description", "CSS selector of the element to capture. Omit to capture the viewport")
                     })
-                    put("fullPage", buildJsonObject {
+                    put("full_page", buildJsonObject {
                         put("type", "boolean")
                         put("description", "Capture the entire scrollable page. Defaults to false")
                     })
@@ -107,7 +107,7 @@ internal fun buildBrowserTools(context: Context): List<Tool> = listOf(
         },
         execute = {
             val selector = it.jsonObject["selector"]?.jsonPrimitive?.contentOrNull
-            val fullPage = it.jsonObject["fullPage"]?.jsonPrimitive?.contentOrNull == "true"
+            val fullPage = it.jsonObject["full_page"]?.jsonPrimitive?.contentOrNull == "true"
             val path = HeadlessBrowserSession.withController(context) {
                 it.screenshot(BrowserController.MAX_SCREENSHOT_HEIGHT_PX, context, selector, fullPage)
             }
