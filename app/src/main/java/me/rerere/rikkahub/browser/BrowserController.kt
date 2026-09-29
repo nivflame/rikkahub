@@ -1068,14 +1068,15 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
                 val sel = Json.encodeToString(selector)
                 val rectRaw = evaluateJavascriptAsync(
                     "(function(){var e=document.querySelector($sel);if(!e)return null;" +
-                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height});})();"
+                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height," +
+                        "dpr:window.devicePixelRatio||1,sx:window.scrollX||0,sy:window.scrollY||0});})();"
                 )
                 val rect = rectRaw?.let { parseRect(it) }
                 if (rect != null) {
-                    val cx = rect.left.toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
-                    val cy = rect.top.toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
-                    val cw = rect.width().toInt().coerceIn(1, w - cx)
-                    val ch = rect.height().toInt().coerceIn(1, h - cy)
+                    val cx = ((rect.rect.left + rect.scrollX) * rect.dpr).toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
+                    val cy = ((rect.rect.top + rect.scrollY) * rect.dpr).toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
+                    val cw = (rect.rect.width() * rect.dpr).toInt().coerceIn(1, w - cx)
+                    val ch = (rect.rect.height() * rect.dpr).toInt().coerceIn(1, h - cy)
                     Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
                 } else {
                     full
@@ -1093,7 +1094,14 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         }
     }
 
-    private fun parseRect(raw: String): RectF? {
+    private data class SelectorShot(
+        val rect: RectF,
+        val dpr: Float,
+        val scrollX: Float,
+        val scrollY: Float,
+    )
+
+    private fun parseRect(raw: String): SelectorShot? {
         val json = unquoteJsString(raw).ifBlank { return null }
         return runCatching {
             val obj = Json.parseToJsonElement(json).jsonObject
@@ -1101,7 +1109,10 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
             val y = obj["y"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
             val w = obj["w"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
             val h = obj["h"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
-            RectF(x, y, x + w, y + h)
+            val dpr = obj["dpr"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 1f
+            val sx = obj["sx"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            val sy = obj["sy"]?.jsonPrimitive?.contentOrNull?.toFloatOrNull() ?: 0f
+            SelectorShot(RectF(x, y, x + w, y + h), dpr, sx, sy)
         }.getOrNull()
     }
 
