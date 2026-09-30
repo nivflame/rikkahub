@@ -22,6 +22,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
@@ -50,7 +51,9 @@ internal fun serveWorkspaceAsset(root: File?, url: Uri): WebResourceResponse? {
     val relative = FileUtils.getRelativePathInFilesDir(base, candidate) ?: return null
     val served = File(base, relative)
     val stream = runCatching { FileInputStream(served) }.getOrNull() ?: return null
-    return WebResourceResponse(FileUtils.guessMimeType(served, served.name), null, stream)
+    return WebResourceResponse(FileUtils.guessMimeType(served, served.name), null, stream).apply {
+        setResponseHeaders(mapOf("Access-Control-Allow-Origin" to "*"))
+    }
 }
 
 /**
@@ -64,6 +67,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
 
     private val logCollector = BrowserLogCollector()
+    private val scriptBridge = ScriptResultBridge()
 
     private var loadDeferred: CompletableDeferred<Unit>? = null
 
@@ -79,12 +83,15 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     private var viewportW: Int = displayW
     private var viewportH: Int = displayH
+    private var lastResizeAt = 0L
+    private var lastLoadAt = 0L
 
     init {
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.userAgentString = MOBILE_UA
         webView.addJavascriptInterface(NetLogBridge(logCollector), NET_BRIDGE_NAME)
+        webView.addJavascriptInterface(scriptBridge, SCRIPT_BRIDGE_NAME)
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 if (consoleMessage != null) {
@@ -116,6 +123,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 loadDeferred?.complete(Unit)
+                lastLoadAt = System.currentTimeMillis()
                 layoutForCapture(viewportW, viewportH)
                 onUrlChanged?.invoke(url ?: "")
             }
@@ -154,11 +162,12 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
     suspend fun navigate(
         url: String,
-        type: String = "url",
+        action: String = "url",
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
             lastRequestAt = System.currentTimeMillis()
-            when (type) {
+            if (action == "url" && lastResizeAt < lastLoadAt) applyViewport("mobile")
+            when (action) {
                 "back" -> {
                     if (!webView.canGoBack()) return@withContext "no history to go back to"
                     loadDeferred = CompletableDeferred()
@@ -195,6 +204,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     suspend fun resizeWindow(width: Int, height: Int): String = withContext(Dispatchers.Main) {
         if (width <= 0 || height <= 0) return@withContext "invalid dimensions"
         applyViewport("${width}x${height}")
+        lastResizeAt = System.currentTimeMillis()
         "${viewportW}x${viewportH}"
     }
 
@@ -232,6 +242,33 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         val file = File(root, rel)
         if (!file.isFile) return null
         return "https://appassets.androidplatform.net/workspace/" + Uri.encode(rel, "/")
+    }
+
+    suspend fun uploadFile(selector: String, filePath: String): String {
+        val resolved = withContext(Dispatchers.Main) { resolveWorkspaceUrl(filePath) }
+        if (resolved == null) return "file not found in workspace: $filePath"
+        val fileName = filePath.substringAfterLast('/').ifBlank { "file" }
+        return uploadFileAtUrl(selector, resolved, fileName)
+    }
+
+    private suspend fun uploadFileAtUrl(selector: String, fileUrl: String, fileName: String): String = withContext(Dispatchers.Main) {
+        val sel = Json.encodeToString(selector)
+        val url = Json.encodeToString(fileUrl)
+        val name = Json.encodeToString(fileName)
+        val raw = evaluateJavascriptAsync(
+            "(async function(){var el=document.querySelector($sel);" +
+                "if(!el||el.tagName!=='INPUT'||el.type!=='file')return 'file input not found';" +
+                "var res;try{res=await fetch($url);}catch(e){return 'fetch failed: '+e.message;}" +
+                "if(!res.ok)return 'fetch failed: '+res.status;" +
+                "var blob=await res.blob();" +
+                "var file=new File([blob],$name,{type:blob.type||'application/octet-stream'});" +
+                "var dt=new DataTransfer();dt.items.add(file);el.files=dt.files;" +
+                "el.dispatchEvent(new Event('input',{bubbles:true}));" +
+                "el.dispatchEvent(new Event('change',{bubbles:true}));" +
+                "if(!el.files||el.files.length===0)return 'attach failed: input rejected the file';" +
+                "var f=el.files[0];return 'attached: '+f.name+' ('+f.size+' bytes)';})();"
+        )
+        raw?.let { unquoteJsString(it) } ?: "ok"
     }
 
     suspend fun search(query: String, news: Boolean, resultCount: Int = 20): String {
@@ -907,28 +944,24 @@ return '['+results.join(',')+']';
     suspend fun getLogs(args: kotlinx.serialization.json.JsonObject): String =
         logCollector.getLogs(args)
 
-    suspend fun waitFor(selector: String, timeoutMs: Long): String {
-        val cssChars = setOf('#', '.', '>', '[', ':', '*')
-        val isCss = selector.any { it in cssChars } || selector.startsWith("//")
-        val checkJs = if (isCss) {
-            val sel = Json.encodeToString(selector)
-            "(function(){return document.querySelector($sel)?'true':'false';})()"
-        } else {
-            val text = Json.encodeToString(selector)
-            "(function(){var t=$text;var els=document.querySelectorAll('*');" +
-                "for(var i=0;i<els.length;i++){" +
-                "var c=els[i].textContent||'';" +
-                "if(c.indexOf(t)>=0&&els[i].children.length===0)return'true';" +
-                "}return'false';})()"
-        }
-        val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            val raw = withContext(Dispatchers.Main) { evaluateJavascriptAsync(checkJs) }
-            val result = raw?.let { unquoteJsString(it) }
-            if (result == "true") return "found"
-            kotlinx.coroutines.delay(500)
-        }
-        return "not found within ${timeoutMs}ms"
+    suspend fun waitFor(selector: String, timeoutMs: Long, idleMs: Long = 500): String = withContext(Dispatchers.Main) {
+        val token = Uuid.random().toString()
+        val pending = CompletableDeferred<String?>()
+        scriptBridge.pending = pending
+        scriptBridge.token = token
+        val wrapped = WAITFOR_WRAPPER_JS
+            .replace("__RK_TOKEN__", token)
+            .replace("__RK_TEXT__", Json.encodeToString(selector))
+            .replace("__RK_TIMEOUT__", timeoutMs.coerceAtLeast(1L).toString())
+            .replace("__RK_IDLE__", idleMs.coerceAtLeast(0L).toString())
+        webView.evaluateJavascript(wrapped, null)
+        val payload = withTimeoutOrNull(timeoutMs + idleMs + perToolTimeoutMs) { pending.await() }
+            ?: return@withContext "not found within ${timeoutMs}ms"
+        scriptBridge.pending = null
+        scriptBridge.token = null
+        val envelope = runCatching { Json.parseToJsonElement(payload).jsonObject }.getOrNull()
+        if (envelope?.get("ok")?.jsonPrimitive?.booleanOrNull == true) "found"
+        else "not found within ${timeoutMs}ms"
     }
 
     private fun paginateMarkdown(markdown: String, startIndex: Int, maxChars: Int): String {
@@ -966,43 +999,107 @@ return '['+results.join(',')+']';
         turndownInjected = true
     }
 
-    suspend fun interact(
-        action: String,
-        selector: String? = null,
-        value: String? = null,
-        key: String? = null,
-        text: String? = null,
-        doubleClick: Boolean = false
-    ): String = withContext(Dispatchers.Main) {
-        val params = buildJsonObject {
-            put("action", action)
-            put("selector", selector ?: "")
-            put("value", value ?: "")
-            put("key", key ?: "")
-            put("text", text ?: "")
-            put("doubleClick", doubleClick)
+    suspend fun click(selector: String?, button: String = "left", x: Int? = null, y: Int? = null, clicks: Int = 1): String = withContext(Dispatchers.Main) {
+        val sel = Json.encodeToString(selector ?: "")
+        val code = when (button.lowercase()) {
+            "middle" -> 1
+            "right" -> 2
+            else -> 0
         }
-        val js = "(function(){var p=$params;var el=p.selector?document.querySelector(p.selector):null;" +
-            "try{var a=p.action;" +
-            "if(a==='click'){if(!el)return 'element not found';el.dispatchEvent(new MouseEvent('click',{bubbles:true}));" +
-            "if(p.doubleClick)el.dispatchEvent(new MouseEvent('click',{bubbles:true}));return 'clicked';}" +
-            "if(a==='fill'){if(!el)return 'element not found';el.focus();el.value=p.value;" +
-            "el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';}" +
-            "if(a==='scroll'){var v=parseInt(p.value||'0');if(el){var node=el;while(node&&node!==document.body){var oy=getComputedStyle(node).overflowY;if(oy==='auto'||oy==='scroll'){node.scrollTop+=v;return 'scrolled';}node=node.parentElement;}}window.scrollBy(0,v);return 'scrolled';}" +
-            "if(a==='hover'){if(!el)return 'element not found';el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));return 'hovered';}" +
-            "if(a==='press_key'){document.dispatchEvent(new KeyboardEvent('keydown',{key:p.key,bubbles:true}));" +
-            "document.dispatchEvent(new KeyboardEvent('keyup',{key:p.key,bubbles:true}));return 'pressed '+p.key;}" +
-            "if(a==='type_text'){if(!el)return 'element not found';el.focus();el.value=el.value+p.text;" +
-            "el.dispatchEvent(new Event('input',{bubbles:true}));return 'typed';}" +
-            "return 'unknown action';}catch(e){return 'error: '+e.message;}})();"
-        val raw = evaluateJavascriptAsync(js)
+        val buttons = when (code) {
+            1 -> 4
+            2 -> 2
+            else -> 1
+        }
+        val count = clicks.coerceAtLeast(1)
+        val point = if (x != null && y != null) "$x,$y" else ""
+        val kind = button.lowercase().ifBlank { "left" }
+        val raw = evaluateJavascriptAsync(
+            "(function(){var el;" +
+                "if('$point'!==''){var p='$point'.split(',');var t=document.elementFromPoint(+p[0],+p[1]);if(!t)return 'no element at point';el=t;}" +
+                "else{el=document.querySelector($sel);if(!el)return 'element not found';}" +
+                "if(el.focus&&/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName))el.focus();" +
+                "function press(el,target,type,btn,btns,detail,cx,cy){" +
+                "var e=new MouseEvent(type,{bubbles:true,cancelable:true,view:window,button:btn,buttons:btns,detail:detail,clientX:cx,clientY:cy});" +
+                "return (target||el).dispatchEvent(e);}" +
+                "function pressAt(el,cx,cy,btn,btns,detail){" +
+                "return press(el,el,'mousedown',btn,btns,detail,cx,cy)&&press(el,el,'mouseup',btn,0,detail,cx,cy);}" +
+                "var r=el.getBoundingClientRect();" +
+                "var px=('$point'!=='')?+('$point'.split(',')[0]):r.left+r.width/2;" +
+                "var py=('$point'!=='')?+('$point'.split(',')[1]):r.top+r.height/2;" +
+                "var kind='$kind';" +
+                "if(kind==='right'){" +
+                "pressAt(el,px,py,$code,$buttons,1);" +
+                "press(el,el,'contextmenu',$code,0,1,px,py);" +
+                "return 'right-clicked';}" +
+                "if(kind==='middle'){" +
+                "pressAt(el,px,py,$code,$buttons,1);" +
+                "press(el,el,'auxclick',$code,0,1,px,py);" +
+                "return 'middle-clicked';}" +
+                "for(var i=1;i<=$count;i++){if(!pressAt(el,px,py,0,1,i))break;press(el,el,'click',0,0,i,px,py);}" +
+                "if($count>1)press(el,el,'dblclick',0,0,$count,px,py);" +
+                "return 'clicked $button x$count';})();"
+        )
         raw?.let { unquoteJsString(it) } ?: "ok"
     }
 
-    suspend fun domSnapshot(selector: String?, maxNodes: Int): String = withContext(Dispatchers.Main) {
+    suspend fun fill(selector: String, text: String): String = withContext(Dispatchers.Main) {
+        val sel = Json.encodeToString(selector)
+        val value = Json.encodeToString(text)
+        val raw = evaluateJavascriptAsync(
+            "(function(){var el=document.querySelector($sel);if(!el)return 'element not found';" +
+                "el.focus();el.value=$value;" +
+                "el.dispatchEvent(new Event('input',{bubbles:true}));" +
+                "el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';})();"
+        )
+        raw?.let { unquoteJsString(it) } ?: "ok"
+    }
+
+    suspend fun typeText(text: String): String = withContext(Dispatchers.Main) {
+        val value = Json.encodeToString(text)
+        val raw = evaluateJavascriptAsync(
+            "(function(){var el=document.activeElement;" +
+                "if(!el||el===document.body)return 'no focused element';" +
+                "el.value=el.value+$value;" +
+                "el.dispatchEvent(new Event('input',{bubbles:true}));return 'typed';})();"
+        )
+        raw?.let { unquoteJsString(it) } ?: "ok"
+    }
+
+    suspend fun pressKey(key: String, modifiers: Set<String> = emptySet()): String = withContext(Dispatchers.Main) {
+        val value = Json.encodeToString(key)
+        val mods = modifiers.map { it.lowercase() }.toSet()
+        val flags = buildList {
+            if ("ctrl" in mods) add("ctrlKey:true")
+            if ("alt" in mods) add("altKey:true")
+            if ("shift" in mods) add("shiftKey:true")
+            if ("meta" in mods) add("metaKey:true")
+        }.joinToString(",")
+        val opts = if (flags.isNotEmpty()) "{key:k,bubbles:true,$flags}" else "{key:k,bubbles:true}"
+        val combo = (mods.intersect(setOf("ctrl", "alt", "shift", "meta")).map { it.replaceFirstChar(Char::uppercase) } + key)
+            .joinToString("+")
+        val raw = evaluateJavascriptAsync(
+            "(function(){var k=$value;" +
+                "document.dispatchEvent(new KeyboardEvent('keydown',$opts));" +
+                "document.dispatchEvent(new KeyboardEvent('keyup',$opts));" +
+                "return 'pressed '+${Json.encodeToString(combo)};})();"
+        )
+        raw?.let { unquoteJsString(it) } ?: "ok"
+    }
+
+    suspend fun scroll(dy: Int): String = withContext(Dispatchers.Main) {
+        val raw = evaluateJavascriptAsync(
+            "(function(){window.scrollBy(0,$dy);return 'scrolled';})();"
+        )
+        raw?.let { unquoteJsString(it) } ?: "ok"
+    }
+
+    suspend fun domSnapshot(selector: String?, depth: Int = 15, filter: String = "all"): String = withContext(Dispatchers.Main) {
         val sel = Json.encodeToString(selector ?: "")
+        val maxDepth = depth.coerceIn(1, 50)
+        val interactiveOnly = filter.lowercase() == "interactive"
         val js = """
-(function(){var sel=$sel,out=[],refCount=0,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];
+(function(){var sel=$sel,out=[],refCount=0,used=0,truncated=false,seen=0,MAX=$MAX_SNAPSHOT_CHARS,skip=['script','style','noscript','svg','path','head','meta','link','br','wbr','hr','iframe','canvas'];
 function roleOf(el){var r=el.getAttribute('role');if(r==='none'||r==='presentation')return null;if(r)return r;var tag=el.tagName.toLowerCase();
 if(tag==='a')return el.getAttribute('href')?'link':null;
 if(tag==='button')return 'button';
@@ -1013,23 +1110,31 @@ if(tag==='nav')return 'navigation';if(tag==='main')return 'main';if(tag==='artic
 if(tag==='section')return 'region';if(tag==='aside')return 'complementary';if(tag==='header')return 'banner';
 if(tag==='footer')return 'contentinfo';if(tag==='form')return 'form';if(tag==='ul'||tag==='ol')return 'list';
 if(tag==='li')return 'listitem';if(tag==='table')return 'table';return null;}
-function nameOf(el){return (el.getAttribute('aria-label')||el.getAttribute('alt')||el.getAttribute('title')||el.getAttribute('placeholder')||(el.innerText||'').trim()||'').slice(0,120);}
-function directText(el){var s='';for(var i=0;i<el.childNodes.length;i++){var n=el.childNodes[i];if(n.nodeType===3)s+=n.textContent;}return s.trim();}
+function nameOf(el){return (el.getAttribute('aria-label')||el.getAttribute('alt')||el.getAttribute('title')||el.getAttribute('placeholder')||(el.textContent||'').trim()||'').slice(0,120);}
+function directText(el){var s='';for(var i=0;i<el.childNodes.length&&s.length<500;i++){var n=el.childNodes[i];if(n.nodeType===3)s+=n.textContent;}return s.trim();}
 function ind(d){return Array(d+1).join('  ');}
+function emit(line){if(truncated)return;if(used+line.length>MAX){truncated=true;return;}out.push(line);used+=line.length+1;}
 var leafRoles=['link','button','img','heading','listitem'];
-function walk(el,depth){if(out.length>$maxNodes)return;
-if(el.nodeType===3){var t=(el.textContent||'').trim();if(t)out.push(ind(depth)+'text: '+t.slice(0,120));return;}
+var refRoles=['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'];
+var interactiveRoles=['link','button','textbox','combobox','checkbox','radio','searchbox'];
+function refOf(el){var ref=el.getAttribute('data-rkref');if(!ref){refCount++;ref='e'+refCount;el.setAttribute('data-rkref',ref);}return ref;}
+function walk(el,depth){if(truncated||depth>$maxDepth)return;seen++;
+if(el.nodeType===3){if(!$interactiveOnly){var t=(el.textContent||'').trim();if(t)emit(ind(depth)+'text: '+t.slice(0,120));}return;}
 if(el.nodeType!==1)return;var tag=el.tagName.toLowerCase();if(skip.indexOf(tag)>=0)return;
 var role=roleOf(el);if(role==='alert')return;
-if(!role){var dt=directText(el);if(dt)out.push(ind(depth)+'text: '+dt.slice(0,120));for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
+if(!role){if(!$interactiveOnly){var dt=directText(el);if(dt)emit(ind(depth)+'text: '+dt.slice(0,120));}for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
+if($interactiveOnly&&interactiveRoles.indexOf(role)<0){for(var i=0;i<el.children.length;i++)walk(el.children[i],depth);return;}
 var name=nameOf(el);var line=ind(depth)+role;if(name)line+=' "'+name+'"';
 var href=el.getAttribute('href');if(href){try{href=new URL(href,location.href).href;}catch(e){}line+=' [href='+href.slice(0,100)+']';}
 if(role==='heading'){var lvl=el.getAttribute('aria-level');if(!lvl&&tag.length===2&&tag.charAt(0)==='h')lvl=tag.charAt(1);if(lvl)line+=' [level='+lvl+']';}
 if((tag==='input'||tag==='textarea')&&el.value)line+=' [value='+String(el.value).slice(0,80)+']';
-if(['link','button','textbox','combobox','checkbox','radio','searchbox','img','listitem','heading'].indexOf(role)>=0){refCount++;var ref='e'+refCount;el.setAttribute('data-rkref',ref);line+=' [ref='+ref+']';}
-out.push(line);
+if(refRoles.indexOf(role)>=0)line+=' [ref='+refOf(el)+']';
+emit(line);
 if(!name||leafRoles.indexOf(role)<0){for(var i=0;i<el.children.length;i++)walk(el.children[i],depth+1);}}
-var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';walk(root,0);return out.join('\n');})();
+var root=sel?document.querySelector(sel):document.body;if(!root)return 'element not found';walk(root,0);
+var body=out.join('\n');
+if(truncated)body+='\n[truncated: showing '+out.length+' of '+seen+' lines, narrow with selector, depth or filter=interactive]';
+return body;})();
         """.trimIndent()
         val raw = evaluateJavascriptAsync(js)
         raw?.let { unquoteJsString(it) } ?: "no snapshot"
@@ -1037,8 +1142,25 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
 
     suspend fun executeScript(expression: String): String = withContext(Dispatchers.Main) {
         if (webView.measuredWidth <= 0) layoutForCapture(viewportW, viewportH)
-        val raw = evaluateJavascriptAsync(expression)
-        raw?.let { unquoteJsString(it) } ?: "null"
+        val token = Uuid.random().toString()
+        val pending = CompletableDeferred<String?>()
+        scriptBridge.pending = pending
+        scriptBridge.token = token
+        val wrapped = SCRIPT_WRAPPER_JS
+            .replace("__RK_TOKEN__", token)
+            .replace("__RK_EXPR__", Json.encodeToString(expression))
+        webView.evaluateJavascript(wrapped, null)
+        val payload = withTimeoutOrNull(perToolTimeoutMs) { pending.await() }
+            ?: return@withContext "timeout waiting for script result"
+        scriptBridge.pending = null
+        scriptBridge.token = null
+        val envelope = runCatching { Json.parseToJsonElement(payload).jsonObject }.getOrNull()
+            ?: return@withContext payload.take(MAX_TEXT_CHARS)
+        if (envelope["ok"]?.jsonPrimitive?.booleanOrNull != true) {
+            return@withContext "error: ${envelope["error"]?.jsonPrimitive?.contentOrNull ?: "unknown"}"
+        }
+        val rawValue = envelope["value"]?.toString() ?: ""
+        runCatching { Json.decodeFromString<String>(rawValue) }.getOrDefault(rawValue).take(MAX_TEXT_CHARS)
     }
 
     fun close() {
@@ -1048,7 +1170,8 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         maxHeightPx: Int,
         context: Context,
         selector: String? = null,
-        fullPage: Boolean = false
+        fullPage: Boolean = false,
+        region: RectF? = null
     ): String? = withTimeoutOrNull(perToolTimeoutMs) {
         val bitmap = withContext(Dispatchers.Main) {
             // Use the WebView's current on-screen size when it is already laid out (what the user
@@ -1064,23 +1187,33 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
             val w = webView.measuredWidth.coerceAtLeast(1)
             val h = webView.measuredHeight.coerceAtLeast(1)
             val full = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { webView.draw(Canvas(it)) }
-            if (selector != null) {
-                val sel = Json.encodeToString(selector)
-                val rectRaw = evaluateJavascriptAsync(
-                    "(function(){var e=document.querySelector($sel);if(!e)return null;" +
-                        "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height," +
-                        "dpr:window.devicePixelRatio||1,sx:window.scrollX||0,sy:window.scrollY||0});})();"
-                )
-                val rect = rectRaw?.let { parseRect(it) }
-                if (rect != null) {
-                    val cx = ((rect.rect.left + rect.scrollX) * rect.dpr).toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
-                    val cy = ((rect.rect.top + rect.scrollY) * rect.dpr).toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
-                    val cw = (rect.rect.width() * rect.dpr).toInt().coerceIn(1, w - cx)
-                    val ch = (rect.rect.height() * rect.dpr).toInt().coerceIn(1, h - cy)
-                    Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
-                } else {
-                    full
+            val shot: SelectorShot? = when {
+                region != null -> {
+                    val dprRaw = evaluateJavascriptAsync("window.devicePixelRatio||1")
+                    val dpr = dprRaw?.let { unquoteJsString(it) }?.toFloatOrNull() ?: 1f
+                    val sxRaw = evaluateJavascriptAsync("window.scrollX||0")
+                    val sx = sxRaw?.let { unquoteJsString(it) }?.toFloatOrNull() ?: 0f
+                    val syRaw = evaluateJavascriptAsync("window.scrollY||0")
+                    val sy = syRaw?.let { unquoteJsString(it) }?.toFloatOrNull() ?: 0f
+                    SelectorShot(region, dpr, sx, sy)
                 }
+                selector != null -> {
+                    val sel = Json.encodeToString(selector)
+                    val rectRaw = evaluateJavascriptAsync(
+                        "(function(){var e=document.querySelector($sel);if(!e)return null;" +
+                            "var r=e.getBoundingClientRect();return JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height," +
+                            "dpr:window.devicePixelRatio||1,sx:window.scrollX||0,sy:window.scrollY||0});})();"
+                    )
+                    rectRaw?.let { parseRect(it) }
+                }
+                else -> null
+            }
+            if (shot != null) {
+                val cx = ((shot.rect.left + shot.scrollX) * shot.dpr).toInt().coerceIn(0, (w - 1).coerceAtLeast(0))
+                val cy = ((shot.rect.top + shot.scrollY) * shot.dpr).toInt().coerceIn(0, (h - 1).coerceAtLeast(0))
+                val cw = (shot.rect.width() * shot.dpr).toInt().coerceIn(1, w - cx)
+                val ch = (shot.rect.height() * shot.dpr).toInt().coerceIn(1, h - cy)
+                Bitmap.createBitmap(full, cx, cy, cw, ch).also { full.recycle() }
             } else {
                 full
             }
@@ -1140,7 +1273,7 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val MAX_CONTENT_CHARS = 50 * 1024
         const val MAX_LINKS = 200
         const val RAW_FETCH_MAX_BYTES = 5L * 1024 * 1024
-        const val MAX_DOM_NODES = 200
+        const val MAX_SNAPSHOT_CHARS = 50_000
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
 
         const val DESKTOP_UA =
@@ -1151,6 +1284,73 @@ var root=sel?document.querySelector(sel):document.body;if(!root)return 'element 
         const val DESKTOP_HEIGHT_PX = 800
 
         private const val NET_BRIDGE_NAME = "__rkNetBridge"
+        private const val SCRIPT_BRIDGE_NAME = "rkScript"
+        private const val SCRIPT_MAX_CHARS = 8 * 1024
+
+        private val WAITFOR_WRAPPER_JS = """
+            (function(){
+            var token='__RK_TOKEN__',needle=__RK_TEXT__,timeout=__RK_TIMEOUT__,idle=__RK_IDLE__;
+            var done=false;
+            function send(ok){if(done)return;done=true;try{rkScript.postResult(token,JSON.stringify({ok:ok}));}catch(e){}}
+            function matches(){
+            if(!needle)return true;
+            try{return !!document.querySelector(needle);}catch(e){return false;}
+            }
+            var settleTimer=null,deadline=setTimeout(function(){cleanup();send(false);},timeout);
+            function cleanup(){clearTimeout(deadline);if(settleTimer)clearTimeout(settleTimer);if(obs)obs.disconnect();}
+            function onChange(){
+            if(!matches())return;
+            if(idle<=0){cleanup();send(true);return;}
+            if(settleTimer)clearTimeout(settleTimer);
+            settleTimer=setTimeout(function(){cleanup();send(matches());},idle);
+            }
+            var obs=null;
+            try{obs=new MutationObserver(onChange);obs.observe(document.documentElement,{childList:true,subtree:true,characterData:true});}catch(e){}
+            onChange();
+            setTimeout(function(){if(!done&&matches())onChange();},500);
+            })();
+        """.trimIndent()
+
+        private val SCRIPT_WRAPPER_JS = """
+            (function(){
+            var token='__RK_TOKEN__';
+            function send(payload){try{rkScript.postResult(token,payload);}catch(e){}}
+            function sanitize(v,seen,depth){
+            if(depth>10)return '[max depth]';
+            if(v===null)return v;
+            if(v===undefined)return '[undefined]';
+            var t=typeof v;
+            if(t==='string'||t==='number'||t==='boolean')return v;
+            if(t==='bigint')return v.toString();
+            if(t==='function')return '[function '+(v.name||'anonymous')+']';
+            if(t==='symbol')return '[symbol '+(v.description||'')+']';
+            if(t!=='object')return String(v);
+            if(v instanceof Node)return '[DOM '+(v.nodeName||'node')+']';
+            if(v===window)return '[window]';
+            if(v instanceof Error)return {name:v.name,message:v.message,stack:v.stack};
+            if(seen.indexOf(v)>=0)return '[circular]';
+            seen.push(v);
+            try{
+            if(Array.isArray(v))return v.map(function(x){return sanitize(x,seen,depth+1);});
+            var out={};
+            for(var k in v){try{out[k]=sanitize(v[k],seen,depth+1);}catch(e){out[k]='[unreadable]';}}
+            return out;
+            }finally{seen.pop();}
+            }
+            function deliver(v){
+            var text;
+            try{text=JSON.stringify({ok:true,value:sanitize(v,[],0)});}
+            catch(e){text=JSON.stringify({ok:false,error:String(e&&e.message||e)});}
+            if(text.length>$SCRIPT_MAX_CHARS)text=JSON.stringify({ok:true,value:text.slice(0,$SCRIPT_MAX_CHARS),truncated:true});
+            send(text);
+            }
+            var expr=__RK_EXPR__;
+            var result;
+            try{result=(0,eval)(expr);}
+            catch(e){send(JSON.stringify({ok:false,error:String(e&&e.message||e)}));return;}
+            Promise.resolve(result).then(deliver,function(e){send(JSON.stringify({ok:false,error:String(e&&e.message||e)}));});
+            })();
+        """.trimIndent()
 
         /**
          * Patches window.fetch and XMLHttpRequest so request bodies, status codes, response
@@ -1264,6 +1464,26 @@ internal class NetLogBridge(private val collector: BrowserLogCollector) {
         runCatching {
             val entry = Json.parseToJsonElement(entryJson).jsonObject
             collector.mergeJsEntry(entry)
+        }
+    }
+}
+
+/**
+ * One-shot delivery slot for [BrowserController.executeScript]. Top-level for the same
+ * reflective-lookup reason as [NetLogBridge]. Calls are serialized by HeadlessBrowserSession's
+ * mutex, and the token guards against stale deliveries after timeouts.
+ */
+internal class ScriptResultBridge {
+    @Volatile
+    var pending: CompletableDeferred<String?>? = null
+
+    @Volatile
+    var token: String? = null
+
+    @JavascriptInterface
+    fun postResult(token: String, payload: String) {
+        if (token == this.token) {
+            pending?.complete(payload)
         }
     }
 }

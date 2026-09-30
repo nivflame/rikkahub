@@ -1,8 +1,6 @@
 package me.rerere.rikkahub.browser
 
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -13,9 +11,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
- * Ring-buffer collector backing the browser_logs tool. Ported semantics from the previous
- * CDP-based implementation: capped buffers (500), most-recent-first pagination, bodies kept
- * truncated at 4 KiB and stripped at query time unless requested.
+ * Ring-buffer collector backing the browser_logs tool: capped buffers (500), most recent first,
+ * bodies truncated at 4 KiB and always returned.
  *
  * Two entry origins:
  * - native: recorded from [android.webkit.WebViewClient.shouldInterceptRequest], carries
@@ -88,47 +85,43 @@ internal class BrowserLogCollector {
         }
     }
 
-    fun clear() {
+    fun clear(type: String) {
         synchronized(this) {
-            consoleLog.clear()
-            networkLog.clear()
+            when (type) {
+                "console" -> consoleLog.clear()
+                "network" -> networkLog.clear()
+            }
         }
     }
 
     fun getLogs(params: JsonObject): String {
         return when (params.str("type")) {
             "console" -> {
+                val scanned = synchronized(this) { consoleLog.size }
                 var entries = synchronized(this) { consoleLog.toList() }
-                params.arr("types")?.let { allowed ->
-                    entries = entries.filter { it.str("type") in allowed }
+                params.str("pattern")?.takeIf { it.isNotBlank() }?.let { raw ->
+                    entries = entries.filter { matchesPattern(consoleHaystack(it), raw) }
                 }
-                val pageIdx = params.int("pageIdx") ?: 0
-                val pageSize = params.int("pageSize") ?: DEFAULT_PAGE_SIZE
-                val page = pageMostRecentFirst(entries, pageIdx, pageSize)
+                val page = entries.takeLast(limit(params)).reversed()
+                if (params.bool("clear")) clear("console")
                 buildJsonObject {
                     put("logs", buildJsonArray { page.forEach { add(it) } })
                     put("total", entries.size)
+                    put("scanned", scanned)
                 }.toString()
             }
 
             "network" -> {
-                params.str("requestId")?.let { id ->
-                    val found = synchronized(this) {
-                        networkLog.firstOrNull { it.str("requestId") == id }
-                    }
-                    return buildJsonObject {
-                        put("log", found ?: JsonNull)
-                    }.toString()
-                }
-
                 var entries = synchronized(this) { networkLog.toList() }
-                params.arr("resourceTypes")?.let { allowed ->
+                params.arr("resource_type")?.let { allowed ->
                     entries = entries.filter { it.str("resourceType") in allowed }
                 }
-                params.str("urlPattern")?.takeIf { it.isNotBlank() }?.let { pattern ->
+                params.str("url_pattern")?.takeIf { it.isNotBlank() }?.let { pattern ->
                     entries = entries.filter { (it.str("url") ?: "").contains(pattern) }
                 }
-                buildLogsResponse(entries, params)
+                val response = buildLogsResponse(entries, params)
+                if (params.bool("clear")) clear("network")
+                response
             }
 
             else -> """{"error":"unknown log type, expected \"console\" or \"network\""}"""
@@ -136,11 +129,7 @@ internal class BrowserLogCollector {
     }
 
     private fun buildLogsResponse(entries: List<JsonObject>, params: JsonObject): String {
-        val includeRequestBody = params.bool("includeRequestBody")
-        val includeResponseBody = params.bool("includeResponseBody")
-        val pageIdx = params.int("pageIdx") ?: 0
-        val pageSize = params.int("pageSize") ?: DEFAULT_PAGE_SIZE
-        val page = pageMostRecentFirst(entries, pageIdx, pageSize)
+        val page = entries.takeLast(limit(params)).reversed()
 
         val logs = page.map { entry ->
             val out = buildJsonObject {
@@ -157,10 +146,9 @@ internal class BrowserLogCollector {
                 entry["requestHeaders"]?.let { put("requestHeaders", it) }
                 entry["responseHeaders"]?.let { put("responseHeaders", it) }
             }
-            if (!includeRequestBody && !includeResponseBody) return@map out
             val mutable = out.toMutableMap()
-            if (includeRequestBody) entry["requestBody"]?.let { mutable["requestBody"] = it }
-            if (includeResponseBody) entry["responseBody"]?.let { mutable["responseBody"] = it }
+            entry["requestBody"]?.let { mutable["requestBody"] = it }
+            entry["responseBody"]?.let { mutable["responseBody"] = it }
             JsonObject(mutable)
         }
         return buildJsonObject {
@@ -169,13 +157,24 @@ internal class BrowserLogCollector {
         }.toString()
     }
 
-    // Replicates the previous implementation's windowing: page 0 is the most recent slice.
-    private fun <T> pageMostRecentFirst(items: List<T>, pageIdx: Int, pageSize: Int): List<T> {
-        if (pageSize <= 0 || pageIdx < 0) return items
-        val start = (items.size - (pageIdx + 1) * pageSize).coerceAtLeast(0)
-        val end = items.size - pageIdx * pageSize
-        if (end <= start) return emptyList()
-        return items.subList(start, end.coerceAtMost(items.size))
+    private fun limit(params: JsonObject): Int =
+        params.int("limit")?.coerceIn(1, LOG_RING_CAP) ?: DEFAULT_LIMIT
+
+    private fun consoleHaystack(entry: JsonObject): String = buildList {
+        entry.str("type")?.let { add(it) }
+        (entry["args"] as? JsonArray)?.mapNotNullTo(this) { it.jsonPrimitive.contentOrNull }
+        entry.str("url")?.let { add(it) }
+        entry["lineNumber"]?.jsonPrimitive?.contentOrNull?.let { add(it) }
+    }.joinToString(" ")
+
+    private fun matchesPattern(haystack: String, raw: String): Boolean {
+        val pattern = raw.take(MAX_PATTERN_LEN)
+        if (pattern.length >= 2 && pattern.startsWith("/") && pattern.endsWith("/")) {
+            val body = pattern.substring(1, pattern.length - 1)
+            runCatching { Regex(body, RegexOption.IGNORE_CASE).containsMatchIn(haystack) }
+                .getOrNull()?.let { return it }
+        }
+        return haystack.contains(pattern, ignoreCase = true)
     }
 
     private fun mergeEntries(base: JsonObject, extra: JsonObject): JsonObject {
@@ -250,6 +249,7 @@ internal class BrowserLogCollector {
         private const val MAX_BODY_SIZE = 4096
         private const val MAX_HEADER_KEY_LEN = 128
         private const val MAX_VALUE_SIZE = 8192
-        private const val DEFAULT_PAGE_SIZE = 50
+        private const val MAX_PATTERN_LEN = 300
+        private const val DEFAULT_LIMIT = 100
     }
 }
