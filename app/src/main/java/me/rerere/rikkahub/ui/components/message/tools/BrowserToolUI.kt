@@ -3,6 +3,7 @@ package me.rerere.rikkahub.ui.components.message.tools
 import androidx.compose.runtime.Composable
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import me.rerere.common.http.jsonObjectOrNull
 import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
@@ -72,7 +73,14 @@ private fun browserLabel(context: ToolUIContext): String = when (context.tool.to
             .orEmpty()
         "Press ${(mods + key).joinToString("+")}"
     }
-    "browser_scroll" -> "Scroll ${context.arguments.getStringContent("dy") ?: ""}"
+    "browser_scroll" -> {
+        val dy = context.arguments?.jsonObjectOrNull?.get("dy")?.jsonPrimitiveOrNull?.intOrNull
+        when {
+            dy == null || dy == 0 -> "Scroll"
+            dy > 0 -> "Scroll down"
+            else -> "Scroll up"
+        }
+    }
     "browser_upload_file" -> {
         val name = context.arguments.getStringContent("file_path")?.substringAfterLast('/') ?: ""
         "Upload $name"
