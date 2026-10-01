@@ -66,7 +66,13 @@ class WebToolUI(override val toolName: String) : ToolUIRenderer {
                 }
             }
         } else {
-            super.Label(context)
+            Text(
+                text = title(context),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 
