@@ -193,7 +193,6 @@ private fun BrowserScreen(
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     var controller by remember { mutableStateOf<BrowserController?>(null) }
     var conversationId by remember { mutableStateOf(initialConversationId) }
-    var initialLoaded by remember { mutableStateOf(false) }
     var addressBar by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
     var showFullReply by remember { mutableStateOf(false) }
@@ -232,13 +231,6 @@ private fun BrowserScreen(
 
     BackHandler(enabled = canGoBack && !inputExpanded) {
         controller?.webView?.goBack()
-    }
-
-    LaunchedEffect(settings.browserLastUrl, controller) {
-        if (!initialLoaded && controller != null) {
-            controller?.webView?.loadUrl(settings.browserLastUrl ?: HOME_URL)
-            initialLoaded = true
-        }
     }
 
     val ui by produceState(initialValue = BrowserUiState(), conversationId) {
@@ -387,11 +379,11 @@ private fun BrowserScreen(
                                 addressBar = url
                                 canGoBack = webView.canGoBack()
                                 canGoForward = webView.canGoForward()
-                                scope.launch { settingsStore.update { it.copy(browserLastUrl = url) } }
                             }
                         )
                         controller = c
                         mobileUA = webView.settings.userAgentString
+                        webView.loadUrl(HOME_URL)
                         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
                             if (scrollY > oldScrollY + 10) {
                                 navBarVisible = false
