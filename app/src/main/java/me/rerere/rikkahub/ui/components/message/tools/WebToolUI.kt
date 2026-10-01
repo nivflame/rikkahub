@@ -2,7 +2,6 @@ package me.rerere.rikkahub.ui.components.message.tools
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,13 +28,18 @@ class WebToolUI(override val toolName: String) : ToolUIRenderer {
     }
 
     @Composable
-    override fun title(context: ToolUIContext): String = toolName
+    override fun title(context: ToolUIContext): String = when (toolName) {
+        "WebSearch" -> "Search: ${context.arguments.getStringContent("query") ?: ""}"
+        "WebFetch" -> "Fetch: ${context.arguments.getStringContent("url") ?: ""}"
+        else -> toolName
+    }
 
     @Composable
     override fun Label(context: ToolUIContext) {
         if (toolName == "WebSearch") {
             val resultCount = context.content?.jsonArrayOrNull?.size
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -45,6 +49,7 @@ class WebToolUI(override val toolName: String) : ToolUIRenderer {
                     color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
                 if (resultCount != null && resultCount > 0) {
                     Surface(
@@ -65,61 +70,4 @@ class WebToolUI(override val toolName: String) : ToolUIRenderer {
         }
     }
 
-    override fun hasSummary(context: ToolUIContext): Boolean = when (toolName) {
-        "WebSearch" -> context.arguments.getStringContent("query") != null
-        "WebFetch" -> context.arguments.getStringContent("url") != null
-        else -> false
-    }
-
-    @Composable
-    override fun Summary(context: ToolUIContext) {
-        when (toolName) {
-            "WebSearch" -> {
-                val query = context.arguments.getStringContent("query") ?: return
-                val news = context.arguments.getStringContent("news") == "true"
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                ) {
-                    Text(
-                        text = query,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (news) {
-                        Text(
-                            text = "News search",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            "WebFetch" -> {
-                val url = context.arguments.getStringContent("url") ?: return
-                val startIndex = context.arguments.getStringContent("start_index")?.toIntOrNull()
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                ) {
-                    Text(
-                        text = url,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (startIndex != null && startIndex > 0) {
-                        Text(
-                            text = "from line $startIndex",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
