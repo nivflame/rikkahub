@@ -10,10 +10,17 @@ internal fun buildSubagentTool(settings: Settings): Tool = Tool(
     name = "Subagent",
     description = SUBAGENT_DESCRIPTION_INTRO +
         settings.subagentPrompts.filter { it.enabled }.joinToString("\n") { "- ${it.name}: ${it.description}" } +
-        SUBAGENT_DESCRIPTION_REST,
+        SUBAGENT_DESCRIPTION_REST.replace(
+            "{{concurrency}}",
+            settings.subagentConcurrency.toString()
+        ),
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
+                put("description", buildJsonObject {
+                    put("description", "A short (3-5 word) description of the task")
+                    put("type", "string")
+                })
                 put("prompt", buildJsonObject {
                     put("description", "The task for the subagent to perform")
                     put("type", "string")
@@ -27,7 +34,7 @@ internal fun buildSubagentTool(settings: Settings): Tool = Tool(
                     put("type", "number")
                 })
             },
-            required = listOf("prompt")
+            required = listOf("description", "prompt")
         )
     },
     execute = { error("Subagent tool execute is handled in ChatService") }
@@ -47,7 +54,8 @@ When using the Subagent, specify a subagent_type parameter to select which subag
 If the target is already known, use the direct tool: Read for a known path, `grep` via the Bash for a specific symbol or string. Reserve this tool for open-ended questions that span the codebase, or tasks that match an available subagent type
 
 ## Usage notes
-- When you launch multiple subagents for independent work, send them in a single message with multiple tool uses so they run concurrently
+- Always include a short description summarizing what the subagent will do
+- When you launch multiple subagents for independent work, send them in a single message with multiple tool uses so they run concurrently (up to {{concurrency}} at a time)
 - When the subagent is done, it will return a single message back to you. The result returned by the subagent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result
 - Trust but verify: an subagent's summary describes what it intended to do, not necessarily what it did. When an subagent writes or edits code, check the actual changes before reporting the work as done
 - Clearly tell the subagent whether you expect it to write code or just to do research (search, reads, web fetches, etc.), since it is not aware of the user's intent
@@ -75,6 +83,7 @@ Example usage:
 user: "What's left on this branch before we can ship?"
 assistant: <thinking>A survey question across git state, tests, and config. I'll delegate it and ask for a short report so the raw command output stays out of my context.</thinking>
 Subagent({
+  description: "Branch ship-readiness audit",
   prompt: "Audit what's left before this branch can ship. Check: uncommitted changes, commits ahead of main, whether tests exist, whether the GrowthBook gate is wired up, whether CI-relevant files changed. Report a punch list done vs. missing. Under 200 words."
 })
 <commentary>
@@ -86,6 +95,7 @@ The prompt is self-contained: it states the goal, lists what to check, and caps 
 user: "Can you get a second opinion on whether this migration is safe?"
 assistant: <thinking>I'll ask the code-reviewer agent it won't see my analysis, so it can give an independent read.</thinking>
 Subagent({
+  description: "Independent migration review",
   subagent_type: "code-reviewer",
   prompt: "Review migration 0042_user_schema.sql for safety. Context: we're adding a NOT NULL column to a 50M-row table. Existing rows get a backfill default. I want a second opinion on whether the backfill approach is safe under concurrent writes I've checked locking behavior but want independent verification. Report: is this safe, and if not, what specifically breaks?"
 })

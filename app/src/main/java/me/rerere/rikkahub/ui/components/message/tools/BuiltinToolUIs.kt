@@ -295,8 +295,9 @@ object SubagentToolUI : ToolUIRenderer {
 
     @Composable
     override fun title(context: ToolUIContext): String {
-        val type = context.arguments.getStringContent("subagent_type") ?: "general-purpose"
-        return "Subagent: $type"
+        val type = context.arguments.getStringContent("subagent_type")?.takeIf { it.isNotBlank() } ?: "Subagent"
+        val description = context.arguments.getStringContent("description")?.takeIf { it.isNotBlank() }
+        return if (description != null) "$type: $description" else type
     }
 
     override fun hasSummary(context: ToolUIContext): Boolean {
