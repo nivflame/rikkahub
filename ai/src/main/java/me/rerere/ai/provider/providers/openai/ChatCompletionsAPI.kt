@@ -426,6 +426,7 @@ class ChatCompletionsAPI(
                             put("function", buildJsonObject {
                                 put("name", tool.name)
                                 put("description", tool.description)
+                                put("strict", false)
                                 put(
                                     "parameters",
                                     json.encodeToJsonElement(
