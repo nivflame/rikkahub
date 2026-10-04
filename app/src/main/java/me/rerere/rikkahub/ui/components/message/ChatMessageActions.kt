@@ -40,6 +40,7 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
+import me.rerere.ai.ui.isInjectedNotice
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
@@ -257,6 +258,8 @@ fun ChatMessageActionsSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
     ) {
+        // Client-injected notices are not editable
+        val isInjectedNotice = message.isInjectedNotice
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -324,29 +327,31 @@ fun ChatMessageActionsSheet(
             }
 
             // Edit
-            Card(
-                onClick = {
-                    onDismissRequest()
-                    onEdit()
-                },
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
+            if (!isInjectedNotice) {
+                Card(
+                    onClick = {
+                        onDismissRequest()
+                        onEdit()
+                    },
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(
-                        imageVector = HugeIcons.Edit01,
-                        contentDescription = null,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.edit),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.Edit01,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.edit),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
                 }
             }
 

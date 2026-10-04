@@ -57,6 +57,22 @@ data class DiffMetadata(
 ) : PartMetadata
 
 /**
+ * Metadata for client-injected notice parts (e.g. MCP background command
+ * completion); the UI renders these as non-editable notices, never sent to the API
+ */
+@Serializable
+data class InjectedNoticeMetadata(
+    val kind: String? = null,
+) : PartMetadata
+
+/**
+ * Whether the message is a client-injected notice (any Text part carrying
+ * [InjectedNoticeMetadata])
+ */
+val UIMessage.isInjectedNotice: Boolean
+    get() = parts.any { it is UIMessagePart.Text && it.metadataAs<InjectedNoticeMetadata>() != null }
+
+/**
  * 将 metadata 解析为类型化的 [PartMetadata], 解析失败或 metadata 为 null 时返回 null
  *
  * 由于 json 配置了 ignoreUnknownKeys, 不同 provider 的 metadata 互不干扰

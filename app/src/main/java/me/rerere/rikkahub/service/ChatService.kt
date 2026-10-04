@@ -10,6 +10,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,6 +43,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.IOException
 import java.net.SocketException
+import java.util.Collections
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
 import me.rerere.ai.core.Tool
@@ -55,6 +57,9 @@ import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.ai.ui.canResumeToolExecution
 import me.rerere.ai.ui.finishPendingTools
+import me.rerere.ai.ui.InjectedNoticeMetadata
+import me.rerere.ai.ui.toMetadata
+import me.rerere.ai.ui.finishReasoning
 import me.rerere.ai.ui.finishReasoning
 import me.rerere.ai.ui.isEmptyInputMessage
 import me.rerere.common.android.Logging
@@ -91,6 +96,8 @@ import me.rerere.rikkahub.data.ai.transformers.ThinkTagTransformer
 import me.rerere.rikkahub.data.ai.transformers.TimeReminderTransformer
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
+import me.rerere.rikkahub.data.event.AppEvent
+import me.rerere.rikkahub.data.event.AppEventBus
 import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.data.ai.ProviderPoolSelector
@@ -123,6 +130,9 @@ import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
 
 private const val TAG = "ChatService"
+
+// Metadata kind for injected MCP background command notifications
+const val INJECTED_NOTICE_BACKGROUND_COMMAND = "background_command"
 
 internal fun backgroundTextGenerationParams(
     model: Model,
@@ -184,6 +194,7 @@ class ChatService(
     private val workspaceRepository: WorkspaceRepository,
     private val folderRepository: FolderRepository,
     private val subagentProgressStore: SubagentProgressStore,
+    private val appEventBus: AppEventBus,
 ) {
     private val subagentRunner by lazy { SubagentRunner(generationHandler, settingsStore, subagentProgressStore) }
 
@@ -239,6 +250,136 @@ class ChatService(
     init {
         // 添加生命周期观察者
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
+
+        // Background command completion from MCP: inject a message and start a
+        // new generation turn when appropriate
+        appScope.launch {
+            appEventBus.events.collect { event ->
+                if (event !is AppEvent.McpBackgroundCommand) return@collect
+                runCatching { handleMcpBackgroundCommand(event) }
+                    .onFailure { it.printStackTrace() }
+            }
+        }
+
+        // Drain queued notifications after a turn ends; injecting mid-generation
+        // shifts messageNodes indexes and corrupts the in-flight streamed response
+        appScope.launch {
+            generationDoneFlow.collect { conversationId ->
+                runCatching { drainPendingBackgroundNotifications(conversationId) }
+                    .onFailure { it.printStackTrace() }
+            }
+        }
+    }
+
+    // Conversation -> queued background notification texts, injected at turn boundaries
+    private val pendingBackgroundTexts = ConcurrentHashMap<Uuid, MutableList<String>>()
+
+    private suspend fun handleMcpBackgroundCommand(event: AppEvent.McpBackgroundCommand) {
+        val conversationId = event.conversationId ?: return
+        val text = buildBackgroundNotificationText(event)
+        if (conversationId in _generatingIds.value || !claimGenerationSlot(conversationId)) {
+            queueBackgroundText(conversationId, text)
+            return
+        }
+        startBackgroundTurn(conversationId, listOf(text))
+    }
+
+    private suspend fun drainPendingBackgroundNotifications(conversationId: Uuid) {
+        while (true) {
+            val queued = pendingBackgroundTexts[conversationId]?.takeIf { it.isNotEmpty() } ?: return
+            val texts = mutableListOf<String>()
+            synchronized(queued) {
+                while (queued.isNotEmpty()) texts.add(queued.removeAt(0))
+            }
+            // The done event is emitted before the finished job releases its
+            // generation slot, so wait briefly for release. If a new turn started
+            // instead, requeue and let that turn's completion re-drain
+            if (!awaitGenerationSlot(conversationId, attempts = 20, delayMs = 50)) {
+                synchronized(queued) {
+                    for (i in texts.indices.reversed()) queued.add(0, texts[i])
+                }
+                return
+            }
+            startBackgroundTurn(conversationId, texts)
+        }
+    }
+
+    private fun claimGenerationSlot(conversationId: Uuid): Boolean {
+        val current = _generatingIds.value
+        if (conversationId in current) return false
+        return _generatingIds.compareAndSet(current, current + conversationId)
+    }
+
+    private suspend fun awaitGenerationSlot(conversationId: Uuid, attempts: Int, delayMs: Long): Boolean {
+        repeat(attempts) {
+            if (claimGenerationSlot(conversationId)) return true
+            delay(delayMs)
+        }
+        return false
+    }
+
+    private fun startBackgroundTurn(conversationId: Uuid, texts: List<String>) {
+        // The generation slot must already be claimed by the caller
+        val job = appScope.launch {
+            try {
+                injectBackgroundNotifications(conversationId, texts)
+                handleMessageComplete(conversationId)
+                _generationDoneFlow.emit(conversationId) // chain: drain anything queued during this turn
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Texts are already injected into history, so the model sees them
+                // on its next turn; nothing to requeue
+                e.printStackTrace()
+                addError(e, conversationId, title = context.getString(R.string.error_title_send_message))
+            }
+        }
+        setGenerationJob(conversationId, job)
+    }
+
+    private fun queueBackgroundText(conversationId: Uuid, text: String) {
+        pendingBackgroundTexts.getOrPut(conversationId) { Collections.synchronizedList(mutableListOf()) }.add(text)
+    }
+
+    private fun buildBackgroundNotificationText(event: AppEvent.McpBackgroundCommand): String {
+        val tail = event.tail.take(2000).trim().ifEmpty { "(no output)" }
+        val header = when {
+            event.timedOut -> "Background command TIMED OUT, killed after ${humanizeDuration(event.durationMs)} (exit ${event.exitCode})"
+            event.exitCode == 0 -> "Background command COMPLETED (exit 0, ${humanizeDuration(event.durationMs)})"
+            else -> "Background command FAILED (exit ${event.exitCode}, ${humanizeDuration(event.durationMs)})"
+        }
+        return "<system_reminder>\n$header\n$ ${event.command}\n$tail\nFull log: ${event.logPath}\n</system_reminder>"
+    }
+
+    private fun humanizeDuration(durationMs: Long): String {
+        val totalSeconds = durationMs / 1000.0
+        return when {
+            totalSeconds < 60 -> "${"%.1f".format(totalSeconds)}s"
+            totalSeconds < 3600 -> "${(totalSeconds / 60).toLong()}m"
+            else -> "%.1f".format(totalSeconds / 3600) + "h"
+        }
+    }
+
+    private suspend fun injectBackgroundNotifications(conversationId: Uuid, texts: List<String>) {
+        if (texts.isEmpty()) return
+        updateConversationState(conversationId) { conversation ->
+            conversation.copy(
+                messageNodes = conversation.messageNodes + texts.map { text ->
+                    UIMessage(
+                        role = MessageRole.USER,
+                        parts = listOf(
+                            UIMessagePart.Text(
+                                text = text,
+                                metadata = InjectedNoticeMetadata(
+                                    kind = INJECTED_NOTICE_BACKGROUND_COMMAND,
+                                ).toMetadata(),
+                            )
+                        ),
+                    ).toMessageNode()
+                },
+            )
+        }
+        saveConversation(conversationId, getConversationFlow(conversationId).value)
     }
 
     fun cleanup() = runCatching {
@@ -677,7 +818,7 @@ class ChatService(
                                 parameters = { tool.inputSchema },
                                 needsApproval = { tool.needsApproval },
                                 execute = {
-                                    mcpManager.callTool(serverId, tool.name, it.jsonObject)
+                                    mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
                                 },
                             )
                         )
@@ -727,7 +868,7 @@ class ChatService(
                                 parameters = { tool.inputSchema },
                                 needsApproval = { false },
                                 execute = {
-                                    mcpManager.callTool(serverId, tool.name, it.jsonObject)
+                                    mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
                                 },
                             )
                         }

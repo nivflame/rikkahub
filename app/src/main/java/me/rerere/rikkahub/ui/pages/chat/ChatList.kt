@@ -88,6 +88,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.rerere.ai.ui.UIMessage
+import me.rerere.ai.ui.isInjectedNotice
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.getAssistantById
@@ -316,6 +317,9 @@ private fun ChatListNormal(
                 items = conversation.messageNodes,
                 key = { index, item -> item.id },
             ) { index, node ->
+                // Injected notices (e.g. background command reminders) stay in
+                // history for the model but render nothing
+                if (!node.currentMessage.isInjectedNotice) {
                 Column {
                     ListSelectableItem(
                         key = node.id,
@@ -366,6 +370,7 @@ private fun ChatListNormal(
                             lastMessage = index == lastMessageIndex,
                         )
                     }
+                }
                 }
             }
 

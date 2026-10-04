@@ -261,7 +261,8 @@ class RouteActivity : ComponentActivity() {
                 when (event) {
                     is AppEvent.Speak -> tts.speak(event.text)
                     is AppEvent.OpenUsageAccessSettings -> this@RouteActivity.openUsageAccessSettings()
-                    is AppEvent.McpOAuthCallback -> Unit // 由 McpManager 消费
+                    is AppEvent.McpOAuthCallback -> Unit // consumed by McpManager
+                    is AppEvent.McpBackgroundCommand -> Unit // consumed by ChatService
                 }
             }
         }

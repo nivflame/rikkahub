@@ -83,7 +83,8 @@ val appModule = module {
             skillManager = get(),
             workspaceRepository = get(),
             folderRepository = get(),
-            subagentProgressStore = get()
+            subagentProgressStore = get(),
+            appEventBus = get()
         )
     }
 

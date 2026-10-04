@@ -72,6 +72,9 @@ import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessageAnnotation
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.ai.ui.isEmptyUIMessage
+import me.rerere.ai.ui.InjectedNoticeMetadata
+import me.rerere.ai.ui.isInjectedNotice
+import me.rerere.ai.ui.metadataAs
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.File02
 import me.rerere.hugeicons.stroke.MusicNote03
@@ -139,7 +142,7 @@ fun ChatMessage(
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        if (!message.parts.isEmptyUIMessage()) {
+        if (!message.parts.isEmptyUIMessage() && !message.isInjectedNotice) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -186,7 +189,7 @@ fun ChatMessage(
             !loading
         } else {
             message.parts.isEmptyUIMessage().not()
-        }
+        } && !message.isInjectedNotice
 
         AnimatedVisibility(
             visible = showActions,
@@ -366,67 +369,73 @@ private fun MessagePartsBlock(
             is MessagePartBlock.ContentBlock -> key(block.index) {
                 when (val part = block.part) {
                     is UIMessagePart.Text -> {
-                        val textContent = @Composable {
-                            if (role == MessageRole.USER) {
-                                Surface(
-                                    modifier = Modifier.animateContentSize(),
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                    onClick = { onUserMessageClick?.invoke() },
-                                ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        MarkdownBlock(
-                                            content = part.text.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.USER,
-                                                visual = true,
-                                            ),
-                                            onClickCitation = handleClickCitation
-                                        )
-                                    }
-                                }
-                            } else {
-                                if (settings.displaySetting.showAssistantBubble) {
+                        val injectedNotice = part.metadataAs<InjectedNoticeMetadata>()
+                        if (injectedNotice != null) {
+                            // Injected notices render nothing; ChatList already skips whole notice nodes
+                        } else {
+                            val textContent = @Composable {
+                                if (role == MessageRole.USER) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
                                         shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        onClick = { onUserMessageClick?.invoke() },
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
                                                 content = part.text.replaceRegexes(
                                                     assistant = assistant,
-                                                    scope = AssistantAffectScope.ASSISTANT,
+                                                    scope = AssistantAffectScope.USER,
                                                     visual = true,
                                                 ),
-                                                onClickCitation = handleClickCitation,
+                                                onClickCitation = handleClickCitation
                                             )
                                         }
                                     }
                                 } else {
-                                    MarkdownBlock(
-                                        content = part.text.replaceRegexes(
-                                            assistant = assistant,
-                                            scope = AssistantAffectScope.ASSISTANT,
-                                            visual = true,
-                                        ),
-                                        onClickCitation = handleClickCitation,
-                                        modifier = Modifier
-                                            .animateContentSize()
-                                    )
+                                    if (settings.displaySetting.showAssistantBubble) {
+                                        Surface(
+                                            modifier = Modifier.animateContentSize(),
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                MarkdownBlock(
+                                                    content = part.text.replaceRegexes(
+                                                        assistant = assistant,
+                                                        scope = AssistantAffectScope.ASSISTANT,
+                                                        visual = true,
+                                                    ),
+                                                    onClickCitation = handleClickCitation,
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        MarkdownBlock(
+                                            content = part.text.replaceRegexes(
+                                                assistant = assistant,
+                                                scope = AssistantAffectScope.ASSISTANT,
+                                                visual = true,
+                                            ),
+                                            onClickCitation = handleClickCitation,
+                                            modifier = Modifier
+                                                .animateContentSize()
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        // 流式生成期间不启用 SelectionContainer：Markdown 在不断重渲染，
-                        // 内部可选择的 Text 会频繁注册/注销，与 Compose 选择工具栏在绘制阶段
-                        // 对 selectable 列表的排序产生并发修改，导致 ConcurrentModificationException。
-                        // 生成结束后内容稳定，再启用文本选择。
-                        if (loading) {
-                            textContent()
-                        } else {
-                            SelectionContainer {
+                            // Skip SelectionContainer while streaming: selectable
+                            // Texts inside constantly re-rendering Markdown
+                            // register/unregister concurrently with the selection
+                            // toolbar's draw-phase sorting, causing
+                            // ConcurrentModificationException; enable once stable
+                            if (loading) {
                                 textContent()
+                            } else {
+                                SelectionContainer {
+                                    textContent()
+                                }
                             }
                         }
                     }
@@ -595,6 +604,11 @@ private fun MessagePartsBlock(
         }
     }
 }
+
+/**
+ * Injected notices (e.g. MCP background command completion) render no UI and
+ * stay in history only for the model; ChatList already skips whole notice nodes
+ */
 
 @Composable
 private fun ImageThumb(url: String) {

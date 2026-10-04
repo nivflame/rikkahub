@@ -36,9 +36,14 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.longOrNull
+import me.rerere.common.http.jsonPrimitiveOrNull
 import me.rerere.ai.core.InputSchema
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.AppScope
@@ -61,6 +66,11 @@ private const val TAG = "McpManager"
 private const val MAX_RECONNECT_ATTEMPTS = 5
 private const val BASE_RECONNECT_DELAY_MS = 1000L
 private const val MAX_RECONNECT_DELAY_MS = 30000L
+private const val BACKGROUND_NOTIFICATION_METHOD = "notifications/agent-mcp/background"
+
+// log path -> conversation that started the background command, used to route the
+// completion notification back to the originating conversation; capped to bound memory
+private const val MAX_BACKGROUND_PID_MAP = 128
 
 // OAuth 相关常量
 private const val TOKEN_REFRESH_LEEWAY_MS = 60_000L // 令牌到期前 60s 视为需要刷新
@@ -100,6 +110,16 @@ class McpManager(
     private val reconnectAttempts: MutableMap<Uuid, Int> = mutableMapOf()
     private val authorizationJobs: MutableMap<Uuid, Job> = mutableMapOf()
     val syncingStatus = MutableStateFlow<Map<Uuid, McpStatus>>(mapOf())
+
+    private val backgroundPids = object : LinkedHashMap<String, Pair<Uuid?, String>>(16, 0.75f, false) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Uuid?, String>>?) = size > MAX_BACKGROUND_PID_MAP
+    }
+
+    private fun registerBackgroundPid(logPath: String, conversationId: Uuid?, serverName: String) {
+        synchronized(backgroundPids) {
+            backgroundPids[logPath] = conversationId to serverName
+        }
+    }
 
     init {
         appScope.launch {
@@ -150,7 +170,7 @@ class McpManager(
             }
     }
 
-    suspend fun callTool(serverId: Uuid, toolName: String, args: JsonObject): List<UIMessagePart> {
+    suspend fun callTool(serverId: Uuid, toolName: String, args: JsonObject, conversationId: Uuid? = null): List<UIMessagePart> {
         val entry = clients.entries.find { it.key.id == serverId }
         var client = entry?.value
             ?: return listOf(UIMessagePart.Text("Failed to execute tool, because no such mcp client for the tool"))
@@ -179,6 +199,18 @@ class McpManager(
             ),
             options = RequestOptions(timeout = 120.seconds),
         )
+        // Background commands return a log path; record the conversation so the
+        // completion notification can be routed back to it
+        result.content.forEach { content ->
+            (content as? TextContent)?.text
+                ?.split("\"log_path\"")?.getOrNull(1)
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { rest ->
+                    rest.dropWhile { it != '"' }.drop(1).takeWhile { it != '"' }
+                }
+                ?.takeIf { it.isNotBlank() }
+                ?.let { logPath -> registerBackgroundPid(logPath, conversationId, config.commonOptions.name) }
+        }
         return result.content.map {
             when(it) {
                 is TextContent -> UIMessagePart.Text(it.text)
@@ -244,6 +276,40 @@ class McpManager(
         }
     }
 
+    /** Creates an MCP client that listens for background notifications. */
+    private fun newClient(config: McpServerConfig): Client {
+        val client = Client(
+            clientInfo = Implementation(
+                name = config.commonOptions.name,
+                version = "1.0",
+            )
+        )
+        client.fallbackNotificationHandler = handler@{ notification ->
+            if (notification.method != BACKGROUND_NOTIFICATION_METHOD) return@handler
+            val params = (notification.params as? JsonObject) ?: return@handler
+            val logPath = params["log_path"]?.jsonPrimitiveOrNull?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@handler
+            val target = synchronized(backgroundPids) { backgroundPids.remove(logPath) }
+            if (target == null) {
+                Log.w(TAG, "Background notification for unknown log path: $logPath")
+            }
+            appScope.launch {
+                appEventBus.emit(
+                    AppEvent.McpBackgroundCommand(
+                        conversationId = target?.first,
+                        serverName = target?.second ?: config.commonOptions.name,
+                        command = params["command"]?.jsonPrimitiveOrNull?.contentOrNull ?: "",
+                        exitCode = params["exit_code"]?.jsonPrimitiveOrNull?.longOrNull?.toInt() ?: 0,
+                        durationMs = params["duration_ms"]?.jsonPrimitiveOrNull?.longOrNull ?: 0,
+                        timedOut = params["timed_out"]?.jsonPrimitiveOrNull?.booleanOrNull ?: false,
+                        logPath = params["log_path"]?.jsonPrimitiveOrNull?.contentOrNull ?: "",
+                        tail = params["tail"]?.jsonPrimitiveOrNull?.contentOrNull ?: "",
+                    )
+                )
+            }
+        }
+        return client
+    }
+
     suspend fun addClient(configInput: McpServerConfig) = withContext(Dispatchers.IO) {
         val config = ensureFreshToken(configInput)
         removeClient(config) // Remove first
@@ -251,12 +317,7 @@ class McpManager(
         reconnectAttempts[config.id] = 0
 
         val transport = getTransport(config)
-        val client = Client(
-            clientInfo = Implementation(
-                name = config.commonOptions.name,
-                version = "1.0",
-            )
-        )
+        val client = newClient(config)
 
         // 注册 transport 回调以支持自动重连
         transport.onClose {
@@ -460,12 +521,7 @@ class McpManager(
         }
 
         val transport = getTransport(config)
-        val client = Client(
-            clientInfo = Implementation(
-                name = config.commonOptions.name,
-                version = "1.0",
-            )
-        )
+        val client = newClient(config)
 
         // 注册回调
         transport.onClose {
