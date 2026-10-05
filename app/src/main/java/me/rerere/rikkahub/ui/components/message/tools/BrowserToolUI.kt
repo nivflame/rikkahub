@@ -1,6 +1,9 @@
 package me.rerere.rikkahub.ui.components.message.tools
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -15,6 +18,17 @@ class BrowserToolUI(override val toolName: String) : ToolUIRenderer {
 
     @Composable
     override fun title(context: ToolUIContext): String = browserLabel(context)
+
+    @Composable
+    override fun Label(context: ToolUIContext) {
+        Text(
+            text = title(context),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 
     override fun hasSummary(context: ToolUIContext): Boolean = false
 }
