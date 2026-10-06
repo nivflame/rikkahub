@@ -55,18 +55,19 @@ import me.rerere.hugeicons.stroke.Bookshelf01
 import me.rerere.hugeicons.stroke.Brain02
 import me.rerere.hugeicons.stroke.Clapping01
 import me.rerere.hugeicons.stroke.Database02
+import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.GlobalSearch
 import me.rerere.hugeicons.stroke.ImageUpload
 import me.rerere.hugeicons.stroke.InLove
 import me.rerere.hugeicons.stroke.LookTop
 import me.rerere.hugeicons.stroke.McpServer
 import me.rerere.hugeicons.stroke.Megaphone01
-import me.rerere.hugeicons.stroke.Package
 import me.rerere.hugeicons.stroke.ServerStack01
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Share04
 import me.rerere.hugeicons.stroke.Sun01
 import me.rerere.hugeicons.stroke.WavingHand01
+import me.rerere.hugeicons.stroke.Zap
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.datastore.isNotConfigured
@@ -198,10 +199,22 @@ fun SettingPage(vm: SettingVM = koinViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_assistant)) },
                     )
                     item(
-                        onClick = { navController.navigate(Screen.Extensions) },
-                        leadingContent = { Icon(HugeIcons.Package, null) },
-                        supportingContent = { Text(stringResource(R.string.setting_page_extensions_desc)) },
-                        headlineContent = { Text(stringResource(R.string.setting_page_extensions)) },
+                        onClick = { navController.navigate(Screen.QuickMessages) },
+                        leadingContent = { Icon(HugeIcons.Zap, null) },
+                        supportingContent = { Text(stringResource(R.string.extensions_page_quick_messages_desc)) },
+                        headlineContent = { Text(stringResource(R.string.assistant_page_quick_messages)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.Prompts) },
+                        leadingContent = { Icon(HugeIcons.Book03, null) },
+                        supportingContent = { Text(stringResource(R.string.extensions_page_prompts_desc)) },
+                        headlineContent = { Text(stringResource(R.string.extensions_page_prompts)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.Workspaces) },
+                        leadingContent = { Icon(HugeIcons.Folder01, null) },
+                        supportingContent = { Text(stringResource(R.string.extensions_page_workspace_desc)) },
+                        headlineContent = { Text(stringResource(R.string.extensions_page_workspace)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingTools) },
