@@ -406,7 +406,7 @@ class GenerationHandler(
                     val result = resultIndexes[index]!!
                     if (result.isSuccess) {
                         executedTools += tool.copy(
-                            output = maybeTruncateToolOutput(tool.toolCallId, result.getOrNull() ?: emptyList(), hasShellAccess)
+                            output = maybeTruncateToolOutput(tool, result.getOrNull() ?: emptyList(), hasShellAccess)
                         )
                         recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                     } else {
@@ -636,22 +636,23 @@ class GenerationHandler(
     }
 
     private fun maybeTruncateToolOutput(
-        toolCallId: String,
+        tool: UIMessagePart.Tool,
         output: List<UIMessagePart>,
         hasShellAccess: Boolean,
     ): List<UIMessagePart> {
+        if (tool.toolName.startsWith("mcp__")) return output
         val textParts = output.filterIsInstance<UIMessagePart.Text>()
         val nonTextParts = output.filter { it !is UIMessagePart.Text }
         val totalChars = textParts.sumOf { it.text.length }
 
         if (totalChars <= MAX_TOOL_OUTPUT_CHARS || !hasShellAccess) return output
 
-        Log.i(TAG, "maybeTruncateToolOutput: truncating tool $toolCallId output ($totalChars chars)")
+        Log.i(TAG, "maybeTruncateToolOutput: truncating tool ${tool.toolCallId} output ($totalChars chars)")
 
         val fullText = textParts.joinToString("\n") { it.text }
         val preview = fullText.take(TOOL_OUTPUT_PREVIEW_CHARS)
 
-        val fileName = "${toolCallId}.txt"
+        val fileName = "${tool.toolCallId}.txt"
         val outputDir = File(context.filesDir, FileFolders.TOOL_OUTPUTS).apply { mkdirs() }
         File(outputDir, fileName).writeText(fullText)
 
