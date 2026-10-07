@@ -130,6 +130,12 @@ object ToolUIRegistry {
         BrowserToolUI("browser_execute_script"),
         BrowserToolUI("browser_waitfor"),
         BrowserToolUI("browser_logs"),
+        DeviceToolUI("device_state"),
+        DeviceToolUI("device_tap"),
+        DeviceToolUI("device_swipe"),
+        DeviceToolUI("device_drag"),
+        DeviceToolUI("device_type"),
+        DeviceToolUI("device_key"),
     ).associateBy { it.toolName }
 
     /** 查找工具对应的渲染器, 未注册时返回默认渲染器 */

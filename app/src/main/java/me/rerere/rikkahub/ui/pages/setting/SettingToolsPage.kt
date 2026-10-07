@@ -17,6 +17,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Earth
 import me.rerere.hugeicons.stroke.Puzzle
+import me.rerere.hugeicons.stroke.SmartPhone01
 import me.rerere.hugeicons.stroke.Search02
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
@@ -56,7 +57,7 @@ fun SettingToolsPage() {
             )
             item(
                 onClick = { navController.navigate(Screen.SettingDevice) },
-                leadingContent = { Icon(HugeIcons.Earth, null) },
+                leadingContent = { Icon(HugeIcons.SmartPhone01, null) },
                 supportingContent = { Text("Enable or disable individual device tools") },
                 headlineContent = { Text("Device") },
             )
