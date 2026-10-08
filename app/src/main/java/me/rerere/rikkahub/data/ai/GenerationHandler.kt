@@ -586,8 +586,12 @@ class GenerationHandler(
             providerImpl.streamText(
                 providerSetting = provider,
                 messages = internalMessages,
-                params = params
+                params = params,
+                onRetry = { attempt, maxAttempt ->
+                    processingStatus.value = "Auto retrying ($attempt/$maxAttempt)..."
+                },
             ).collect {
+                processingStatus.value = null
                 messages = messages.handleMessageChunk(chunk = it, model = model)
                 it.usage?.let { usage ->
                     messages = messages.mapIndexed { index, message ->
@@ -605,7 +609,11 @@ class GenerationHandler(
                 providerSetting = provider,
                 messages = internalMessages,
                 params = params,
+                onRetry = { attempt, maxAttempt ->
+                    processingStatus.value = "Auto retrying ($attempt/$maxAttempt)..."
+                },
             )
+            processingStatus.value = null
             messages = messages.handleMessageChunk(chunk = chunk, model = model)
             chunk.usage?.let { usage ->
                 messages = messages.mapIndexed { index, message ->

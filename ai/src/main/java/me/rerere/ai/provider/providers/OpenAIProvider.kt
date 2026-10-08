@@ -123,7 +123,8 @@ class OpenAIProvider(
     override suspend fun streamText(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
-        params: TextGenerationParams
+        params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
         val flow = if (providerSetting.useResponseApi) {
             responseAPI.streamText(providerSetting, messages, params)
@@ -140,6 +141,7 @@ class OpenAIProvider(
                     val baseDelay = if (is429) 5000L else 10000L
                     val backoffDelay = minOf(baseDelay * (1L shl (retryCount - 1)), 60000L)
                     Log.w(TAG, "streamText: retryable error (${e.message}), retry $retryCount/5 in ${backoffDelay}ms")
+                    onRetry?.invoke(retryCount, 5)
                     delay(backoffDelay)
                     true
                 } else {
@@ -154,7 +156,8 @@ class OpenAIProvider(
     override suspend fun generateText(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
-        params: TextGenerationParams
+        params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): MessageChunk {
         val maxRetries = if (providerSetting.autoRetry) 5 else 0
         var lastError: Throwable? = null
@@ -173,6 +176,7 @@ class OpenAIProvider(
                 val baseDelay = if (is429) 5000L else 10000L
                 val backoffDelay = minOf(baseDelay * (1L shl attempt), 60000L)
                 Log.w(TAG, "generateText: retryable error (${e.message}), retry ${attempt + 1}/$maxRetries in ${backoffDelay}ms")
+                onRetry?.invoke(attempt + 1, maxRetries)
                 delay(backoffDelay)
             }
         }

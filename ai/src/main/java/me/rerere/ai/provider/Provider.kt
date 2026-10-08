@@ -23,12 +23,14 @@ interface Provider<T : ProviderSetting> {
         providerSetting: T,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)? = null,
     ): MessageChunk
 
     suspend fun streamText(
         providerSetting: T,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)? = null,
     ): Flow<MessageChunk>
 
     suspend fun generateEmbedding(

@@ -73,6 +73,7 @@ class ChatCompletionsAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): MessageChunk = withContext(Dispatchers.IO) {
         val requestBody =
             buildChatCompletionRequest(
@@ -130,6 +131,7 @@ class ChatCompletionsAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): Flow<MessageChunk> = callbackFlow {
         val requestBody = buildChatCompletionRequest(
             messages = messages,

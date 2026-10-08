@@ -98,6 +98,7 @@ class CodexProvider(
         providerSetting: ProviderSetting.Codex,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): MessageChunk {
         val account = repository.acquireAccount()
         return responseApiFor(account).generateText(
@@ -111,6 +112,7 @@ class CodexProvider(
         providerSetting: ProviderSetting.Codex,
         messages: List<UIMessage>,
         params: TextGenerationParams,
+        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
         val account = repository.acquireAccount()
         return responseApiFor(account).streamText(
