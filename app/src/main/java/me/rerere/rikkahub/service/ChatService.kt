@@ -275,7 +275,10 @@ class ChatService(
     private val pendingBackgroundTexts = ConcurrentHashMap<Uuid, MutableList<String>>()
 
     private suspend fun handleMcpBackgroundCommand(event: AppEvent.McpBackgroundCommand) {
-        val conversationId = event.conversationId ?: return
+        val conversationId = event.conversationId ?: run {
+            stopWaitServiceIfIdle()
+            return
+        }
         val text = buildBackgroundNotificationText(event)
         if (conversationId in _generatingIds.value || !claimGenerationSlot(conversationId)) {
             queueBackgroundText(conversationId, text)
@@ -332,9 +335,20 @@ class ChatService(
                 // on its next turn; nothing to requeue
                 e.printStackTrace()
                 addError(e, conversationId, title = context.getString(R.string.error_title_send_message))
+            } finally {
+                // Keep the wait service alive until the follow-up turn (own keep-alive)
+                // finished and nothing is queued, so the process never loses
+                // foreground status in between while backgrounded
+                stopWaitServiceIfIdle()
             }
         }
         setGenerationJob(conversationId, job)
+    }
+
+    private fun stopWaitServiceIfIdle() {
+        if (!mcpManager.hasPendingBackgroundCommands() && pendingBackgroundTexts.values.none { it.isNotEmpty() }) {
+            BackgroundCommandWaitService.stop(context)
+        }
     }
 
     private fun queueBackgroundText(conversationId: Uuid, text: String) {

@@ -53,6 +53,7 @@ import me.rerere.rikkahub.data.event.AppEventBus
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.data.files.FilesManager
 import me.rerere.rikkahub.data.files.saveUploadFromBytes
+import me.rerere.rikkahub.service.BackgroundCommandWaitService
 import me.rerere.rikkahub.utils.JsonInstant
 import me.rerere.rikkahub.utils.checkDifferent
 import okhttp3.OkHttpClient
@@ -81,6 +82,7 @@ class McpManager(
     private val appScope: AppScope,
     private val filesManager: FilesManager,
     private val appEventBus: AppEventBus,
+    private val context: Context,
 ) {
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -116,10 +118,19 @@ class McpManager(
     }
 
     private fun registerBackgroundPid(logPath: String, conversationId: Uuid?, serverName: String) {
-        synchronized(backgroundPids) {
+        val wasEmpty = synchronized(backgroundPids) {
+            val was = backgroundPids.isEmpty()
             backgroundPids[logPath] = conversationId to serverName
+            was
         }
+        if (wasEmpty) BackgroundCommandWaitService.start(context)
     }
+
+    private fun removeBackgroundPid(logPath: String): Pair<Uuid?, String>? =
+        synchronized(backgroundPids) { backgroundPids.remove(logPath) }
+
+    fun hasPendingBackgroundCommands(): Boolean =
+        synchronized(backgroundPids) { backgroundPids.isNotEmpty() }
 
     init {
         appScope.launch {
@@ -288,7 +299,7 @@ class McpManager(
             if (notification.method != BACKGROUND_NOTIFICATION_METHOD) return@handler
             val params = (notification.params as? JsonObject) ?: return@handler
             val logPath = params["log_path"]?.jsonPrimitiveOrNull?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@handler
-            val target = synchronized(backgroundPids) { backgroundPids.remove(logPath) }
+            val target = removeBackgroundPid(logPath)
             if (target == null) {
                 Log.w(TAG, "Background notification for unknown log path: $logPath")
             }

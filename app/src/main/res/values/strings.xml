@@ -440,6 +440,7 @@
   <string name="notification_channel_chat_live_update">Chat Generation Progress</string>
   <string name="chat_live_update_title">AI Assistant</string>
   <string name="chat_live_update_generating">Generating response...</string>
+  <string name="background_command_waiting">Waiting for background commands...</string>
   <string name="error_connection_interrupted_background">Connection was interrupted while the app was in the background. Please try again.</string>
   <string name="error_connection_interrupted">Connection was interrupted. Please try again.</string>
   <string name="notification_channel_web_server">Web Server</string>

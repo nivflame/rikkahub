@@ -168,12 +168,21 @@
     </service>
 
     <service
-      android:name=".service.GenerationKeepAliveService"
-      android:exported="false"
-      android:foregroundServiceType="specialUse">
+        android:name=".service.GenerationKeepAliveService"
+        android:exported="false"
+        android:foregroundServiceType="specialUse">
       <property
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
         android:value="keep network alive during AI response generation" />
+    </service>
+
+    <service
+        android:name=".service.BackgroundCommandWaitService"
+        android:exported="false"
+        android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="keep network alive while background commands run" />
     </service>
 
     <activity
