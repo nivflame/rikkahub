@@ -40,6 +40,7 @@ import me.rerere.hugeicons.stroke.AiEditing
 import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.data.datastore.DEFAULT_AUTO_MODEL_ID
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.ui.components.ai.ModelListSheet
 import me.rerere.rikkahub.ui.components.ai.rememberModelListState
@@ -147,6 +148,7 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding:
                 modelId = settings.translateModeId,
                 providers = settings.providers,
                 onSelect = { vm.updateSettings(settings.copy(translateModeId = it.id)) },
+                onClear = { vm.updateSettings(settings.copy(translateModeId = DEFAULT_AUTO_MODEL_ID)) },
             )
         }
         item {
@@ -156,6 +158,7 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding:
                 modelId = settings.ocrModelId,
                 providers = settings.providers,
                 onSelect = { vm.updateSettings(settings.copy(ocrModelId = it.id)) },
+                onClear = { vm.updateSettings(settings.copy(ocrModelId = DEFAULT_AUTO_MODEL_ID)) },
             )
         }
         item {
@@ -165,6 +168,7 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingVM, contentPadding:
                 modelId = settings.compressModelId,
                 providers = settings.providers,
                 onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
+                onClear = { vm.updateSettings(settings.copy(compressModelId = DEFAULT_AUTO_MODEL_ID)) },
             )
         }
     }
