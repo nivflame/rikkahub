@@ -54,6 +54,7 @@ import com.dokar.sonner.ToastType
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessagePart
@@ -721,6 +722,11 @@ private fun TopBar(
     val toaster = LocalToaster.current
     val context = LocalContext.current
     val assistant = settings.getCurrentAssistant()
+    val workspaceRepository: WorkspaceRepository = koinInject()
+    // The id may point to a workspace that no longer exists (e.g. restored backup)
+    val workspace by remember(assistant.workspaceId) {
+        assistant.workspaceId?.let { workspaceRepository.getByIdFlow(it.toString()) } ?: flowOf(null)
+    }.collectAsStateWithLifecycle(initialValue = null)
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
@@ -799,7 +805,7 @@ private fun TopBar(
             ) {
                 Icon(HugeIcons.Earth, "Browser")
             }
-            if (assistant.workspaceId != null) {
+            if (workspace != null) {
                 IconButton(
                     onClick = {
                         navController.navigate(Screen.WorkspaceDetail(assistant.workspaceId.toString()))
