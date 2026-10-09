@@ -73,9 +73,13 @@ class ConversationSession(
         _generationJob.value?.cancel()
         _generationJob.value = job
         job?.invokeOnCompletion {
-            _generationJob.value = null
-            if (refCount.get() <= 0) {
-                scheduleIdleCheck()
+            // A cancelled job's completion may fire after a newer job was set;
+            // only clear the slot if this job still owns it
+            if (_generationJob.value === job) {
+                _generationJob.value = null
+                if (refCount.get() <= 0) {
+                    scheduleIdleCheck()
+                }
             }
         }
     }

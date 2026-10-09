@@ -486,7 +486,11 @@ class ChatService(
         }
         if (job != null) {
             job.invokeOnCompletion {
-                _generatingIds.update { ids -> ids - conversationId }
+                // Only drop the id if no newer job took over the session meanwhile
+                val current = sessions[conversationId]?.getJob()
+                if (current == null || current === job) {
+                    _generatingIds.update { ids -> ids - conversationId }
+                }
             }
         }
     }
@@ -612,10 +616,13 @@ class ChatService(
         regenerateAssistantMsg: Boolean = true
     ) {
         val session = getOrCreateSession(conversationId)
-        session.getJob()?.cancel()
+        val previousJob = session.getJob()
+        previousJob?.cancel()
 
         val job = appScope.launch {
             try {
+                runCatching { previousJob?.join() }
+
                 val conversation = session.state.value
 
                 if (message.role == MessageRole.USER) {
@@ -656,10 +663,13 @@ class ChatService(
         answer: String? = null,
     ) {
         val session = getOrCreateSession(conversationId)
-        session.getJob()?.cancel()
+        val previousJob = session.getJob()
+        previousJob?.cancel()
 
         val job = appScope.launch {
             try {
+                runCatching { previousJob?.join() }
+
                 val conversation = session.state.value
                 val newApprovalState = when {
                     answer != null -> ToolApprovalState.Answered(answer)
