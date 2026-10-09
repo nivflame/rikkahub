@@ -1146,9 +1146,10 @@ class ChatService(
         force: Boolean = false
     ) {
         // A stale conversation snapshot saved over the live session would roll back
-        // streaming state, so wait for any running generation to finish first
-        _generatingIds.first { conversationId !in it }
-        val conversation = conversationRepo.getConversationById(conversationId) ?: conversation
+        // streaming state, so wait for any running generation to finish first.
+        // Key everything on conversation.id: callers may pass another conversation's id
+        _generatingIds.first { conversation.id !in it }
+        val conversation = conversationRepo.getConversationById(conversation.id) ?: conversation
         val shouldGenerate = when {
             force -> true
             conversation.title.isBlank() -> true
