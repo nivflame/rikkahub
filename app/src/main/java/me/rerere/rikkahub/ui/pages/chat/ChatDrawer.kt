@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -131,6 +132,21 @@ fun ChatDrawerContent(
             .collectLatest { (index, offset) ->
                 drawerVm.saveScrollPosition(index, offset)
             }
+    }
+
+    // A folder switch keeps the list anchored at the old view's item keys
+    // (date headers are shared across folders); after the new data arrives,
+    // jump to top so the newest conversations show
+    LaunchedEffect(Unit) {
+        var first = true
+        snapshotFlow { selectedFolderId }.collectLatest {
+            if (!first) {
+                snapshotFlow { conversations.loadState.refresh to conversations.itemCount }
+                    .first { (refresh, count) -> refresh is LoadState.NotLoading && count > 0 }
+                conversationListState.scrollToItem(0)
+            }
+            first = false
+        }
     }
 
     val conversationJobs by vm.conversationJobs.collectAsStateWithLifecycle(
