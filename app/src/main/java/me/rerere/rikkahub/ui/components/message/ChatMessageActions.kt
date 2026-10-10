@@ -154,26 +154,26 @@ fun ColumnScope.ChatMessageActionButtons(
                     .size(16.dp),
                 tint = if (isAvailable) actionIconColor else actionIconColor.copy(alpha = 0.38f)
             )
+        }
 
-            // Translation button
-            if (onTranslate != null && settings.displaySetting.showTranslateButton) {
-                Icon(
-                    imageVector = HugeIcons.Translate,
-                    contentDescription = stringResource(R.string.translate),
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = LocalIndication.current,
-                            onClick = {
-                                showTranslateDialog = true
-                            }
-                        )
-                        .padding(8.dp)
-                        .size(16.dp),
-                    tint = actionIconColor
-                )
-            }
+        // Translation button
+        if (onTranslate != null && settings.displaySetting.showTranslateButton) {
+            Icon(
+                imageVector = HugeIcons.Translate,
+                contentDescription = stringResource(R.string.translate),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = LocalIndication.current,
+                        onClick = {
+                            showTranslateDialog = true
+                        }
+                    )
+                    .padding(8.dp)
+                    .size(16.dp),
+                tint = actionIconColor
+            )
         }
 
         Icon(
