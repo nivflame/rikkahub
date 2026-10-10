@@ -717,6 +717,7 @@ class GenerationHandler(
                 params = TextGenerationParams(
                     model = model,
                     reasoningLevel = ReasoningLevel.fromBudgetTokens(settings.translateThinkingBudget),
+                    customHeaders = provider.customHeaders,
                 ),
             ).collect { chunk ->
                 messages = messages.handleMessageChunk(chunk)
@@ -737,6 +738,7 @@ class GenerationHandler(
                     model = model,
                     temperature = 0.3f,
                     topP = 0.95f,
+                    customHeaders = provider.customHeaders,
                     customBody = listOf(
                         CustomBody(
                             key = "translation_options",
