@@ -262,6 +262,18 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                     title = { Text(stringResource(R.string.setting_page_tts_settings)) },
                 ) {
                     item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_tts_button_title)) },
+                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_tts_button_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = displaySetting.showTtsButton,
+                                onCheckedChange = {
+                                    updateDisplaySetting(displaySetting.copy(showTtsButton = it))
+                                }
+                            )
+                        },
+                    )
+                    item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_desc)) },
                         trailingContent = {

@@ -721,6 +721,7 @@ data class DisplaySetting(
     val codeBlockAutoCollapse: Boolean = false,
     val showLineNumbers: Boolean = false,
     val ttsOnlyReadQuoted: Boolean = false,
+    val showTtsButton: Boolean = true,
     val autoPlayTTSAfterGeneration: Boolean = false,
     val pasteLongTextAsFile: Boolean = false,
     val pasteLongTextThreshold: Int = 1000,
