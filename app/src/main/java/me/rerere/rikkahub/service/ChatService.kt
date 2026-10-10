@@ -841,6 +841,7 @@ class ChatService(
                                 description = tool.description ?: "",
                                 parameters = { tool.inputSchema },
                                 needsApproval = { tool.needsApproval },
+                                isMcpTool = true,
                                 execute = {
                                     mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
                                 },
@@ -891,6 +892,7 @@ class ChatService(
                                 description = tool.description ?: "",
                                 parameters = { tool.inputSchema },
                                 needsApproval = { false },
+                                isMcpTool = true,
                                 execute = {
                                     mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
                                 },

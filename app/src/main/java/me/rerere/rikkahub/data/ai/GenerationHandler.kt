@@ -402,11 +402,16 @@ class GenerationHandler(
                     resultIndexes[idx] = result
                 }
 
-                pendingExecution.forEachIndexed { index, (tool, _) ->
+                pendingExecution.forEachIndexed { index, (tool, toolDef) ->
                     val result = resultIndexes[index]!!
                     if (result.isSuccess) {
                         executedTools += tool.copy(
-                            output = maybeTruncateToolOutput(tool, result.getOrNull() ?: emptyList(), hasShellAccess)
+                            output = maybeTruncateToolOutput(
+                                tool,
+                                result.getOrNull() ?: emptyList(),
+                                hasShellAccess,
+                                isMcpTool = toolDef.isMcpTool,
+                            )
                         )
                         recordToolCall(tool, tool.approvalState::class.simpleName ?: "Executed")
                     } else {
@@ -647,8 +652,9 @@ class GenerationHandler(
         tool: UIMessagePart.Tool,
         output: List<UIMessagePart>,
         hasShellAccess: Boolean,
+        isMcpTool: Boolean = false,
     ): List<UIMessagePart> {
-        if (tool.toolName.startsWith("mcp__")) return output
+        if (isMcpTool || tool.toolName.startsWith("mcp__")) return output
         val textParts = output.filterIsInstance<UIMessagePart.Text>()
         val nonTextParts = output.filter { it !is UIMessagePart.Text }
         val totalChars = textParts.sumOf { it.text.length }

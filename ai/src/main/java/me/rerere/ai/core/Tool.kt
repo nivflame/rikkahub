@@ -17,6 +17,7 @@ data class Tool(
     val needsApproval: (JsonElement) -> Boolean = { false },
     val execute: suspend (JsonElement) -> List<UIMessagePart>,
     val preExecute: (suspend (JsonElement) -> Map<String, JsonElement>?)? = null,
+    val isMcpTool: Boolean = false,
 )
 
 @Serializable
