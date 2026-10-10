@@ -353,7 +353,6 @@ class GenerationHandler(
 
             // Execute tools: file-modifying, MCP, and Browser tools sequentially, others in parallel
             if (pendingExecution.isNotEmpty()) {
-                val hasShellAccess = toolsInternal.any { it.name == "Bash" }
                 val sequentialToolNames = setOf("Edit", "Write", "Bash")
                 val sequentialIndices = pendingExecution.indices.filter {
                     val name = pendingExecution[it].first.toolName
@@ -409,7 +408,6 @@ class GenerationHandler(
                             output = maybeTruncateToolOutput(
                                 tool,
                                 result.getOrNull() ?: emptyList(),
-                                hasShellAccess,
                                 isMcpTool = toolDef.isMcpTool,
                             )
                         )
@@ -651,15 +649,14 @@ class GenerationHandler(
     private fun maybeTruncateToolOutput(
         tool: UIMessagePart.Tool,
         output: List<UIMessagePart>,
-        hasShellAccess: Boolean,
         isMcpTool: Boolean = false,
     ): List<UIMessagePart> {
-        if (isMcpTool || tool.toolName.startsWith("mcp__")) return output
+        if (isMcpTool || tool.toolName != "Bash") return output
         val textParts = output.filterIsInstance<UIMessagePart.Text>()
         val nonTextParts = output.filter { it !is UIMessagePart.Text }
         val totalChars = textParts.sumOf { it.text.length }
 
-        if (totalChars <= MAX_TOOL_OUTPUT_CHARS || !hasShellAccess) return output
+        if (totalChars <= MAX_TOOL_OUTPUT_CHARS) return output
 
         Log.i(TAG, "maybeTruncateToolOutput: truncating tool ${tool.toolCallId} output ($totalChars chars)")
 
