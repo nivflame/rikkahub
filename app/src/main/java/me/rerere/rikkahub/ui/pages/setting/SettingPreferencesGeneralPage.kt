@@ -274,6 +274,18 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         },
                     )
                     item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_show_translate_button_title)) },
+                        supportingContent = { Text(stringResource(R.string.setting_display_page_show_translate_button_desc)) },
+                        trailingContent = {
+                            Switch(
+                                checked = displaySetting.showTranslateButton,
+                                onCheckedChange = {
+                                    updateDisplaySetting(displaySetting.copy(showTranslateButton = it))
+                                }
+                            )
+                        },
+                    )
+                    item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_tts_only_read_quoted_desc)) },
                         trailingContent = {

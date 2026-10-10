@@ -722,6 +722,7 @@ data class DisplaySetting(
     val showLineNumbers: Boolean = false,
     val ttsOnlyReadQuoted: Boolean = false,
     val showTtsButton: Boolean = true,
+    val showTranslateButton: Boolean = true,
     val autoPlayTTSAfterGeneration: Boolean = false,
     val pasteLongTextAsFile: Boolean = false,
     val pasteLongTextThreshold: Int = 1000,

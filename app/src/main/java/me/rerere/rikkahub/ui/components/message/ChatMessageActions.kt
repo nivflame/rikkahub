@@ -156,7 +156,7 @@ fun ColumnScope.ChatMessageActionButtons(
             )
 
             // Translation button
-            if (onTranslate != null) {
+            if (onTranslate != null && settings.displaySetting.showTranslateButton) {
                 Icon(
                     imageVector = HugeIcons.Translate,
                     contentDescription = stringResource(R.string.translate),
