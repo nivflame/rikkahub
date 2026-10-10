@@ -107,7 +107,6 @@ class SettingsStore(
         val DEFERRED_TOOLS = stringPreferencesKey("deferred_tools")
         val FAVORITE_MODELS = stringPreferencesKey("favorite_models")
         val SELECT_MODEL = stringPreferencesKey("chat_model")
-        val FAST_MODEL = stringPreferencesKey("fast_model")
         val TITLE_MODEL = stringPreferencesKey("title_model")
         val TRANSLATE_MODEL = stringPreferencesKey("translate_model")
         val ENABLE_SUGGESTION = booleanPreferencesKey("enable_suggestion")
@@ -228,8 +227,6 @@ class SettingsStore(
                     JsonInstant.decodeFromString(it)
                 } ?: emptyList(),
                 chatModelId = preferences[SELECT_MODEL]?.let { Uuid.parse(it) }
-                    ?: DEFAULT_AUTO_MODEL_ID,
-                fastModelId = preferences[FAST_MODEL]?.let { Uuid.parse(it) }
                     ?: DEFAULT_AUTO_MODEL_ID,
                 titleModelId = preferences[TITLE_MODEL]?.let { Uuid.parse(it) },
                 translateModeId = preferences[TRANSLATE_MODEL]?.let { Uuid.parse(it) }
@@ -442,7 +439,6 @@ class SettingsStore(
             preferences[DEFERRED_TOOLS] = JsonInstant.encodeToString(settings.deferredTools)
             preferences[FAVORITE_MODELS] = JsonInstant.encodeToString(settings.favoriteModels)
             preferences[SELECT_MODEL] = settings.chatModelId.toString()
-            preferences[FAST_MODEL] = settings.fastModelId.toString()
             settings.titleModelId?.let {
                 preferences[TITLE_MODEL] = it.toString()
             } ?: preferences.remove(TITLE_MODEL)
@@ -618,7 +614,6 @@ data class Settings(
     val deferredTools: Set<String> = ALL_BROWSER_TOOL_NAMES.toSet(),
     val favoriteModels: List<Uuid> = emptyList(),
     val chatModelId: Uuid = Uuid.random(),
-    val fastModelId: Uuid = Uuid.random(),
     val titleModelId: Uuid? = null,
     val imageGenerationModelId: Uuid = Uuid.random(),
     val titlePrompt: String = DEFAULT_TITLE_PROMPT,
