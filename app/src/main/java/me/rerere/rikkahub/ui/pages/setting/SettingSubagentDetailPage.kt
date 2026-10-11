@@ -14,6 +14,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -139,7 +140,7 @@ fun SettingSubagentDetailPage(
             title = { Text("Remove subagent") },
             text = { Text("This will remove the subagent and its configuration. This action cannot be undone.") },
             confirmButton = {
-                Button(
+                FilledTonalButton(
                     onClick = {
                         showRemoveConfirm = false
                         vm.updateSettings(
@@ -147,9 +148,9 @@ fun SettingSubagentDetailPage(
                         )
                         nav.popBackStack()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
                 ) { Text("Remove") }
             },
@@ -170,8 +171,16 @@ internal fun SubagentDetailEditDialog(
     var editName by remember(prompt.id) { mutableStateOf(prompt.name) }
     var editDesc by remember(prompt.id) { mutableStateOf(prompt.description) }
     var editSystem by remember(prompt.id) { mutableStateOf(prompt.systemPrompt) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    val hasChanges = editName != prompt.name || editDesc != prompt.description || editSystem != prompt.systemPrompt
+    val canSave = editName.isNotBlank() && editDesc.isNotBlank() && editSystem.isNotBlank()
+
+    fun attemptDismiss() {
+        if (hasChanges) showDiscardConfirm = true else onDismiss()
+    }
+
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { attemptDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
@@ -185,7 +194,7 @@ internal fun SubagentDetailEditDialog(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = { attemptDismiss() }) {
                         Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Close")
                     }
                     Text(
@@ -193,9 +202,12 @@ internal fun SubagentDetailEditDialog(
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
-                    Button(onClick = {
-                        onConfirm(prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem))
-                    }) { Text("Save") }
+                    Button(
+                        onClick = {
+                            onConfirm(prompt.copy(name = editName.trim(), description = editDesc.trim(), systemPrompt = editSystem))
+                        },
+                        enabled = canSave,
+                    ) { Text("Save") }
                 }
                 Column(
                     modifier = Modifier
@@ -227,6 +239,26 @@ internal fun SubagentDetailEditDialog(
                 }
             }
         }
+    }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("Discard changes") },
+            text = { Text("Your changes will be lost.") },
+            confirmButton = {
+                FilledTonalButton(onClick = {
+                    showDiscardConfirm = false
+                    onDismiss()
+                }, colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )) { Text("Discard") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) { Text("Keep editing") }
+            },
+        )
     }
 }
 
