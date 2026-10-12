@@ -12,7 +12,6 @@ import kotlin.uuid.Uuid
 @Serializable
 data class SubagentProgress(
     val currentTool: String? = null,
-    val latestText: String = "",
     val latestThinking: String = "",
     val step: Int = 0,
     val finished: Boolean = false,

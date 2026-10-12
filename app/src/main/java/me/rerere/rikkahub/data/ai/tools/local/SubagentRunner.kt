@@ -117,11 +117,6 @@ class SubagentRunner(
                 lastMessages = chunk.messages
                 step++
                 val lastAssistant = chunk.messages.lastOrNull { it.role == MessageRole.ASSISTANT }
-                val latestText = lastAssistant
-                    ?.parts?.filterIsInstance<UIMessagePart.Text>()
-                    ?.joinToString("") { it.text }
-                    ?.takeIf { it.isNotBlank() }
-                    ?: ""
                 val latestThinking = lastAssistant
                     ?.parts?.filterIsInstance<UIMessagePart.Reasoning>()
                     ?.joinToString("") { it.reasoning }
@@ -135,7 +130,6 @@ class SubagentRunner(
                     toolCallId,
                     SubagentProgress(
                         currentTool = currentTool,
-                        latestText = latestText,
                         latestThinking = latestThinking,
                         step = step,
                     ),

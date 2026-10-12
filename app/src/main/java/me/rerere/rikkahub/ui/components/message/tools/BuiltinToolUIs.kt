@@ -351,15 +351,6 @@ object SubagentToolUI : ToolUIRenderer {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        } else if (progress.latestText.isNotBlank()) {
-            Text(
-                text = progress.latestText,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.shimmer(isLoading = true),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
         } else if (progress.latestThinking.isNotBlank()) {
             Text(
                 text = "Thinking",
