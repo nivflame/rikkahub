@@ -34,7 +34,6 @@ class SubagentRunner(
         prompt: String,
         toolCallId: String,
         conversationId: Uuid,
-        sessionId: Int? = null,
     ): String {
         val settings = settingsStore.settingsFlow.value
         val def = settings.subagentPrompts.firstOrNull { it.name == subagentType }
@@ -50,7 +49,7 @@ class SubagentRunner(
 
         running.incrementAndGet()
         try {
-            return runSubagent(def, prompt, model, parentTools, settings, toolCallId, conversationId, sessionId)
+            return runSubagent(def, prompt, model, parentTools, settings, toolCallId)
         } catch (e: Exception) {
             return "error: ${e.message}"
         } finally {
@@ -66,8 +65,6 @@ class SubagentRunner(
         parentTools: List<Tool>,
         settings: Settings,
         toolCallId: String,
-        conversationId: Uuid,
-        sessionId: Int?,
     ): String {
         val subTools = parentTools.filter { tool ->
             val toggleableNames = SUBAGENT_LOCAL_TOOL_NAMES.toSet() + ALL_BROWSER_TOOL_NAMES.toSet() +
@@ -83,20 +80,12 @@ class SubagentRunner(
             enableMemory = false,
             modeInjectionIds = def.modeInjectionIds,
         )
-        val previousMessages = sessionId?.let { progressStore.getSession(conversationId, it) }
-        val messages = if (previousMessages != null) {
-            previousMessages + UIMessage(
+        val messages = listOf(
+            UIMessage(
                 role = MessageRole.USER,
                 parts = listOf(UIMessagePart.Text(prompt)),
             )
-        } else {
-            listOf(
-                UIMessage(
-                    role = MessageRole.USER,
-                    parts = listOf(UIMessagePart.Text(prompt)),
-                )
-            )
-        }
+        )
         var lastMessages: List<UIMessage> = emptyList()
         var step = 0
         val inputTransformers = if (def.modeInjectionIds.isNotEmpty()) {
@@ -141,21 +130,10 @@ class SubagentRunner(
             ?.joinToString("") { it.text }
             ?.takeIf { it.isNotBlank() }
             ?: "(subagent finished with no text output)"
-        return if (sessionId != null) {
-            progressStore.updateSession(conversationId, sessionId, lastMessages)
-            JsonInstant.encodeToString(
-                buildJsonObject {
-                    put("result", JsonPrimitive(resultText))
-                }
-            )
-        } else {
-            val newSessionId = progressStore.saveSession(conversationId, lastMessages)
-            JsonInstant.encodeToString(
-                buildJsonObject {
-                    put("result", JsonPrimitive(resultText))
-                    put("session_id", JsonPrimitive(newSessionId))
-                }
-            )
-        }
+        return JsonInstant.encodeToString(
+            buildJsonObject {
+                put("result", JsonPrimitive(resultText))
+            }
+        )
     }
 }
