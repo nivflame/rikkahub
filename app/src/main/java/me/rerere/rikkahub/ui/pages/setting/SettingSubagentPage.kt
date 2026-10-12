@@ -171,7 +171,7 @@ fun SettingSubagentPage(vm: SettingVM = koinViewModel()) {
                         onClick = { nav.navigate(Screen.SettingSubagentDetail(promptId = prompt.id.toString())) },
                         headlineContent = {
                             Text(
-                                text = prompt.name.ifBlank { "(unnamed)" },
+                                text = prompt.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.alpha(contentAlpha),
                             )

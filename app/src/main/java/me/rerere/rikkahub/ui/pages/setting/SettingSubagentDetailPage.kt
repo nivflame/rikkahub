@@ -75,7 +75,7 @@ fun SettingSubagentDetailPage(
     Scaffold(
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(prompt.name.ifBlank { "(unnamed)" }) },
+                title = { Text(prompt.name) },
                 navigationIcon = { BackButton() },
                 actions = {
                     IconButton(onClick = { showEditDialog = true }) {
