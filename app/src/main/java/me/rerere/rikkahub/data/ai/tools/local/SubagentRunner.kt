@@ -15,6 +15,7 @@ import me.rerere.rikkahub.data.ai.transformers.PromptInjectionTransformer
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.findModelById
+import me.rerere.rikkahub.data.datastore.getCurrentChatModel
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.utils.JsonInstant
 import java.util.concurrent.atomic.AtomicInteger
@@ -44,6 +45,7 @@ class SubagentRunner(
                 "Wait for a running subagent to finish before launching another."
         }
         val model = settings.findModelById(settings.subagentModelId)
+            ?: settings.getCurrentChatModel()
             ?: return "Subagent model is not configured. Set it in Settings, Subagent."
 
         running.incrementAndGet()
