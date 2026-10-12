@@ -300,6 +300,17 @@ object SubagentToolUI : ToolUIRenderer {
         return if (description != null) "$type: $description" else type
     }
 
+    @Composable
+    override fun Label(context: ToolUIContext) {
+        Text(
+            text = title(context),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+
     override fun hasSummary(context: ToolUIContext): Boolean {
         return context.loading
     }
