@@ -36,7 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BackupPage(vm: BackupVM = koinViewModel()) {
-    val pagerState = rememberPagerState(initialPage = 2) { 4 }
+    val pagerState = rememberPagerState { 4 }
     val scope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -70,17 +70,17 @@ fun BackupPage(vm: BackupVM = koinViewModel()) {
                 Tab(
                     selected = pagerState.currentPage == 0,
                     onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                    text = { Text(stringResource(R.string.backup_page_webdav_backup)) }
+                    text = { Text(stringResource(R.string.backup_page_import_export)) }
                 )
                 Tab(
                     selected = pagerState.currentPage == 1,
                     onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                    text = { Text(stringResource(R.string.backup_page_s3_backup)) }
+                    text = { Text(stringResource(R.string.backup_page_webdav_backup)) }
                 )
                 Tab(
                     selected = pagerState.currentPage == 2,
                     onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
-                    text = { Text(stringResource(R.string.backup_page_import_export)) }
+                    text = { Text(stringResource(R.string.backup_page_s3_backup)) }
                 )
                 Tab(
                     selected = pagerState.currentPage == 3,
@@ -97,21 +97,21 @@ fun BackupPage(vm: BackupVM = koinViewModel()) {
             ) { page ->
                 when (page) {
                     0 -> {
-                        WebDavTab(
+                        ImportExportTab(
                             vm = vm,
                             onShowRestartDialog = { showRestartDialog = true }
                         )
                     }
 
                     1 -> {
-                        S3Tab(
+                        WebDavTab(
                             vm = vm,
                             onShowRestartDialog = { showRestartDialog = true }
                         )
                     }
 
                     2 -> {
-                        ImportExportTab(
+                        S3Tab(
                             vm = vm,
                             onShowRestartDialog = { showRestartDialog = true }
                         )
