@@ -36,7 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BackupPage(vm: BackupVM = koinViewModel()) {
-    val pagerState = rememberPagerState { 4 }
+    val pagerState = rememberPagerState(initialPage = 2) { 4 }
     val scope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
