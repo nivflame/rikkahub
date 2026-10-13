@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,6 +105,7 @@ class WorkspaceDetailVM(
                     .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
                 _state.update { it.copy(entries = entries.sortedWith(comparator), loading = false) }
             }.onFailure { error ->
+                if (error is CancellationException) throw error
                 _state.update {
                     it.copy(
                         entries = emptyList(),
