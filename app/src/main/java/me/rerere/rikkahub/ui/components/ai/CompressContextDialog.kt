@@ -206,7 +206,7 @@ fun CompressContextDialog(
                                     keepRecentMessages = it.roundToInt()
                                     keepRecentInput = keepRecentMessages.toString()
                                 },
-                                valueRange = 0f..64f,
+                                valueRange = 0f..128f,
                                 modifier = Modifier.weight(1f),
                             )
                             val focusManager = LocalFocusManager.current
@@ -219,7 +219,7 @@ fun CompressContextDialog(
                                 onValueChange = { input ->
                                     keepRecentInput = input.filter { it.isDigit() }
                                     keepRecentInput.toIntOrNull()?.let {
-                                        keepRecentMessages = it.coerceIn(0, 64)
+                                        keepRecentMessages = it.coerceIn(0, 128)
                                     }
                                 },
                                 keyboardOptions = KeyboardOptions(
