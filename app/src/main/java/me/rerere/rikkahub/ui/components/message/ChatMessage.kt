@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -30,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -48,6 +50,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -134,14 +138,23 @@ fun ChatMessage(
     )
     var showActionsSheet by remember { mutableStateOf(false) }
     var showSelectCopySheet by remember { mutableStateOf(false) }
+    var pendingLinkUrl by remember { mutableStateOf<String?>(null) }
     val navController = LocalNavController.current
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
+    val uriHandler = remember {
+        object : UriHandler {
+            override fun openUri(uri: String) {
+                pendingLinkUrl = uri
+            }
+        }
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        CompositionLocalProvider(LocalUriHandler provides uriHandler) {
         if (!message.parts.isEmptyUIMessage() && !message.isInjectedNotice) {
             Row(
                 modifier = Modifier
@@ -175,6 +188,7 @@ fun ChatMessage(
                 onToolApproval = onToolApproval,
                 onToolAnswer = onToolAnswer,
                 onUserMessageClick = if (message.role == MessageRole.USER) onEdit else null,
+                onLinkClick = { pendingLinkUrl = it },
             )
 
             message.translation?.let { translation ->
@@ -222,6 +236,23 @@ fun ChatMessage(
             ChatMessageNerdLine(message = message)
         }
 
+        }
+    }
+    if (pendingLinkUrl != null) {
+        AlertDialog(
+            onDismissRequest = { pendingLinkUrl = null },
+            title = { Text("Open link") },
+            text = { Text(pendingLinkUrl ?: "") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingLinkUrl?.let { context.openUrl(it) }
+                    pendingLinkUrl = null
+                }) { Text("Open") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLinkUrl = null }) { Text("Cancel") }
+            },
+        )
     }
     if (showActionsSheet) {
         ChatMessageActionsSheet(
@@ -278,6 +309,7 @@ private fun MessagePartsBlock(
     onToolApproval: ((toolCallId: String, approved: Boolean, reason: String) -> Unit)? = null,
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onUserMessageClick: (() -> Unit)? = null,
+    onLinkClick: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
@@ -287,7 +319,7 @@ private fun MessagePartsBlock(
     val settings = LocalSettings.current
     val partsState by rememberUpdatedState(parts)
 
-    val handleClickCitation: (String) -> Unit = remember {
+    val handleClickCitation: (String) -> Unit = remember(onLinkClick) {
         handler@{ citationId ->
             partsState.forEach { part ->
                 if (part is UIMessagePart.Tool && part.isExecuted) {
@@ -306,7 +338,7 @@ private fun MessagePartsBlock(
                         val id = item.jsonObject["id"]?.jsonPrimitive?.content ?: return@forEach
                         val url = item.jsonObject["url"]?.jsonPrimitive?.content ?: return@forEach
                         if (citationId == id) {
-                            context.openUrl(url)
+                            onLinkClick?.invoke(url)
                             return@handler
                         }
                     }
