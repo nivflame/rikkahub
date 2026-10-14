@@ -513,6 +513,7 @@ class GenerationHandler(
         conversationLorebookIds: Set<Uuid> = emptySet(),
         workspaceCwd: String? = null,
     ) {
+        processingStatus.value = null
         var internalMessages = buildList {
             val system = buildString {
                 val effectiveSystemPrompt =
