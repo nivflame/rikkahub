@@ -7,18 +7,6 @@ val DEFAULT_AUTO_MODEL_ID = Uuid.parse("b7055fb4-39f9-4042-a88a-0d80ed76cf08")
 
 val DEFAULT_PROVIDERS: List<ProviderSetting> = listOf(
     ProviderSetting.OpenAI(
-        id = Uuid.parse("c8f3e2a1-9b4d-4e7c-8f6a-2d1e0c9b7a3f"),
-        name = "Opencode",
-        baseUrl = "https://opencode.ai/zen/v1",
-        enabled = false,
-    ),
-    ProviderSetting.OpenAI(
-        id = Uuid.parse("b448af34-f539-501d-9d93-59ff8a0b5761"),
-        name = "Ollama",
-        baseUrl = "https://ollama.com/v1",
-        enabled = false,
-    ),
-    ProviderSetting.OpenAI(
         id = Uuid.parse("51f03656-b929-542f-98f3-4abdfd2dc12e"),
         name = "Nvidia",
         baseUrl = "https://integrate.api.nvidia.com/v1",
