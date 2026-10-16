@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -253,108 +255,86 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()) }
 
     SelectionContainer {
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = "Request Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = "Request Details",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
 
-            item {
-                DetailSection("Time", dateFormat.format(Date(log.timestamp)))
-            }
+            DetailSection("Time", dateFormat.format(Date(log.timestamp)))
 
-            item {
-                DetailSection("URL", log.url)
-            }
+            DetailSection("URL", log.url)
 
-            item {
-                DetailSection("Method", log.method)
-            }
+            DetailSection("Method", log.method)
 
             log.responseCode?.let { code ->
-                item {
-                    DetailSection("Status Code", code.toString())
-                }
+                DetailSection("Status Code", code.toString())
             }
 
             log.durationMs?.let { duration ->
-                item {
-                    DetailSection("Duration", "${duration}ms")
-                }
+                DetailSection("Duration", "${duration}ms")
             }
 
             log.error?.let { error ->
-                item {
-                    DetailSection("Error", error)
-                }
+                DetailSection("Error", error)
             }
 
             if (log.requestHeaders.isNotEmpty()) {
-                item {
-                    HorizontalDivider()
-                    Text(
-                        text = "Request Headers",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
+                HorizontalDivider()
+                Text(
+                    text = "Request Headers",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
                 log.requestHeaders.forEach { (key, value) ->
-                    item {
-                        HeaderItem(key, value)
-                    }
+                    HeaderItem(key, value)
                 }
             }
 
             log.requestBody?.let { body ->
-                item {
-                    HorizontalDivider()
-                    Text(
-                        text = "Request Body",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp)
+                HorizontalDivider()
+                Text(
+                    text = "Request Body",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                val jsonElement = remember(body) {
+                    runCatching { JsonInstantPretty.parseToJsonElement(body) }.getOrNull()
+                }
+                if (jsonElement != null) {
+                    JsonTree(
+                        json = jsonElement,
+                        modifier = Modifier.padding(top = 4.dp),
+                        initialExpandLevel = 2
                     )
-                    val jsonElement = remember(body) {
-                        runCatching { JsonInstantPretty.parseToJsonElement(body) }.getOrNull()
-                    }
-                    if (jsonElement != null) {
-                        JsonTree(
-                            json = jsonElement,
-                            modifier = Modifier.padding(top = 4.dp),
-                            initialExpandLevel = 2
-                        )
-                    } else {
-                        Text(
-                            text = body,
-                            fontFamily = JetbrainsMono,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
+                } else {
+                    Text(
+                        text = body,
+                        fontFamily = JetbrainsMono,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
 
             if (log.responseHeaders.isNotEmpty()) {
-                item {
-                    HorizontalDivider()
-                    Text(
-                        text = "Response Headers",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
+                HorizontalDivider()
+                Text(
+                    text = "Response Headers",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
                 log.responseHeaders.forEach { (key, value) ->
-                    item {
-                        HeaderItem(key, value)
-                    }
+                    HeaderItem(key, value)
                 }
             }
         }
