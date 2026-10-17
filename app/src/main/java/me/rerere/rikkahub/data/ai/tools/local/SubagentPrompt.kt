@@ -28,6 +28,14 @@ internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
     "ToolSearch",
 )
 
+internal fun List<SubagentPrompt>.migrateLegacySubagentPrompts(): List<SubagentPrompt> = mapNotNull { prompt ->
+    when {
+        prompt.isBuiltIn && prompt.name == "general-purpose" -> prompt.copy(name = "general")
+        prompt.isBuiltIn && prompt.name == "plan" -> null
+        else -> prompt
+    }
+}
+
 fun mergeSubagentPrompts(
     backup: List<SubagentPrompt>,
     current: List<SubagentPrompt>,

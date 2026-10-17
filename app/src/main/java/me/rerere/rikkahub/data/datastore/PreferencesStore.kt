@@ -55,6 +55,7 @@ import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_BROWSER_TOOLS
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_ENABLED_DEVICE_TOOLS
 import me.rerere.rikkahub.data.ai.tools.local.SubagentPrompt
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_SUBAGENT_PROMPTS
+import me.rerere.rikkahub.data.ai.tools.local.migrateLegacySubagentPrompts
 import me.rerere.rikkahub.utils.toMutableStateFlow
 import me.rerere.search.SearchCommonOptions
 import me.rerere.search.SearchServiceOptions
@@ -211,7 +212,7 @@ class SettingsStore(
                 } ?: emptyMap(),
                 subagentPrompts = preferences[SUBAGENT_PROMPTS]?.let {
                     val parsed = JsonInstant.decodeFromString<List<SubagentPrompt>>(it)
-                    if (parsed.isEmpty()) DEFAULT_SUBAGENT_PROMPTS else parsed
+                    if (parsed.isEmpty()) DEFAULT_SUBAGENT_PROMPTS else parsed.migrateLegacySubagentPrompts()
                 } ?: DEFAULT_SUBAGENT_PROMPTS,
                 subagentConcurrency = preferences[SUBAGENT_CONCURRENCY] ?: 3,
                 subagentModelId = preferences[SUBAGENT_MODEL]?.takeIf { it.isNotBlank() }?.let { Uuid.parse(it) },

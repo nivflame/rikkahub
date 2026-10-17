@@ -20,6 +20,7 @@ import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.WebDavConfig
 import me.rerere.rikkahub.data.datastore.migration.SettingsJsonMigrator
 import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_SUBAGENT_PROMPTS
+import me.rerere.rikkahub.data.ai.tools.local.migrateLegacySubagentPrompts
 import me.rerere.rikkahub.data.ai.tools.local.mergeSubagentPrompts
 import me.rerere.rikkahub.data.codex.CodexAccountRepository
 import me.rerere.rikkahub.data.codex.CodexAccountState
@@ -272,7 +273,7 @@ class WebDavSync(
                             val settings = json.decodeFromString<Settings>(migratedJson)
                             val currentSettings = settingsStore.settingsFlow.value
                             val mergedSubagentPrompts = mergeSubagentPrompts(
-                                backup = settings.subagentPrompts,
+                                backup = settings.subagentPrompts.migrateLegacySubagentPrompts(),
                                 current = currentSettings.subagentPrompts,
                                 defaults = DEFAULT_SUBAGENT_PROMPTS,
                             )

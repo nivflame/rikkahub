@@ -903,7 +903,7 @@ class ChatService(
                                 description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
                                 execute = {
                                     val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
-                                        ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general-purpose"
+                                        ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general"
                                     val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
                                     listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", conversationId = conversationId)))
                                 }

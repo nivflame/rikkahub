@@ -14,7 +14,7 @@ internal fun buildSubagentTool(settings: Settings): Tool = Tool(
         Available subagent types and the tools they have access to:
         {{subagents}}
 
-        When using the Subagent, specify a subagent_type parameter to select which subagent type to use. If omitted, the general-purpose subagent is used.
+        When using the Subagent, specify a subagent_type parameter to select which subagent type to use. If omitted, the general subagent is used.
 
         ## Usage notes
         - When you launch multiple subagents for independent work, send them in a single message with multiple tool uses so they run concurrently (up to {{concurrency}} at a time)
