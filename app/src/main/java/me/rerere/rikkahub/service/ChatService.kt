@@ -119,6 +119,7 @@ import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.web.BadRequestException
 import me.rerere.rikkahub.web.NotFoundException
 import me.rerere.rikkahub.utils.applyPlaceholders
+import me.rerere.rikkahub.utils.humanizeDuration
 import me.rerere.rikkahub.utils.sendNotification
 import me.rerere.rikkahub.utils.cancelNotification
 import me.rerere.rikkahub.browser.HeadlessBrowserSession
@@ -363,15 +364,6 @@ class ChatService(
             else -> "Background command FAILED (exit ${event.exitCode}, ${humanizeDuration(event.durationMs)})"
         }
         return "<system_reminder>\n$header\n$ ${event.command}\n$tail\nFull log: ${event.logPath}\n</system_reminder>"
-    }
-
-    private fun humanizeDuration(durationMs: Long): String {
-        val totalSeconds = durationMs / 1000.0
-        return when {
-            totalSeconds < 60 -> "${"%.1f".format(totalSeconds)}s"
-            totalSeconds < 3600 -> "${(totalSeconds / 60).toLong()}m"
-            else -> "%.1f".format(totalSeconds / 3600) + "h"
-        }
     }
 
     private suspend fun injectBackgroundNotifications(conversationId: Uuid, texts: List<String>) {

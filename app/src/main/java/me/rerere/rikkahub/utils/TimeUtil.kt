@@ -90,3 +90,12 @@ private fun isMonthFirstLocale(locale: Locale): Boolean {
     )
     return monthFirstCountries.contains(locale.country)
 }
+
+fun humanizeDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1000
+    return when {
+        totalSeconds < 60 -> "${totalSeconds}s"
+        totalSeconds < 3600 -> "${totalSeconds / 60}m ${"%02d".format(totalSeconds % 60)}s"
+        else -> "${totalSeconds / 3600}h ${"%02d".format((totalSeconds % 3600) / 60)}m"
+    }
+}

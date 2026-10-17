@@ -2,6 +2,7 @@ package me.rerere.rikkahub.ui.components.message.tools
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +40,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -73,6 +77,7 @@ import me.rerere.rikkahub.ui.components.ui.Favicon
 import me.rerere.rikkahub.ui.components.ui.FaviconRow
 import me.rerere.rikkahub.ui.modifier.shimmer
 import me.rerere.rikkahub.utils.JsonInstantPretty
+import me.rerere.rikkahub.utils.humanizeDuration
 import me.rerere.rikkahub.utils.jsonPrimitiveOrNull
 import me.rerere.rikkahub.utils.openUrl
 import org.koin.compose.koinInject
@@ -335,39 +340,33 @@ object SubagentToolUI : ToolUIRenderer {
         }
         if (progress.finished) {
             Text(
-                text = "Done",
+                text = "Finished in ${humanizeDuration(progress.finishedAtElapsedRealtime - progress.startedAtElapsedRealtime)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 maxLines = 1,
             )
             return
         }
-        if (progress.currentTool != null) {
-            Text(
-                text = progress.currentTool,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.shimmer(isLoading = true),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        } else if (progress.latestThinking.isNotBlank()) {
-            Text(
-                text = "Thinking",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.shimmer(isLoading = true),
-                maxLines = 1,
-            )
-        } else {
-            Text(
-                text = "Working",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.shimmer(isLoading = true),
-                maxLines = 1,
-            )
+        val now by produceState(SystemClock.elapsedRealtime()) {
+            while (true) {
+                delay(1.seconds)
+                value = SystemClock.elapsedRealtime()
+            }
         }
+        val currentTool = progress.currentTool
+        val statusText = when {
+            currentTool != null -> currentTool
+            progress.latestThinking.isNotBlank() -> "Thinking"
+            else -> "Working"
+        }
+        Text(
+            text = "$statusText • ${humanizeDuration(now - progress.startedAtElapsedRealtime)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.shimmer(isLoading = true),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

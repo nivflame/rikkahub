@@ -48,6 +48,7 @@ class SubagentRunner(
             ?: return "Subagent model is not configured. Set it in Settings, Subagent."
 
         running.incrementAndGet()
+        progressStore.start(toolCallId)
         try {
             return runSubagent(def, prompt, model, parentTools, settings, toolCallId)
         } catch (e: Exception) {
@@ -87,7 +88,6 @@ class SubagentRunner(
             )
         )
         var lastMessages: List<UIMessage> = emptyList()
-        var step = 0
         val inputTransformers = if (def.modeInjectionIds.isNotEmpty()) {
             listOf<InputMessageTransformer>(PromptInjectionTransformer)
         } else {
@@ -104,7 +104,6 @@ class SubagentRunner(
         ).collect { chunk ->
             if (chunk is GenerationChunk.Messages) {
                 lastMessages = chunk.messages
-                step++
                 val lastAssistant = chunk.messages.lastOrNull { it.role == MessageRole.ASSISTANT }
                 val latestThinking = lastAssistant
                     ?.parts?.filterIsInstance<UIMessagePart.Reasoning>()
@@ -120,7 +119,6 @@ class SubagentRunner(
                     SubagentProgress(
                         currentTool = currentTool,
                         latestThinking = latestThinking,
-                        step = step,
                     ),
                 )
             }
