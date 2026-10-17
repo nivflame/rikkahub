@@ -19,7 +19,7 @@ import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 import me.rerere.rikkahub.data.datastore.WebDavConfig
 import me.rerere.rikkahub.data.datastore.migration.SettingsJsonMigrator
-import me.rerere.rikkahub.data.ai.tools.local.loadDefaultSubagentPrompts
+import me.rerere.rikkahub.data.ai.tools.local.DEFAULT_SUBAGENT_PROMPTS
 import me.rerere.rikkahub.data.ai.tools.local.mergeSubagentPrompts
 import me.rerere.rikkahub.data.codex.CodexAccountRepository
 import me.rerere.rikkahub.data.codex.CodexAccountState
@@ -271,11 +271,10 @@ class WebDavSync(
                             val migratedJson = SettingsJsonMigrator.migrate(settingsJson)
                             val settings = json.decodeFromString<Settings>(migratedJson)
                             val currentSettings = settingsStore.settingsFlow.value
-                            val defaults = loadDefaultSubagentPrompts(context.assets)
                             val mergedSubagentPrompts = mergeSubagentPrompts(
                                 backup = settings.subagentPrompts,
                                 current = currentSettings.subagentPrompts,
-                                defaults = defaults,
+                                defaults = DEFAULT_SUBAGENT_PROMPTS,
                             )
                             settingsStore.update(settings.copy(subagentPrompts = mergedSubagentPrompts))
                             Log.i(TAG, "restoreFromBackupFile: Settings restored successfully")
