@@ -8,12 +8,30 @@ import me.rerere.rikkahub.data.datastore.Settings
 
 internal fun buildSubagentTool(settings: Settings): Tool = Tool(
     name = "Subagent",
-    description = SUBAGENT_DESCRIPTION_INTRO +
-        settings.subagentPrompts.filter { it.enabled }.joinToString("\n") { "- ${it.name}: ${it.description}" } +
-        SUBAGENT_DESCRIPTION_REST.replace(
-            "{{concurrency}}",
-            settings.subagentConcurrency.toString()
-        ),
+    description = """
+        Launch a new subagent to handle complex, multi-step tasks. Each subagent type has specific capabilities and tools available to it
+
+        Available subagent types and the tools they have access to:
+        {{subagents}}
+
+        When using the Subagent, specify a subagent_type parameter to select which subagent type to use. If omitted, the general-purpose subagent is used.
+
+        ## Usage notes
+        - When you launch multiple subagents for independent work, send them in a single message with multiple tool uses so they run concurrently (up to {{concurrency}} at a time)
+        - Trust but verify: an subagent's summary describes what it intended to do, not necessarily what it did. When an subagent writes or edits code, check the actual changes before reporting the work as done.
+        - Clearly tell the subagent whether you expect it to write code or just to do research (search, reads, web fetches, etc.), since it is not aware of the user's intent.
+
+        ## Writing the prompt
+        Brief the subagent like a smart colleague who just walked into the room it hasn't seen this conversation, doesn't know what you've tried, doesn't understand why this task matters:
+        - Explain what you're trying to accomplish and why.
+        - Describe what you've already learned or ruled out.
+        - Give enough context about the surrounding problem that the subagent can make judgment calls rather than just following a narrow instruction.
+        - Lookups: hand over the exact command. Investigations: hand over the question prescribed steps become dead weight when the premise is wrong.
+        - Terse command-style prompts produce shallow, generic work.
+        - Never delegate understanding. Don't write "based on your findings, fix the bug" or "based on the research, implement it." Those phrases push synthesis onto the subagent instead of doing it yourself. Write prompts that prove you understood: include file paths, line numbers, what specifically to change.
+    """.trimIndent()
+        .replace("{{subagents}}", settings.subagentPrompts.filter { it.enabled }.joinToString("\n") { "- ${it.name}: ${it.description}" })
+        .replace("{{concurrency}}", settings.subagentConcurrency.toString()),
     parameters = {
         InputSchema.Obj(
             properties = buildJsonObject {
@@ -35,27 +53,3 @@ internal fun buildSubagentTool(settings: Settings): Tool = Tool(
     },
     execute = { error("Subagent tool execute is handled in ChatService") }
 )
-
-private const val SUBAGENT_DESCRIPTION_INTRO =
-    "Launch a new subagent to handle complex, multi-step tasks. " +
-    "Each subagent type has specific capabilities and tools available to it\n\n" +
-    "Available subagent types and the tools they have access to:\n"
-
-private val SUBAGENT_DESCRIPTION_REST = """
-
-When using the Subagent, specify a subagent_type parameter to select which subagent type to use. If omitted, the general-purpose subagent is used.
-
-## Usage notes
-- When you launch multiple subagents for independent work, send them in a single message with multiple tool uses so they run concurrently (up to {{concurrency}} at a time)
-- Trust but verify: an subagent's summary describes what it intended to do, not necessarily what it did. When an subagent writes or edits code, check the actual changes before reporting the work as done.
-- Clearly tell the subagent whether you expect it to write code or just to do research (search, reads, web fetches, etc.), since it is not aware of the user's intent.
-
-## Writing the prompt
-Brief the subagent like a smart colleague who just walked into the room it hasn't seen this conversation, doesn't know what you've tried, doesn't understand why this task matters:
-- Explain what you're trying to accomplish and why.
-- Describe what you've already learned or ruled out.
-- Give enough context about the surrounding problem that the subagent can make judgment calls rather than just following a narrow instruction.
-- Lookups: hand over the exact command. Investigations: hand over the question prescribed steps become dead weight when the premise is wrong.
-- Terse command-style prompts produce shallow, generic work.
-- Never delegate understanding. Don't write "based on your findings, fix the bug" or "based on the research, implement it." Those phrases push synthesis onto the subagent instead of doing it yourself. Write prompts that prove you understood: include file paths, line numbers, what specifically to change.
-""".trimIndent()
