@@ -929,18 +929,23 @@ class ChatService(
                 onAutoCompress = if (settings.autoCompressEnabled) {
                     { msgs: List<UIMessage> ->
                         val keepRecent = (msgs.size * settings.autoCompressKeepPercentage / 100).coerceAtLeast(1)
-                        val compressed = compressMessagesList(
-                            messages = msgs,
-                            additionalPrompt = "",
-                            keepRecentMessages = keepRecent
-                        ).getOrThrow()
-                        val conv = getConversationFlow(conversationId).value
-                        val newConv = conv.copy(
-                            messageNodes = compressed.map { it.toMessageNode() },
-                            chatSuggestions = emptyList(),
-                        )
-                        saveConversation(conversationId, newConv)
-                        compressed
+                        session.processingStatus.value = context.getString(R.string.chat_page_compressing)
+                        try {
+                            val compressed = compressMessagesList(
+                                messages = msgs,
+                                additionalPrompt = "",
+                                keepRecentMessages = keepRecent
+                            ).getOrThrow()
+                            val conv = getConversationFlow(conversationId).value
+                            val newConv = conv.copy(
+                                messageNodes = compressed.map { it.toMessageNode() },
+                                chatSuggestions = emptyList(),
+                            )
+                            saveConversation(conversationId, newConv)
+                            compressed
+                        } finally {
+                            session.processingStatus.value = null
+                        }
                     }
                 } else null,
             ).onCompletion {
