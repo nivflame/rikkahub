@@ -319,6 +319,9 @@ fun ChatDrawerContent(
                     conversationToMoveFolder = it
                     showMoveToFolderSheet = true
                 },
+                onExportMarkdown = {
+                    vm.exportConversationMarkdown(it)
+                },
                 onSelectionToggle = { id ->
                     selectedIds = if (id in selectedIds) {
                         selectedIds - id

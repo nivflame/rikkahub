@@ -155,6 +155,40 @@ fun Context.getComponentActivity(): ComponentActivity? {
     return null
 }
 
+fun Context.saveTextToDownloads(
+    fileName: String,
+    content: String,
+    mimeType: String = "text/markdown"
+): Boolean {
+    var outputStream: OutputStream? = null
+    return try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            val fileUri = contentResolver.insert(uri, contentValues) ?: return false
+            outputStream = contentResolver.openOutputStream(fileUri)
+            outputStream?.write(content.toByteArray())
+            true
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            downloadsDir.mkdirs()
+            val file = File(downloadsDir, fileName)
+            outputStream = FileOutputStream(file)
+            outputStream.write(content.toByteArray())
+            true
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to save text to downloads", e)
+        false
+    } finally {
+        outputStream?.close()
+    }
+}
+
 fun Context.exportImage(
     activity: Activity,
     bitmap: Bitmap,

@@ -240,14 +240,10 @@ fun ChatExportSheet(
     }
 }
 
-private fun exportToMarkdown(
-    context: Context,
+internal fun buildMarkdownContent(
     conversation: Conversation,
     messages: List<UIMessage>
-) {
-    val filename = "chat-export-${LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))}.md"
-
-    val sb = buildAnnotatedString {
+): String = buildAnnotatedString {
         append("# ${conversation.title}\n\n")
         append("*Exported on ${LocalDateTime.now().toLocalString()}*\n\n")
 
@@ -351,7 +347,14 @@ private fun exportToMarkdown(
             append("---")
             appendLine()
         }
-    }
+    }.toString()
+
+private fun exportToMarkdown(
+    context: Context,
+    conversation: Conversation,
+    messages: List<UIMessage>
+) {
+    val filename = "chat-export-${LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))}.md"
 
     try {
         val dir = context.appTempFolder
@@ -363,7 +366,7 @@ private fun exportToMarkdown(
             file.createNewFile()
         }
         FileOutputStream(file).use {
-            it.write(sb.toString().toByteArray())
+            it.write(buildMarkdownContent(conversation, messages).toByteArray())
         }
 
         // Share the file

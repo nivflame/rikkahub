@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.ui.pages.chat
 
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.File02
 import me.rerere.hugeicons.stroke.Folder01
 import me.rerere.hugeicons.stroke.Forward02
 import me.rerere.hugeicons.stroke.Pin
@@ -87,6 +88,7 @@ fun ColumnScope.ConversationList(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {},
     onMoveToFolder: (Conversation) -> Unit = {},
+    onExportMarkdown: (Conversation) -> Unit = {},
     onSelectionToggle: (Uuid) -> Unit = {},
     onEnterSelection: (Conversation) -> Unit = {},
 ) {
@@ -165,6 +167,7 @@ fun ColumnScope.ConversationList(
                         onPin = onPin,
                         onMoveToAssistant = onMoveToAssistant,
                         onMoveToFolder = onMoveToFolder,
+                        onExportMarkdown = onExportMarkdown,
                         isSelectionMode = isSelectionMode,
                         isSelected = item.conversation.id in selectedIds,
                         onSelectionToggle = onSelectionToggle,
@@ -239,6 +242,7 @@ private fun ConversationItem(
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {},
     onMoveToFolder: (Conversation) -> Unit = {},
+    onExportMarkdown: (Conversation) -> Unit = {},
     onClick: (Conversation) -> Unit,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
@@ -386,6 +390,15 @@ private fun ConversationItem(
                             showDropdownMenu = false
                         },
                         leadingIcon = { Icon(HugeIcons.Folder01, null) }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text(stringResource(id = R.string.chat_page_export_as_markdown)) },
+                        onClick = {
+                            onExportMarkdown(conversation)
+                            showDropdownMenu = false
+                        },
+                        leadingIcon = { Icon(HugeIcons.File02, null) }
                     )
 
                     DropdownMenuItem(

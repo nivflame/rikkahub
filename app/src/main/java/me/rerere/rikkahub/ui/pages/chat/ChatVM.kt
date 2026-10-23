@@ -40,6 +40,7 @@ import me.rerere.rikkahub.service.ChatError
 import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.ui.hooks.writeStringPreference
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import me.rerere.rikkahub.utils.saveTextToDownloads
 import me.rerere.rikkahub.utils.UiState
 import me.rerere.rikkahub.utils.UpdateChecker
 import me.rerere.rikkahub.utils.base64Decode
@@ -311,6 +312,27 @@ class ChatVM(
 
     fun translateMessage(message: UIMessage, targetLanguage: Locale) {
         chatService.translateMessage(_conversationId, message, targetLanguage)
+    }
+
+    fun exportConversationMarkdown(conversation: Conversation) {
+        viewModelScope.launch {
+            val conversationFull = conversationRepo.getConversationById(conversation.id) ?: return@launch
+            val filename = "chat-export-${
+                java.time.LocalDateTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
+                )
+            }.md"
+            val saved = context.saveTextToDownloads(
+                fileName = filename,
+                content = buildMarkdownContent(conversationFull, conversationFull.currentMessages)
+            )
+            android.widget.Toast.makeText(
+                context,
+                if (saved) context.getString(R.string.chat_page_export_downloads_success, filename)
+                else context.getString(R.string.chat_page_export_downloads_fail),
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     fun generateTitle(conversation: Conversation, force: Boolean = false) {
