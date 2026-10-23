@@ -61,6 +61,7 @@ class ChatVM(
     private val initText: String? = null,
     private val initFiles: List<Uri> = emptyList(),
     private val autoSend: Boolean = false,
+    private val initFolderId: Uuid? = null,
 ) : ViewModel() {
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
@@ -94,7 +95,7 @@ class ChatVM(
 
         // 初始化对话
         viewModelScope.launch {
-            chatService.initializeConversation(_conversationId)
+            chatService.initializeConversation(_conversationId, initFolderId)
             if (autoSend) {
                 val parts = buildList {
                     addAll(filesManager.createMessageParts(initFiles))

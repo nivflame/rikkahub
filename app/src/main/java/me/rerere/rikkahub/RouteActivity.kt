@@ -341,7 +341,8 @@ class RouteActivity : ComponentActivity() {
                                     text = key.text,
                                     files = key.files.map { it.toUri() },
                                     nodeId = key.nodeId?.let { Uuid.parse(it) },
-                                    autoSend = key.autoSend
+                                    autoSend = key.autoSend,
+                                    folderId = key.folderId?.let { Uuid.parse(it) }
                                 )
                             }
 
@@ -635,7 +636,8 @@ sealed interface Screen : NavKey {
         val text: String? = null,
         val files: List<String> = emptyList(),
         val nodeId: String? = null,
-        val autoSend: Boolean = false
+        val autoSend: Boolean = false,
+        val folderId: String? = null
     ) : Screen
 
     @Serializable

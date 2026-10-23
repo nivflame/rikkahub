@@ -38,6 +38,7 @@ val viewModelModule = module {
             initText = params[1],
             initFiles = params[2],
             autoSend = params[3],
+            initFolderId = params[4],
         )
     }
     viewModelOf(::ChatDrawerVM)

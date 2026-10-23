@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -109,10 +110,11 @@ fun ChatPage(
     files: List<Uri>,
     nodeId: Uuid? = null,
     autoSend: Boolean = false,
+    folderId: Uuid? = null,
 ) {
     val vm: ChatVM = koinViewModel(
         parameters = {
-            parametersOf(id.toString(), text ?: "", files, autoSend)
+            parametersOf(id.toString(), text ?: "", files, autoSend, folderId)
         }
     )
     val filesManager: FilesManager = koinInject()
@@ -273,6 +275,9 @@ private fun ChatPageContent(
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val activity = context as ComponentActivity
+    val drawerVm: ChatDrawerVM = koinViewModel(viewModelStoreOwner = activity)
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = koinInject()
@@ -319,7 +324,7 @@ private fun ChatPageContent(
                     previewMode = previewMode,
                     navController = navController,
                     onNewChat = {
-                        navigateToChatPage(navController)
+                        navigateToChatPage(navController, folderId = drawerVm.selectedFolderId.value)
                     },
                     onClickMenu = {
                         previewMode = !previewMode

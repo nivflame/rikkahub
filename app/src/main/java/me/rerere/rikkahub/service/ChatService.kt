@@ -488,7 +488,7 @@ class ChatService(
 
     // ---- 初始化对话 ----
 
-    suspend fun initializeConversation(conversationId: Uuid) {
+    suspend fun initializeConversation(conversationId: Uuid, folderId: Uuid? = null) {
         val session = getOrCreateSession(conversationId) // 确保 session 存在
         if (session.isGenerating) return
         val conversation = conversationRepo.getConversationById(conversationId)
@@ -503,7 +503,7 @@ class ChatService(
                 id = conversationId,
                 assistantId = assistant.id,
                 newConversation = true
-            ).updateCurrentMessages(assistant.presetMessages)
+            ).updateCurrentMessages(assistant.presetMessages).copy(folderId = folderId)
             updateConversation(conversationId, newConversation)
         }
     }

@@ -305,7 +305,7 @@ fun ChatDrawerContent(
                 onDelete = {
                     vm.deleteConversation(it)
                     if (it.id == current.id) {
-                        navigateToChatPage(navController)
+                        navigateToChatPage(navController, folderId = drawerVm.selectedFolderId.value)
                     }
                 },
                 onPin = {
@@ -711,7 +711,7 @@ fun ChatDrawerContent(
                         scope.launch {
                             vm.deleteConversations(toDelete)
                             if (deletedCurrent) {
-                                navigateToChatPage(navController)
+                                navigateToChatPage(navController, folderId = drawerVm.selectedFolderId.value)
                             }
                         }
                     }
