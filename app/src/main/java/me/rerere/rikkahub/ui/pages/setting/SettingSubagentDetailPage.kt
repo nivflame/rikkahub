@@ -361,7 +361,7 @@ fun SettingSubagentDetailToolsPage(
             "Skill",
             "WebSearch",
             "WebFetch",
-            "ToolSearch",
+            "Codemode",
         )
         val mcpGroups = settings.mcpServers.associate { server ->
             "MCP: ${server.commonOptions.name}" to server.commonOptions.tools.map { "mcp__${server.commonOptions.name}__${it.name}" }

@@ -109,6 +109,7 @@ object ToolUIRegistry {
         ClipboardToolUI,
         UseSkillToolUI,
         SubagentToolUI,
+        CodemodeToolUI,
         RecentChatsToolUI,
         ConversationSearchToolUI,
         EditFileToolUI,

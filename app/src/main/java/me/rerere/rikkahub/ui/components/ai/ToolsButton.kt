@@ -240,7 +240,7 @@ private fun localToolOptions(): List<LocalToolOption> = listOf(
     LocalToolOption.WebFetch,
     LocalToolOption.Browser,
     LocalToolOption.Device,
-    LocalToolOption.ToolSearch,
+    LocalToolOption.Codemode,
 )
 
 private fun localToolLabel(option: LocalToolOption): String = when (option) {
@@ -251,6 +251,7 @@ private fun localToolLabel(option: LocalToolOption): String = when (option) {
     LocalToolOption.WebFetch -> "WebFetch"
     LocalToolOption.Subagent -> "Subagent"
     LocalToolOption.Skill -> "Skill"
+    LocalToolOption.Codemode -> "Code Mode"
     LocalToolOption.ToolSearch -> "ToolSearch"
     LocalToolOption.Bash -> "Bash"
     LocalToolOption.Read -> "Read"

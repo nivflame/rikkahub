@@ -1,7 +1,9 @@
 package me.rerere.rikkahub.ui.components.message.tools
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +61,7 @@ import me.rerere.highlight.HighlightText
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AiBrain01
 import me.rerere.hugeicons.stroke.Clipboard
+import me.rerere.hugeicons.stroke.ComputerTerminal01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Eraser
 import me.rerere.hugeicons.stroke.GlobalSearch
@@ -590,6 +594,83 @@ private fun ScrapeWebPreview(content: JsonElement) {
                     )
                 }
             }
+        }
+    }
+}
+
+object CodemodeToolUI : ToolUIRenderer {
+    private const val CODE_PREVIEW_MAX_LINES = 8
+
+    override val toolName: String = "Codemode"
+
+    override fun icon(context: ToolUIContext): ImageVector = HugeIcons.ComputerTerminal01
+
+    private val TOOLS_CALL_REGEX = Regex("""tools\.call\(\s*([^,)\s]+)""")
+
+    private fun resolveCalledToolNames(code: String): List<String> {
+        val names = mutableListOf<String>()
+        TOOLS_CALL_REGEX.findAll(code).forEach { match ->
+            val arg = match.groupValues[1]
+            when {
+                arg.startsWith("\"") || arg.startsWith("'") -> arg.trim('\'', '"').takeIf { it.isNotBlank() }?.let(names::add)
+                arg.contains('.') -> {
+                    val key = arg.substringAfterLast('.')
+                    Regex("""$key\s*:\s*["']([^"']+)""").findAll(code).forEach {
+                        it.groupValues[1].takeIf { v -> v.isNotBlank() }?.let(names::add)
+                    }
+                }
+                else -> Regex("""\b$arg\s*=\s*["']([^"']+)""").findAll(code).forEach {
+                    it.groupValues[1].takeIf { v -> v.isNotBlank() }?.let(names::add)
+                }
+            }
+        }
+        return names.distinct()
+    }
+
+    @Composable
+    override fun title(context: ToolUIContext): String {
+        val code = context.arguments.getStringContent("code").orEmpty()
+        val parts = buildList {
+            addAll(resolveCalledToolNames(code))
+            if ("searchTools(" in code) add("Search")
+            if ("describeTool(" in code) add("Describe")
+        }
+        return "Code: " + parts.joinToString(", ")
+    }
+
+    @Composable
+    override fun Label(context: ToolUIContext) {
+        Text(
+            text = title(context),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+
+    override fun hasSummary(context: ToolUIContext): Boolean {
+        return context.loading || context.content != null
+    }
+
+    @Composable
+    override fun Summary(context: ToolUIContext) {
+        val code = context.arguments.getStringContent("code") ?: return
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = code.lineSequence().take(CODE_PREVIEW_MAX_LINES).joinToString("\n"),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                maxLines = CODE_PREVIEW_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

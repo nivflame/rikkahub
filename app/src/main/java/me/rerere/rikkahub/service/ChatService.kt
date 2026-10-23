@@ -76,9 +76,9 @@ import me.rerere.rikkahub.data.ai.tools.local.LocalTools
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.data.ai.tools.local.SubagentProgressStore
 import me.rerere.rikkahub.data.ai.tools.local.SubagentRunner
+import me.rerere.rikkahub.data.ai.tools.local.buildCodemodeTool
 import me.rerere.rikkahub.data.ai.tools.local.buildSubagentTool
 import me.rerere.rikkahub.data.ai.tools.local.toolCallId
-import me.rerere.rikkahub.data.ai.tools.local.buildToolSearchTool
 import me.rerere.rikkahub.data.ai.tools.createSearchTools
 import me.rerere.rikkahub.data.ai.tools.createSkillTools
 import me.rerere.rikkahub.data.ai.tools.WorkspaceToolState
@@ -851,7 +851,6 @@ class ChatService(
                                 LocalToolOption.WebFetch,
                                 LocalToolOption.Subagent,
                                 LocalToolOption.Skill,
-                                LocalToolOption.ToolSearch,
                             ),
                             settings.enabledBrowserTools,
                             settings.browserToolDescriptions,
@@ -903,25 +902,17 @@ class ChatService(
                         )
                     }
                     }
-                    if (LocalToolOption.ToolSearch in assistant.localTools && settings.deferredTools.isNotEmpty()) {
-                        val active = mutableListOf<Tool>()
-                        val deferred = mutableListOf<Tool>()
-                        allTools.forEach { tool ->
-                            if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
-                        }
-                        if (deferred.isNotEmpty()) {
-                            val deferredMapped = deferred.map { tool ->
-                                val override = settings.toolApprovalOverrides[tool.name]
-                                if (override != null && tool.name != "AskQuestion") {
-                                    tool.copy(needsApproval = { override })
-                                } else {
-                                    tool
-                                }
+                    if (LocalToolOption.Codemode in assistant.localTools) {
+                        if (settings.deferredTools.isEmpty()) {
+                            allTools + buildCodemodeTool(allTools, subagentProgressStore)
+                        } else {
+                            val active = mutableListOf<Tool>()
+                            val deferred = mutableListOf<Tool>()
+                            allTools.forEach { tool ->
+                                if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
                             }
-                            active.add(buildToolSearchTool(deferredMapped))
-                            deferredToolResolver = { name -> deferredMapped.firstOrNull { it.name == name } }
+                            active + buildCodemodeTool(active + deferred, subagentProgressStore)
                         }
-                        active
                     } else {
                         allTools
                     }

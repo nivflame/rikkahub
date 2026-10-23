@@ -38,6 +38,10 @@ sealed class LocalToolOption {
     data object ToolSearch : LocalToolOption()
 
     @Serializable
+    @SerialName("codemode")
+    data object Codemode : LocalToolOption()
+
+    @Serializable
     @SerialName("bash")
     data object Bash : LocalToolOption()
 

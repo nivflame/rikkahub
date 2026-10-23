@@ -67,7 +67,13 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import me.rerere.ai.core.MessageRole
@@ -331,6 +337,22 @@ private fun MessagePartsBlock(
                         "WebSearch" -> {
                             val outputText = part.output.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
                             runCatching { JsonInstant.parseToJsonElement(outputText).jsonArray }.getOrNull()
+                        }
+                        "Codemode" -> {
+                            val citations = part.output
+                                .filterIsInstance<UIMessagePart.Text>()
+                                .firstNotNullOfOrNull { it.metadata?.get("citations") } as? JsonObject
+                            citations?.entries?.mapNotNull { (id, url) ->
+                                val urlText = (url as? JsonPrimitive)?.contentOrNull
+                                if (urlText != null) {
+                                    buildJsonObject {
+                                        put("id", id)
+                                        put("url", urlText)
+                                    }
+                                } else {
+                                    null
+                                }
+                            }?.let { if (it.isEmpty()) null else JsonArray(it) }
                         }
                         else -> null
                     } ?: return@forEach

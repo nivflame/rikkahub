@@ -228,15 +228,15 @@ private fun AssistantLocalToolContent(
             )
             item(
                 headlineContent = {
-                    Text("ToolSearch")
+                    Text("Code Mode")
                 },
                 supportingContent = {
-                    Text("Defer selected tools so the agent fetches their schemas on demand, saving context tokens")
+                    Text("Run JavaScript in a sandbox to call tools and process results with code, saving context tokens")
                 },
                 trailingContent = {
                     Switch(
-                        checked = assistant.localTools.contains(LocalToolOption.ToolSearch),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.ToolSearch, it) }
+                        checked = assistant.localTools.contains(LocalToolOption.Codemode),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Codemode, it) }
                     )
                 }
             )

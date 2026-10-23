@@ -353,7 +353,7 @@ class GenerationHandler(
 
             // Execute tools: file-modifying, MCP, and Browser tools sequentially, others in parallel
             if (pendingExecution.isNotEmpty()) {
-                val sequentialToolNames = setOf("Edit", "Write", "Bash")
+                val sequentialToolNames = setOf("Edit", "Write", "Bash", "Codemode")
                 val sequentialIndices = pendingExecution.indices.filter {
                     val name = pendingExecution[it].first.toolName
                     name.startsWith("mcp__") || name in sequentialToolNames || name in ALL_BROWSER_TOOL_NAMES

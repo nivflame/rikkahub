@@ -117,7 +117,8 @@ import me.rerere.rikkahub.ui.pages.setting.SettingSubagentPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailInjectionsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingSubagentDetailToolsPage
-import me.rerere.rikkahub.ui.pages.setting.SettingToolSearchPage
+import me.rerere.rikkahub.ui.pages.setting.SettingDeferredToolsDetailPage
+import me.rerere.rikkahub.ui.pages.setting.SettingDeferredToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolsPage
 import me.rerere.rikkahub.ui.pages.setting.SettingWebSearchPage
 import me.rerere.rikkahub.ui.pages.setting.SettingToolApprovalPage
@@ -498,8 +499,12 @@ class RouteActivity : ComponentActivity() {
                                 SettingSubagentDetailToolsPage(promptId = Uuid.parse(key.promptId))
                             }
 
-                            entry<Screen.SettingToolSearch> {
-                                SettingToolSearchPage()
+                            entry<Screen.SettingDeferredTools> {
+                                SettingDeferredToolsPage()
+                            }
+
+                            entry<Screen.SettingDeferredToolsDetail> { key ->
+                                SettingDeferredToolsDetailPage(group = key.group)
                             }
 
                             entry<Screen.SettingTools> {
@@ -797,7 +802,10 @@ sealed interface Screen : NavKey {
     data class SettingSubagentDetailTools(val promptId: String) : Screen
 
     @Serializable
-    data object SettingToolSearch : Screen
+    data object SettingDeferredTools : Screen
+
+    @Serializable
+    data class SettingDeferredToolsDetail(val group: String) : Screen
 
     @Serializable
     data object SettingToolApproval : Screen

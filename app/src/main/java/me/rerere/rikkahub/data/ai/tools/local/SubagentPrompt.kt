@@ -25,7 +25,7 @@ internal val SUBAGENT_LOCAL_TOOL_NAMES: List<String> = listOf(
     "Skill",
     "WebSearch",
     "WebFetch",
-    "ToolSearch",
+    "Codemode",
 )
 
 internal fun List<SubagentPrompt>.migrateLegacySubagentPrompts(): List<SubagentPrompt> = mapNotNull { prompt ->

@@ -74,10 +74,10 @@ fun SettingToolsPage() {
                 headlineContent = { Text("Subagent") },
             )
             item(
-                onClick = { navController.navigate(Screen.SettingToolSearch) },
+                onClick = { navController.navigate(Screen.SettingDeferredTools) },
                 leadingContent = { Icon(HugeIcons.Puzzle, null) },
-                supportingContent = { Text("Defer tools so the agent fetches their schemas on demand, saving tokens") },
-                headlineContent = { Text("ToolSearch") },
+                supportingContent = { Text("Defer tools so they are only callable inside Code Mode scripts, saving tokens") },
+                headlineContent = { Text("Deferred Tools") },
             )
             item(
                 onClick = { navController.navigate(Screen.Skills) },
