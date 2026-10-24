@@ -471,6 +471,11 @@ class ChatService(
         return session.generationStartedAt
     }
 
+    fun getLastToolsFlow(conversationId: Uuid): StateFlow<List<Tool>> {
+        val session = sessions[conversationId] ?: return MutableStateFlow(emptyList())
+        return session.lastTools
+    }
+
     fun getConversationJobs(): Flow<Map<Uuid, Job?>> {
         return _generatingIds.map { ids -> ids.associateWith { null } }
     }
@@ -783,152 +788,7 @@ class ChatService(
                     add(templateTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = run {
-                    val allTools = buildList {
-                    if (settings.enableWebSearch) {
-                        addAll(createSearchTools(settings))
-                    }
-                    addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription, settings.webSearchEngine, settings.webSearchResultCount, settings.webSearchDelay.toLong() * 1000, settings.enabledDeviceTools))
-                    if (assistant.enableRecentChatsReference) {
-                        addAll(createConversationTools(conversationRepo, assistant.id))
-                    }
-                    HeadlessBrowserSession.setLocalContentRoot(null)
-                    addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, assistant.localTools))
-                    if (LocalToolOption.Skill in assistant.localTools) {
-                        addAll(
-                            createSkillTools(
-                                allSkills = skillManager.listSkills(),
-                                skillManager = skillManager,
-                            ).map { it.copy(description = settings.toolDescriptions[it.name] ?: it.description) }
-                        )
-                    }
-                    val allMcpTools = mcpManager.getAllAvailableTools()
-                    val invalidNames = allMcpTools
-                        .map { it.second }
-                        .distinct()
-                        .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
-                    if (invalidNames.isNotEmpty()) {
-                        addError(
-                            error = IllegalStateException(
-                                context.getString(
-                                    R.string.error_mcp_invalid_server_name,
-                                    invalidNames.joinToString(", ")
-                                )
-                            ),
-                            conversationId = conversationId,
-                        )
-                        return
-                    }
-                    val bareCollisions = allMcpTools
-                        .filter { server ->
-                            settings.mcpServers.firstOrNull { it.id == server.first }
-                                ?.commonOptions?.bareNames == true
-                        }
-                        .groupingBy { it.third.name }
-                        .eachCount()
-                        .filter { it.value > 1 }
-                        .keys
-                    allMcpTools.forEach { (serverId, serverName, tool) ->
-                        val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
-                            ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
-                        add(
-                            Tool(
-                                name = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}",
-                                description = tool.description ?: "",
-                                parameters = { tool.inputSchema },
-                                needsApproval = { tool.needsApproval },
-                                isMcpTool = true,
-                                execute = {
-                                    mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
-                                },
-                            )
-                        )
-                    }
-                    if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.any { it.enabled }) {
-                        // Build the full tool set for subagents, not just the parent's enabled tools.
-                        // The subagent's enabledTools config in SubagentRunner handles filtering.
-                        val allLocalForSubagent = localTools.getTools(
-                            listOf(
-                                LocalToolOption.AskQuestion,
-                                LocalToolOption.Browser,
-                                LocalToolOption.Device,
-                                LocalToolOption.WebSearch,
-                                LocalToolOption.WebFetch,
-                                LocalToolOption.Subagent,
-                                LocalToolOption.Skill,
-                            ),
-                            settings.enabledBrowserTools,
-                            settings.browserToolDescriptions,
-                            settings.askQuestionDescription,
-                            settings.webSearchEngine,
-                            settings.webSearchResultCount,
-                            settings.webSearchDelay.toLong() * 1000,
-                        )
-                        val allSearchForSubagent = if (settings.enableWebSearch) createSearchTools(settings).toList() else emptyList()
-                        val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, listOf(LocalToolOption.Bash, LocalToolOption.Read, LocalToolOption.Write, LocalToolOption.Edit))
-                        val allSkillForSubagent = if (settings.subagentPrompts.any { p -> p.enabledTools.any { it == "Skill" } }) {
-                            createSkillTools(
-                                allSkills = skillManager.listSkills(),
-                                skillManager = skillManager,
-                            )
-                        } else emptyList()
-                        val subagentFullTools = (allLocalForSubagent + allSearchForSubagent + allWorkspaceForSubagent + allSkillForSubagent)
-                            .distinctBy { it.name }
-                            .map { it.copy(needsApproval = { false }) }
-                        val existingToolNames = subagentFullTools.map { it.name }.toSet()
-                        val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
-                        val subagentParentTools = subagentFullTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
-                            val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
-                                ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
-                            val toolName = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}"
-                            if (toolName in existingToolNames) return@mapNotNull null
-                            Tool(
-                                name = toolName,
-                                description = tool.description ?: "",
-                                parameters = { tool.inputSchema },
-                                needsApproval = { false },
-                                isMcpTool = true,
-                                execute = {
-                                    mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
-                                },
-                            )
-                        }
-                        val subagentTool = buildSubagentTool(settings)
-                        add(
-                            subagentTool.copy(
-                                description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
-                                execute = {
-                                    val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
-                                        ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general"
-                                    val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
-                                    listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", conversationId = conversationId)))
-                                }
-                            )
-                        )
-                    }
-                    }
-                    if (LocalToolOption.Codemode in assistant.localTools) {
-                        if (settings.deferredTools.isEmpty()) {
-                            allTools + buildCodemodeTool(allTools, subagentProgressStore)
-                        } else {
-                            val active = mutableListOf<Tool>()
-                            val deferred = mutableListOf<Tool>()
-                            allTools.forEach { tool ->
-                                if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
-                            }
-                            active + buildCodemodeTool(active + deferred, subagentProgressStore)
-                        }
-                    } else {
-                        allTools
-                    }
-                }.map { tool ->
-                    val override = settings.toolApprovalOverrides[tool.name]
-                    if (override != null && tool.name != "AskQuestion") {
-                        tool.copy(needsApproval = { override })
-                    } else {
-                        tool
-                    }
-                },
+                tools = buildToolsForGeneration(settings, assistant, conversation).also { session.lastTools.value = it },
                 toolResolver = deferredToolResolver,
                 autoCompressThreshold = if (settings.autoCompressEnabled) settings.autoCompressTokenThreshold else 0,
                 onAutoCompress = if (settings.autoCompressEnabled) {
@@ -1241,6 +1101,157 @@ class ChatService(
     }
 
     // ---- 压缩对话历史 ----
+
+    private suspend fun buildToolsForGeneration(
+        settings: Settings,
+        assistant: Assistant,
+        conversation: Conversation,
+    ): List<Tool> {
+            val allTools = buildList {
+            if (settings.enableWebSearch) {
+                addAll(createSearchTools(settings))
+            }
+            addAll(localTools.getTools(assistant.localTools, settings.enabledBrowserTools, settings.browserToolDescriptions, settings.askQuestionDescription, settings.webSearchEngine, settings.webSearchResultCount, settings.webSearchDelay.toLong() * 1000, settings.enabledDeviceTools))
+            if (assistant.enableRecentChatsReference) {
+                addAll(createConversationTools(conversationRepo, assistant.id))
+            }
+            HeadlessBrowserSession.setLocalContentRoot(null)
+            addAll(createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, assistant.localTools))
+            if (LocalToolOption.Skill in assistant.localTools) {
+                addAll(
+                    createSkillTools(
+                        allSkills = skillManager.listSkills(),
+                        skillManager = skillManager,
+                    ).map { it.copy(description = settings.toolDescriptions[it.name] ?: it.description) }
+                )
+            }
+            val allMcpTools = mcpManager.getAllAvailableTools()
+            val invalidNames = allMcpTools
+                .map { it.second }
+                .distinct()
+                .filter { name -> name.isEmpty() || !name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' } }
+            if (invalidNames.isNotEmpty()) {
+                addError(
+                    error = IllegalStateException(
+                        context.getString(
+                            R.string.error_mcp_invalid_server_name,
+                            invalidNames.joinToString(", ")
+                        )
+                    ),
+                    conversationId = conversationId,
+                )
+                return emptyList()
+            }
+            val bareCollisions = allMcpTools
+                .filter { server ->
+                    settings.mcpServers.firstOrNull { it.id == server.first }
+                        ?.commonOptions?.bareNames == true
+                }
+                .groupingBy { it.third.name }
+                .eachCount()
+                .filter { it.value > 1 }
+                .keys
+            allMcpTools.forEach { (serverId, serverName, tool) ->
+                val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                    ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
+                add(
+                    Tool(
+                        name = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}",
+                        description = tool.description ?: "",
+                        parameters = { tool.inputSchema },
+                        needsApproval = { tool.needsApproval },
+                        isMcpTool = true,
+                        execute = {
+                            mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
+                        },
+                    )
+                )
+            }
+            if (LocalToolOption.Subagent in assistant.localTools && settings.subagentPrompts.any { it.enabled }) {
+                // Build the full tool set for subagents, not just the parent's enabled tools.
+                // The subagent's enabledTools config in SubagentRunner handles filtering.
+                val allLocalForSubagent = localTools.getTools(
+                    listOf(
+                        LocalToolOption.AskQuestion,
+                        LocalToolOption.Browser,
+                        LocalToolOption.Device,
+                        LocalToolOption.WebSearch,
+                        LocalToolOption.WebFetch,
+                        LocalToolOption.Subagent,
+                        LocalToolOption.Skill,
+                    ),
+                    settings.enabledBrowserTools,
+                    settings.browserToolDescriptions,
+                    settings.askQuestionDescription,
+                    settings.webSearchEngine,
+                    settings.webSearchResultCount,
+                    settings.webSearchDelay.toLong() * 1000,
+                )
+                val allSearchForSubagent = if (settings.enableWebSearch) createSearchTools(settings).toList() else emptyList()
+                val allWorkspaceForSubagent = createWorkspaceToolsIfReady(assistant.workspaceId?.toString(), conversation.workspaceCwd, listOf(LocalToolOption.Bash, LocalToolOption.Read, LocalToolOption.Write, LocalToolOption.Edit))
+                val allSkillForSubagent = if (settings.subagentPrompts.any { p -> p.enabledTools.any { it == "Skill" } }) {
+                    createSkillTools(
+                        allSkills = skillManager.listSkills(),
+                        skillManager = skillManager,
+                    )
+                } else emptyList()
+                val subagentFullTools = (allLocalForSubagent + allSearchForSubagent + allWorkspaceForSubagent + allSkillForSubagent)
+                    .distinctBy { it.name }
+                    .map { it.copy(needsApproval = { false }) }
+                val existingToolNames = subagentFullTools.map { it.name }.toSet()
+                val allMcpForSubagent = mcpManager.getAllAvailableTools(includeDisabledTools = true)
+                val subagentParentTools = subagentFullTools + allMcpForSubagent.mapNotNull { (serverId, serverName, tool) ->
+                    val useBareName = settings.mcpServers.firstOrNull { it.id == serverId }
+                        ?.commonOptions?.bareNames == true && tool.name !in bareCollisions
+                    val toolName = if (useBareName) tool.name else "mcp__${serverName}__${tool.name}"
+                    if (toolName in existingToolNames) return@mapNotNull null
+                    Tool(
+                        name = toolName,
+                        description = tool.description ?: "",
+                        parameters = { tool.inputSchema },
+                        needsApproval = { false },
+                        isMcpTool = true,
+                        execute = {
+                            mcpManager.callTool(serverId, tool.name, it.jsonObject, conversationId)
+                        },
+                    )
+                }
+                val subagentTool = buildSubagentTool(settings)
+                add(
+                    subagentTool.copy(
+                        description = settings.toolDescriptions["Subagent"] ?: subagentTool.description,
+                        execute = {
+                            val type = it.jsonObject["subagent_type"]?.jsonPrimitive?.contentOrNull
+                                ?: settings.subagentPrompts.filter { it.enabled }.firstOrNull()?.name ?: "general"
+                            val task = it.jsonObject["prompt"]?.jsonPrimitive?.contentOrNull ?: ""
+                            listOf(UIMessagePart.Text(subagentRunner.runSync(subagentParentTools, type, task, toolCallId = coroutineContext.toolCallId ?: "", conversationId = conversationId)))
+                        }
+                    )
+                )
+            }
+            }
+            if (LocalToolOption.Codemode in assistant.localTools) {
+                if (settings.deferredTools.isEmpty()) {
+                    allTools + buildCodemodeTool(allTools, subagentProgressStore)
+                } else {
+                    val active = mutableListOf<Tool>()
+                    val deferred = mutableListOf<Tool>()
+                    allTools.forEach { tool ->
+                        if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
+                    }
+                    active + buildCodemodeTool(active + deferred, subagentProgressStore)
+                }
+            } else {
+                allTools
+            }
+        }.map { tool ->
+            val override = settings.toolApprovalOverrides[tool.name]
+            if (override != null && tool.name != "AskQuestion") {
+                tool.copy(needsApproval = { override })
+            } else {
+                tool
+            }
+    }
 
     fun launchCompressConversation(
         conversationId: Uuid,

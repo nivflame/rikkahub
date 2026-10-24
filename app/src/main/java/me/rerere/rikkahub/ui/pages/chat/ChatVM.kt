@@ -20,6 +20,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import me.rerere.rikkahub.data.ai.ContextWindowBreakdown
+import me.rerere.rikkahub.data.ai.estimateContextWindow
+import me.rerere.rikkahub.data.ai.estimateSystemToolsTokens
+import me.rerere.rikkahub.data.ai.estimateTokensFor
 import me.rerere.ai.provider.Model
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
@@ -88,6 +94,28 @@ class ChatVM(
     val generationStartedAt: StateFlow<Long?> =
         chatService
             .getGenerationStartedAtFlow(_conversationId)
+
+    private val _contextBreakdown = mutableStateOf<ContextWindowBreakdown?>(null)
+    val contextBreakdown: ContextWindowBreakdown? get() = _contextBreakdown.value
+
+    fun openContextWindow() {
+        val conversation = conversation.value
+        val settings = settingsStore.settingsFlow.value
+        val assistant = settings.getAssistantById(conversation.assistantId) ?: settings.getCurrentAssistant()
+        val model = settings.findModelById(assistant.chatModelId ?: settings.chatModelId)
+        val tools = chatService.getLastToolsFlow(_conversationId).value
+        viewModelScope.launch {
+            val breakdown = withContext(Dispatchers.Default) {
+                estimateContextWindow(
+                    messages = conversation.currentMessages,
+                    systemPromptTokens = estimateTokensFor(assistant.systemPrompt),
+                    systemToolsTokens = estimateSystemToolsTokens(tools),
+                    modelName = model?.displayName ?: "",
+                )
+            }
+            _contextBreakdown.value = breakdown
+        }
+    }
 
     val conversationJobs = chatService
         .getConversationJobs()

@@ -94,6 +94,7 @@ import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.ArrowUp02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
+import me.rerere.hugeicons.stroke.PieChart
 import me.rerere.hugeicons.stroke.Zap
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
@@ -136,6 +137,7 @@ fun ChatInput(
     onUpdateChatModel: (Model) -> Unit,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateSearchService: (Int) -> Unit,
+    onContextWindowClick: () -> Unit = {},
     onMoreClick: () -> Unit,
     onCancelClick: () -> Unit,
     onSendClick: () -> Unit,
@@ -318,6 +320,15 @@ fun ChatInput(
                                 enableSearch = enableSearch,
                                 onUpdateAssistant = onUpdateAssistant,
                                 onToggleSearch = onToggleSearch,
+                            )
+                        }
+
+                        ActionIconButton(
+                            onClick = onContextWindowClick
+                        ) {
+                            Icon(
+                                imageVector = HugeIcons.PieChart,
+                                contentDescription = "Context window"
                             )
                         }
 

@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -286,6 +288,7 @@ private fun ChatPageContent(
     val hazeState = rememberHazeState()
     val assistant = setting.getCurrentAssistant()
     var showFilesSheet by remember { mutableStateOf(false) }
+    var showContextWindowMenu by remember { mutableStateOf(false) }
     val skillManager: SkillManager = koinInject()
 
     val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository, assistant.localTools) {
@@ -405,6 +408,10 @@ private fun ChatPageContent(
                             )
                         )
                     },
+                    onContextWindowClick = {
+                        vm.openContextWindow()
+                        showContextWindowMenu = true
+                    },
                     onMoreClick = {
                         showFilesSheet = true
                     },
@@ -500,6 +507,57 @@ private fun ChatPageContent(
                 onDismiss = { showFilesSheet = false },
             )
         }
+
+        vm.contextBreakdown?.let { breakdown ->
+            DropdownMenu(
+                expanded = showContextWindowMenu,
+                onDismissRequest = { showContextWindowMenu = false },
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+                    Text(
+                        text = "Context Window",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = breakdown.modelName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${breakdown.total.formatNumber()} tokens",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                    )
+                    ContextWindowRow("System prompt", breakdown.systemPrompt)
+                    ContextWindowRow("System tools", breakdown.systemTools)
+                    ContextWindowRow("Messages", breakdown.messages)
+                    ContextWindowRow("Tool calls", breakdown.toolCalls, indent = true)
+                    ContextWindowRow("Tool results", breakdown.toolResults, indent = true)
+                    ContextWindowRow("Assistant", breakdown.assistant, indent = true)
+                    ContextWindowRow("User", breakdown.user, indent = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextWindowRow(label: String, tokens: Int, indent: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (indent) Modifier.padding(start = 12.dp) else Modifier),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = tokens.formatNumber(),
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 
