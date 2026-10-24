@@ -20,7 +20,6 @@ import kotlinx.datetime.toJavaLocalDateTime
 import me.rerere.ai.ui.UIMessage
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Clock02
-import me.rerere.hugeicons.stroke.Download04
 import me.rerere.hugeicons.stroke.Upload02
 import me.rerere.hugeicons.stroke.Zap
 import me.rerere.rikkahub.ui.context.LocalSettings
@@ -67,19 +66,6 @@ fun ChatMessageNerdLine(
                                     text = "(${cachedPercent}% cached)"
                                 )
                             }
-                        }
-                    )
-                    // Output tokens
-                    StatsItem(
-                        icon = {
-                            Icon(
-                                imageVector = HugeIcons.Download04,
-                                contentDescription = "Output",
-                                modifier = Modifier.size(12.dp)
-                            )
-                        },
-                        content = {
-                            Text(text = "${usage.completionTokens.formatNumber()} tokens")
                         }
                     )
                     // TPS
