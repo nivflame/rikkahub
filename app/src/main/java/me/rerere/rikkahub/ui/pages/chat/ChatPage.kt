@@ -71,6 +71,7 @@ import android.content.Intent
 import me.rerere.rikkahub.browser.BrowserActivity
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.utils.formatNumber
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
