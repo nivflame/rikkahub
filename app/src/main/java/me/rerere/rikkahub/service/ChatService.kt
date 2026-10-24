@@ -788,7 +788,7 @@ class ChatService(
                     add(templateTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = buildToolsForGeneration(settings, assistant, conversation).also { session.lastTools.value = it },
+                tools = buildToolsForGeneration(settings, assistant, conversation)?.also { session.lastTools.value = it } ?: return,
                 toolResolver = deferredToolResolver,
                 autoCompressThreshold = if (settings.autoCompressEnabled) settings.autoCompressTokenThreshold else 0,
                 onAutoCompress = if (settings.autoCompressEnabled) {
@@ -1106,7 +1106,7 @@ class ChatService(
         settings: Settings,
         assistant: Assistant,
         conversation: Conversation,
-    ): List<Tool> {
+    ): List<Tool>? {
             val allTools = buildList {
             if (settings.enableWebSearch) {
                 addAll(createSearchTools(settings))
@@ -1140,10 +1140,9 @@ class ChatService(
                     ),
                     conversationId = conversationId,
                 )
-                return emptyList()
+                return null
             }
-            val bareCollisions = allMcpTools
-                .filter { server ->
+            val bareCollisions = allMcpTools                .filter { server ->
                     settings.mcpServers.firstOrNull { it.id == server.first }
                         ?.commonOptions?.bareNames == true
                 }
