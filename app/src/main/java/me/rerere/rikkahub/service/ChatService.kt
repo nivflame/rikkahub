@@ -1228,28 +1228,36 @@ class ChatService(
                     )
                 )
             }
-            }
-            if (LocalToolOption.Codemode in assistant.localTools) {
-                if (settings.deferredTools.isEmpty()) {
-                    allTools + buildCodemodeTool(allTools, subagentProgressStore)
-                } else {
-                    val active = mutableListOf<Tool>()
-                    val deferred = mutableListOf<Tool>()
-                    allTools.forEach { tool ->
-                        if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
-                    }
-                    active + buildCodemodeTool(active + deferred, subagentProgressStore)
+        }
+        return if (LocalToolOption.Codemode in assistant.localTools) {
+            val withCodemode = if (settings.deferredTools.isEmpty()) {
+                allTools + buildCodemodeTool(allTools, subagentProgressStore)
+            } else {
+                val active = mutableListOf<Tool>()
+                val deferred = mutableListOf<Tool>()
+                allTools.forEach { tool ->
+                    if (tool.name in settings.deferredTools) deferred.add(tool) else active.add(tool)
                 }
-            } else {
-                allTools
+                active + buildCodemodeTool(active + deferred, subagentProgressStore)
             }
-        }.map { tool ->
-            val override = settings.toolApprovalOverrides[tool.name]
-            if (override != null && tool.name != "AskQuestion") {
-                tool.copy(needsApproval = { override })
-            } else {
-                tool
+            withCodemode.map { tool ->
+                val override = settings.toolApprovalOverrides[tool.name]
+                if (override != null && tool.name != "AskQuestion") {
+                    tool.copy(needsApproval = { override })
+                } else {
+                    tool
+                }
             }
+        } else {
+            allTools.map { tool ->
+                val override = settings.toolApprovalOverrides[tool.name]
+                if (override != null && tool.name != "AskQuestion") {
+                    tool.copy(needsApproval = { override })
+                } else {
+                    tool
+                }
+            }
+        }
     }
 
     fun launchCompressConversation(
