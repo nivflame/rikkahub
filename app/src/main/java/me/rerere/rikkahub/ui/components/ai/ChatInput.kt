@@ -249,6 +249,7 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         autoFocus = autoFocus,
                         showFullscreenButton = showFullscreenButton,
+                        onContextWindowClick = onContextWindowClick,
                         onSendMessage = { sendMessage() }
                     )
 
@@ -320,15 +321,6 @@ fun ChatInput(
                                 enableSearch = enableSearch,
                                 onUpdateAssistant = onUpdateAssistant,
                                 onToggleSearch = onToggleSearch,
-                            )
-                        }
-
-                        ActionIconButton(
-                            onClick = onContextWindowClick
-                        ) {
-                            Icon(
-                                imageVector = HugeIcons.PieChart,
-                                contentDescription = "Context window"
                             )
                         }
 
@@ -625,12 +617,15 @@ private fun TextInputRow(
                 TextFieldDefaults.contentPaddingWithoutLabel()
             },
             trailingIcon = {
-                if (isFocused && showFullscreenButton) {
-                    IconButton(
-                        onClick = {
-                            isFullScreen = !isFullScreen
-                        }) {
-                        Icon(HugeIcons.FullScreen, null)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    {
+                        IconContext window if (isFullscreenButton) {
+                        IconButton(
+                            onClick = {
+                                isFullScreen = !isFullScreen
+                            }) {
+                            Icon(HugeIcons.FullScreen, null)
+                        }
                     }
                 }
             },
