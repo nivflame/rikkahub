@@ -445,6 +445,7 @@ private fun TextInputRow(
     completionProviders: List<ChatCompletionProvider>,
     autoFocus: Boolean = false,
     showFullscreenButton: Boolean = true,
+    onContextWindowClick: () -> Unit = {},
     onSendMessage: () -> Unit,
 ) {
     val settings = LocalSettings.current
@@ -618,8 +619,10 @@ private fun TextInputRow(
             },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    {
-                        IconContext window if (isFullscreenButton) {
+                    IconButton(onClick = onContextWindowClick) {
+                        Icon(HugeIcons.PieChart, contentDescription = "Context window")
+                    }
+                    if (isFocused && showFullscreenButton) {
                         IconButton(
                             onClick = {
                                 isFullScreen = !isFullScreen
