@@ -788,7 +788,7 @@ class ChatService(
                     add(templateTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = buildToolsForGeneration(settings, assistant, conversation)?.also { session.lastTools.value = it } ?: return,
+                tools = buildToolsForGeneration(settings, assistant, conversation, conversationId)?.also { session.lastTools.value = it } ?: return,
                 toolResolver = deferredToolResolver,
                 autoCompressThreshold = if (settings.autoCompressEnabled) settings.autoCompressTokenThreshold else 0,
                 onAutoCompress = if (settings.autoCompressEnabled) {
@@ -1106,6 +1106,7 @@ class ChatService(
         settings: Settings,
         assistant: Assistant,
         conversation: Conversation,
+        conversationId: Uuid,
     ): List<Tool>? {
             val allTools = buildList {
             if (settings.enableWebSearch) {
