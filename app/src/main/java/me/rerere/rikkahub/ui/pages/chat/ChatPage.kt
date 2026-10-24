@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -516,7 +517,9 @@ private fun ChatPageContent(
                 expanded = showContextWindowMenu,
                 onDismissRequest = { showContextWindowMenu = false },
             ) {
-                Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
                     Text(
                         text = "Context Window",
                         style = MaterialTheme.typography.titleSmall,
@@ -526,11 +529,27 @@ private fun ChatPageContent(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
-                        text = "${breakdown.total.formatNumber()} tokens",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 6.dp),
+                    ) {
+                        Text(
+                            text = breakdown.total.formatNumber(),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        Text(
+                            text = "tokens",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 3.dp),
+                        )
+                    }
+                }
+                HorizontalDivider()
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
                     ContextWindowRow("System prompt", breakdown.systemPrompt)
                     ContextWindowRow("System tools", breakdown.systemTools)
                     ContextWindowRow("Messages", breakdown.messages)
@@ -549,8 +568,10 @@ private fun ContextWindowRow(label: String, tokens: Int, indent: Boolean = false
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .then(if (indent) Modifier.padding(start = 12.dp) else Modifier),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,

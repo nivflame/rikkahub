@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
@@ -219,10 +220,14 @@ fun ChatInput(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                IconButton(onClick = onContextWindowClick) {
+                IconButton(
+                    onClick = onContextWindowClick,
+                    modifier = Modifier.size(36.dp),
+                ) {
                     Icon(
                         imageVector = HugeIcons.PieChart,
                         contentDescription = "Context window",
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
