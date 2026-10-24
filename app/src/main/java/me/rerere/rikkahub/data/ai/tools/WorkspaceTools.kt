@@ -311,18 +311,15 @@ private fun createShellTool(
                 append("cd ").append(state.cwd.shellQuote()).append(" 2>/dev/null; ")
             }
             append(command)
-            append("; __exit=\$?; echo \"___PWD___\$(pwd)___ENDPWD___\"; exit \$__exit")
         }
 
         val result = workspaceRepository.executeCommand(workspaceId, wrappedCommand, "", timeoutMs)
-
-        val cleanStdout = parseAndUpdateCwd(result.stdout, state)
 
         listOf(
             UIMessagePart.Text(
                 buildJsonObject {
                     put("exitCode", result.exitCode)
-                    put("stdout", cleanStdout)
+                    put("stdout", result.stdout)
                     put("stderr", result.stderr)
                     put("timedOut", result.timedOut)
                     if (result.truncated) put("truncated", true)
@@ -331,19 +328,6 @@ private fun createShellTool(
         )
     },
 )
-
-private const val PWD_MARKER_START = "___PWD___"
-private const val PWD_MARKER_END = "___ENDPWD___"
-
-private fun parseAndUpdateCwd(stdout: String, state: WorkspaceToolState): String {
-    val startIdx = stdout.indexOf(PWD_MARKER_START)
-    if (startIdx < 0) return stdout
-    val endIdx = stdout.indexOf(PWD_MARKER_END, startIdx)
-    if (endIdx < 0) return stdout
-    val newCwd = stdout.substring(startIdx + PWD_MARKER_START.length, endIdx).trim()
-    if (newCwd.isNotBlank()) state.cwd = newCwd.removePrefix("/workspace/").removePrefix("/workspace")
-    return (stdout.substring(0, startIdx).trimEnd() + stdout.substring(endIdx + PWD_MARKER_END.length)).trimEnd()
-}
 
 private fun kotlinx.serialization.json.JsonObject.string(name: String): String? =
     this[name]?.jsonPrimitive?.contentOrNull
