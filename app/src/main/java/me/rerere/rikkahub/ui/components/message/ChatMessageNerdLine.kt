@@ -62,8 +62,9 @@ fun ChatMessageNerdLine(
                             Text(text = "${usage.promptTokens.formatNumber()} tokens")
                             // Cached tokens
                             if (usage.cachedTokens > 0) {
+                                val cachedPercent = usage.cachedTokens * 100 / usage.promptTokens.coerceAtLeast(1)
                                 Text(
-                                    text = "(${message.usage?.cachedTokens?.formatNumber() ?: "0"} cached)"
+                                    text = "(${cachedPercent}% cached)"
                                 )
                             }
                         }
