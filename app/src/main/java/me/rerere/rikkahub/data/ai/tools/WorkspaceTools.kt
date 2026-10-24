@@ -341,7 +341,7 @@ private fun parseAndUpdateCwd(stdout: String, state: WorkspaceToolState): String
     val endIdx = stdout.indexOf(PWD_MARKER_END, startIdx)
     if (endIdx < 0) return stdout
     val newCwd = stdout.substring(startIdx + PWD_MARKER_START.length, endIdx).trim()
-    if (newCwd.isNotBlank()) state.cwd = newCwd
+    if (newCwd.isNotBlank()) state.cwd = newCwd.removePrefix("/workspace/").removePrefix("/workspace")
     return (stdout.substring(0, startIdx).trimEnd() + stdout.substring(endIdx + PWD_MARKER_END.length)).trimEnd()
 }
 
