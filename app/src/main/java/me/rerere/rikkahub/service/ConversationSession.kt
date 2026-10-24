@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.service
 
+import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -33,6 +34,7 @@ class ConversationSession(
     // 生成任务（内聚在 session 中）
     private val _generationJob = MutableStateFlow<Job?>(null)
     val generationJob: StateFlow<Job?> = _generationJob.asStateFlow()
+    val generationStartedAt = MutableStateFlow<Long?>(null)
     val isGenerating: Boolean get() = _generationJob.value?.isActive == true
     val isInUse: Boolean get() = refCount.get() > 0 || isGenerating
 
@@ -72,11 +74,13 @@ class ConversationSession(
     fun setJob(job: Job?) {
         _generationJob.value?.cancel()
         _generationJob.value = job
+        generationStartedAt.value = if (job != null) SystemClock.elapsedRealtime() else null
         job?.invokeOnCompletion {
             // A cancelled job's completion may fire after a newer job was set;
             // only clear the slot if this job still owns it
             if (_generationJob.value === job) {
                 _generationJob.value = null
+                generationStartedAt.value = null
                 if (refCount.get() <= 0) {
                     scheduleIdleCheck()
                 }
@@ -104,6 +108,7 @@ class ConversationSession(
     fun cleanup() {
         _generationJob.value?.cancel()
         _generationJob.value = null
+        generationStartedAt.value = null
         idleCheckJob?.cancel()
         idleCheckJob = null
     }

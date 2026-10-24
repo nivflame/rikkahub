@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.ui.pages.chat
 
+import android.os.SystemClock
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.ArrowDown01
@@ -58,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -71,6 +73,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
 import androidx.compose.ui.res.stringResource
@@ -86,6 +89,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.isInjectedNotice
@@ -102,7 +106,9 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.ui.components.ui.Tooltip
 import me.rerere.rikkahub.ui.hooks.ImeLazyListAutoScroller
 import me.rerere.rikkahub.ui.theme.ChatFontProvider
+import me.rerere.rikkahub.utils.humanizeDuration
 import me.rerere.rikkahub.utils.plus
+import kotlin.time.Duration.Companion.seconds
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 
@@ -117,6 +123,7 @@ fun ChatList(
     state: LazyListState,
     loading: Boolean,
     processingStatus: String? = null,
+    generationStartedAt: StateFlow<Long?>,
     previewMode: Boolean,
     settings: Settings,
     hazeState: HazeState,
@@ -160,6 +167,7 @@ fun ChatList(
                 state = state,
                 loading = loading,
                 processingStatus = processingStatus,
+                generationStartedAt = generationStartedAt,
                 settings = settings,
                 hazeState = hazeState,
                 errors = errors,
@@ -190,6 +198,7 @@ private fun ChatListNormal(
     state: LazyListState,
     loading: Boolean,
     processingStatus: String? = null,
+    generationStartedAt: StateFlow<Long?>,
     settings: Settings,
     hazeState: HazeState,
     errors: List<ChatError>,
@@ -385,6 +394,15 @@ private fun ChatListNormal(
 
             if (loading) {
                 item(LoadingIndicatorKey) {
+                    val startedAt = generationStartedAt.collectAsStateWithLifecycle().value
+                    val now by produceState(SystemClock.elapsedRealtime(), startedAt) {
+                        if (startedAt != null) {
+                            while (true) {
+                                value = SystemClock.elapsedRealtime()
+                                delay(1.seconds)
+                            }
+                        }
+                    }
                     Row(
                         modifier = Modifier.padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -393,6 +411,13 @@ private fun ChatListNormal(
                         RabbitLoadingIndicator(
                             modifier = Modifier.size(28.dp)
                         )
+                        if (startedAt != null) {
+                            Text(
+                                text = "Working... ${humanizeDuration((now - startedAt).coerceAtLeast(0))}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         AnimatedVisibility(
                             visible = processingStatus != null,
                         ) {

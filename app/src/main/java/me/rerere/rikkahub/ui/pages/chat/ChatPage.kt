@@ -278,6 +278,7 @@ private fun ChatPageContent(
     val context = LocalContext.current
     val activity = context as ComponentActivity
     val drawerVm: ChatDrawerVM = koinViewModel(viewModelStoreOwner = activity)
+    val generationStartedAt = vm.generationStartedAt
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val workspaceRepository: WorkspaceRepository = koinInject()
@@ -417,6 +418,7 @@ private fun ChatPageContent(
                 state = chatListState,
                 loading = loadingJob != null,
                 processingStatus = processingStatus,
+                generationStartedAt = generationStartedAt,
                 previewMode = previewMode,
                 settings = setting,
                 hazeState = hazeState,

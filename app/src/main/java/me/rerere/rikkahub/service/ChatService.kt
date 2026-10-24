@@ -466,6 +466,11 @@ class ChatService(
         return session.processingStatus
     }
 
+    fun getGenerationStartedAtFlow(conversationId: Uuid): StateFlow<Long?> {
+        val session = sessions[conversationId] ?: return MutableStateFlow(null)
+        return session.generationStartedAt
+    }
+
     fun getConversationJobs(): Flow<Map<Uuid, Job?>> {
         return _generatingIds.map { ids -> ids.associateWith { null } }
     }
