@@ -215,6 +215,17 @@ fun ChatInput(
                 .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = onContextWindowClick) {
+                    Icon(
+                        imageVector = HugeIcons.PieChart,
+                        contentDescription = "Context window",
+                    )
+                }
+            }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -249,7 +260,6 @@ fun ChatInput(
                         completionProviders = completionProviders,
                         autoFocus = autoFocus,
                         showFullscreenButton = showFullscreenButton,
-                        onContextWindowClick = onContextWindowClick,
                         onSendMessage = { sendMessage() }
                     )
 
@@ -445,7 +455,6 @@ private fun TextInputRow(
     completionProviders: List<ChatCompletionProvider>,
     autoFocus: Boolean = false,
     showFullscreenButton: Boolean = true,
-    onContextWindowClick: () -> Unit = {},
     onSendMessage: () -> Unit,
 ) {
     val settings = LocalSettings.current
@@ -618,17 +627,12 @@ private fun TextInputRow(
                 TextFieldDefaults.contentPaddingWithoutLabel()
             },
             trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onContextWindowClick) {
-                        Icon(HugeIcons.PieChart, contentDescription = "Context window")
-                    }
-                    if (isFocused && showFullscreenButton) {
-                        IconButton(
-                            onClick = {
-                                isFullScreen = !isFullScreen
-                            }) {
-                            Icon(HugeIcons.FullScreen, null)
-                        }
+                if (isFocused && showFullscreenButton) {
+                    IconButton(
+                        onClick = {
+                            isFullScreen = !isFullScreen
+                        }) {
+                        Icon(HugeIcons.FullScreen, null)
                     }
                 }
             },
