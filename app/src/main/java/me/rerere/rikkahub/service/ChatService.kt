@@ -11,6 +11,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -703,6 +704,7 @@ class ChatService(
 
                 // Only continue generation when all pending tools are handled
                 if (!hasPendingTools) {
+                    setGenerationJob(conversationId, coroutineContext.job)
                     handleMessageComplete(conversationId)
                 }
 
@@ -711,8 +713,6 @@ class ChatService(
                 addError(e, conversationId, title = context.getString(R.string.error_title_tool_approval))
             }
         }
-
-        setGenerationJob(conversationId, job)
     }
 
     // ---- 处理消息补全 ----
