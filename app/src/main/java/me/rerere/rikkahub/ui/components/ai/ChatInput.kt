@@ -319,6 +319,11 @@ fun ChatInput(
                                 onUpdateAssistant = onUpdateAssistant,
                                 onToggleSearch = onToggleSearch,
                             )
+
+                            ToolApprovalButton(
+                                assistant = assistant,
+                                onUpdateAssistant = onUpdateAssistant,
+                            )
                         }
 
                         ActionIconButton(

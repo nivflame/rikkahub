@@ -61,6 +61,7 @@ import me.rerere.rikkahub.data.datastore.findModelById
 import me.rerere.rikkahub.data.datastore.findProvider
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.AssistantMemory
+import me.rerere.rikkahub.data.model.ToolApprovalMode
 import me.rerere.rikkahub.data.repository.MemoryRepository
 import me.rerere.rikkahub.utils.applyPlaceholders
 import java.util.Locale
@@ -228,12 +229,14 @@ class GenerationHandler(
 
                 // Check for tools that need approval
                 var hasPendingApproval = false
+                val yoloBypass = assistant.toolApprovalMode == ToolApprovalMode.YOLO
                 val updatedTools = tools.map { tool ->
                     val toolDef = toolsInternal.find { it.name == tool.toolName }
                         ?: toolResolver?.invoke(tool.toolName)
                     when {
                         // Tool needs approval and state is Auto -> set to Pending
-                        toolDef?.needsApproval(tool.inputAsJson()) == true &&
+                        (!yoloBypass || toolDef?.alwaysRequiresApproval == true) &&
+                            toolDef?.needsApproval(tool.inputAsJson()) == true &&
                             tool.approvalState is ToolApprovalState.Auto -> {
                             hasPendingApproval = true
                             val preMeta = toolDef?.preExecute?.invoke(tool.inputAsJson())

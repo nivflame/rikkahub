@@ -923,7 +923,7 @@ class ChatService(
                     }
                 }.map { tool ->
                     val override = settings.toolApprovalOverrides[tool.name]
-                    if (override != null && tool.name != "AskQuestion") {
+                    if (override != null && !tool.alwaysRequiresApproval) {
                         tool.copy(needsApproval = { override })
                     } else {
                         tool

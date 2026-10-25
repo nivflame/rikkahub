@@ -16,14 +16,18 @@ fun ToggleSurface(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(50),
     onClick: () -> Unit = {},
+    contentColor: Color = Color.Unspecified,
     content: @Composable () -> Unit
 ) {
-    val contentColor =
-        if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val resolvedContentColor = when {
+        contentColor != Color.Unspecified -> contentColor
+        checked -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
     Surface(
         onClick = onClick,
         color = Color.Transparent,
-        contentColor = contentColor,
+        contentColor = resolvedContentColor,
         modifier = modifier,
         shape = shape,
         tonalElevation = 0.dp,

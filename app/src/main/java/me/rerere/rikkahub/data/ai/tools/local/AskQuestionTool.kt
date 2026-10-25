@@ -118,6 +118,7 @@ internal fun buildAskQuestionTool(description: String): Tool = Tool(
         )
     },
     needsApproval = { true },
+    alwaysRequiresApproval = true,
     execute = {
         error("AskQuestion tool should be handled by HITL flow")
     }

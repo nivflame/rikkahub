@@ -31,6 +31,7 @@ data class Assistant(
     val quickMessageIds: Set<Uuid> = emptySet(),
     val regexes: List<AssistantRegex> = emptyList(),
     val reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
+    val toolApprovalMode: ToolApprovalMode = ToolApprovalMode.ASK,
     val maxTokens: Int? = null,
     val customHeaders: List<CustomHeader> = emptyList(),
     val customBodies: List<CustomBody> = emptyList(),
@@ -55,6 +56,15 @@ data class QuickMessage(
     val title: String = "",
     val content: String = "",
 )
+
+@Serializable
+enum class ToolApprovalMode {
+    @SerialName("ask")
+    ASK,
+
+    @SerialName("yolo")
+    YOLO,
+}
 
 @Serializable
 data class AssistantMemory(
