@@ -80,6 +80,7 @@ import me.rerere.rikkahub.data.repository.WorkspaceRepository
 import me.rerere.rikkahub.data.files.SkillManager
 import me.rerere.rikkahub.data.ai.tools.local.LocalToolOption
 import me.rerere.rikkahub.service.ChatError
+import me.rerere.rikkahub.service.MAX_QUEUED_MESSAGES
 import me.rerere.rikkahub.ui.components.ai.ChatInput
 import me.rerere.rikkahub.ui.components.ai.FilesPicker
 import me.rerere.rikkahub.ui.components.ai.completion.WorkspaceCompletionProvider
@@ -287,6 +288,7 @@ private fun ChatPageContent(
     val assistant = setting.getCurrentAssistant()
     var showFilesSheet by remember { mutableStateOf(false) }
     val skillManager: SkillManager = koinInject()
+    val queuedMessages by vm.queuedMessages.collectAsStateWithLifecycle()
 
     val completionProviders = remember(assistant.workspaceId, conversation.workspaceCwd, workspaceRepository, assistant.localTools) {
         buildList {
@@ -382,6 +384,27 @@ private fun ChatPageContent(
                         }
                         inputState.clearInput()
                     },
+                    onQueueMessage = { text, attachments ->
+                        if (vm.queueMessage(text, attachments)) {
+                            true
+                        } else {
+                            toaster.show("Queue is full (max $MAX_QUEUED_MESSAGES)", type = ToastType.Error)
+                            false
+                        }
+                    },
+                    queuedMessages = queuedMessages,
+                    onEditQueuedMessage = { messageId ->
+                        vm.editQueuedMessage(messageId)
+                    },
+                    onCancelQueuedMessage = { messageId ->
+                        vm.removeQueuedMessage(messageId)
+                    },
+                    onMoveQueuedMessageUp = { messageId ->
+                        vm.moveQueuedMessage(messageId, up = true)
+                    },
+                    onMoveQueuedMessageDown = { messageId ->
+                        vm.moveQueuedMessage(messageId, up = false)
+                    },
                     onUpdateChatModel = {
                         vm.setChatModel(assistant = setting.getCurrentAssistant(), model = it)
                     },
@@ -429,6 +452,7 @@ private fun ChatPageContent(
                     vm.regenerateAtMessage(it)
                 },
                 onEdit = {
+                    inputState.clearInput()
                     inputState.editingMessage = it.id
                     inputState.setContents(it.parts)
                 },

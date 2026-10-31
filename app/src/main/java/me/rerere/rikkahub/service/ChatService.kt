@@ -132,6 +132,16 @@ import kotlin.coroutines.coroutineContext
 import kotlin.uuid.Uuid
 
 private const val TAG = "ChatService"
+private const val KEEP_ALIVE_STOP_DELAY_MS = 1_500L
+internal const val MAX_QUEUED_MESSAGES = 3
+private const val SLOT_WAIT_ATTEMPTS = 20
+private const val SLOT_WAIT_DELAY_MS = 50L
+
+data class QueuedMessage(
+    val id: Uuid = Uuid.random(),
+    val text: String,
+    val attachments: List<UIMessagePart> = emptyList(),
+)
 
 // Metadata kind for injected MCP background command notifications
 const val INJECTED_NOTICE_BACKGROUND_COMMAND = "background_command"
@@ -205,6 +215,7 @@ class ChatService(
     private val _sessionsVersion = MutableStateFlow(0L)
 
     private val _generatingIds = MutableStateFlow<Set<Uuid>>(emptySet())
+    private var keepAliveStopJob: Job? = null
 
     // 工作区工具状态 (workspaceId -> state), 跨生成保持, 使 Read 记录在后续 Write 中可用
     private val workspaceToolStates = ConcurrentHashMap<String, WorkspaceToolState>()
@@ -269,12 +280,18 @@ class ChatService(
             generationDoneFlow.collect { conversationId ->
                 runCatching { drainPendingBackgroundNotifications(conversationId) }
                     .onFailure { it.printStackTrace() }
+                runCatching { drainQueuedMessages(conversationId) }
+                    .onFailure { it.printStackTrace() }
             }
         }
     }
 
     // Conversation -> queued background notification texts, injected at turn boundaries
     private val pendingBackgroundTexts = ConcurrentHashMap<Uuid, MutableList<String>>()
+
+    private val queuedMessages = ConcurrentHashMap<Uuid, MutableList<QueuedMessage>>()
+    private val _queuedMessagesFlow = MutableStateFlow<Map<Uuid, List<QueuedMessage>>>(emptyMap())
+    val queuedMessagesFlow: StateFlow<Map<Uuid, List<QueuedMessage>>> = _queuedMessagesFlow.asStateFlow()
 
     private suspend fun handleMcpBackgroundCommand(event: AppEvent.McpBackgroundCommand) {
         val conversationId = event.conversationId ?: run {
@@ -299,7 +316,7 @@ class ChatService(
             // The done event is emitted before the finished job releases its
             // generation slot, so wait briefly for release. If a new turn started
             // instead, requeue and let that turn's completion re-drain
-            if (!awaitGenerationSlot(conversationId, attempts = 20, delayMs = 50)) {
+            if (!awaitGenerationSlot(conversationId, attempts = SLOT_WAIT_ATTEMPTS, delayMs = SLOT_WAIT_DELAY_MS)) {
                 synchronized(queued) {
                     for (i in texts.indices.reversed()) queued.add(0, texts[i])
                 }
@@ -307,6 +324,90 @@ class ChatService(
             }
             startBackgroundTurn(conversationId, texts)
         }
+    }
+
+    private fun publishQueuedMessages() {
+        _queuedMessagesFlow.value = queuedMessages.mapValues { (_, list) ->
+            synchronized(list) { list.toList() }
+        }.filterValues { it.isNotEmpty() }
+    }
+
+    fun queueMessage(conversationId: Uuid, text: String, attachments: List<UIMessagePart> = emptyList()): Boolean {
+        if (text.isBlank()) return false
+        val queue = queuedMessages.getOrPut(conversationId) { Collections.synchronizedList(mutableListOf()) }
+        val added = synchronized(queue) {
+            if (queue.size >= MAX_QUEUED_MESSAGES) {
+                false
+            } else {
+                queue.add(QueuedMessage(Uuid.random(), text, attachments))
+                true
+            }
+        }
+        if (added) publishQueuedMessages()
+        return added
+    }
+
+    fun removeQueuedMessage(conversationId: Uuid, messageId: Uuid) {
+        val queue = queuedMessages[conversationId] ?: return
+        synchronized(queue) {
+            queue.removeAll { it.id == messageId }
+        }
+        publishQueuedMessages()
+    }
+
+    fun moveQueuedMessage(conversationId: Uuid, messageId: Uuid, up: Boolean) {
+        val queue = queuedMessages[conversationId] ?: return
+        synchronized(queue) {
+            val index = queue.indexOfFirst { it.id == messageId }
+            if (index < 0) return
+            val target = if (up) index - 1 else index + 1
+            if (target in queue.indices) {
+                Collections.swap(queue, index, target)
+            }
+        }
+        publishQueuedMessages()
+    }
+
+    fun peekQueuedMessage(conversationId: Uuid, messageId: Uuid): QueuedMessage? {
+        val queue = queuedMessages[conversationId] ?: return null
+        return synchronized(queue) { queue.firstOrNull { it.id == messageId } }
+    }
+
+    fun updateQueuedMessage(conversationId: Uuid, messageId: Uuid, text: String, attachments: List<UIMessagePart> = emptyList()): Boolean {
+        if (text.isBlank()) return false
+        val queue = queuedMessages[conversationId] ?: return false
+        val updated = synchronized(queue) {
+            val index = queue.indexOfFirst { it.id == messageId }
+            if (index >= 0) {
+                queue[index] = QueuedMessage(messageId, text, attachments)
+                true
+            } else {
+                false
+            }
+        }
+        if (updated) publishQueuedMessages()
+        return updated
+    }
+
+    // Sends one queued message per turn; the sent message's own generation-done
+    // event re-triggers this drain for the next entry
+    private suspend fun drainQueuedMessages(conversationId: Uuid) {
+        val queue = queuedMessages[conversationId] ?: return
+        val queued = synchronized(queue) { queue.firstOrNull() } ?: return
+        val conversation = getConversationFlow(conversationId).value
+        if (conversation.messageNodes.any { node ->
+                node.currentMessage.parts.any { it is UIMessagePart.Tool && it.isPending }
+            }
+        ) return
+        if (!awaitGenerationSlot(conversationId, attempts = SLOT_WAIT_ATTEMPTS, delayMs = SLOT_WAIT_DELAY_MS)) return
+        val removed = synchronized(queue) {
+            val stillHead = queue.firstOrNull()?.id == queued.id
+            if (stillHead) queue.removeAt(0)
+            stillHead
+        }
+        if (!removed) return
+        publishQueuedMessages()
+        sendMessage(conversationId, listOf(UIMessagePart.Text(queued.text)) + queued.attachments)
     }
 
     private fun claimGenerationSlot(conversationId: Uuid): Boolean {
@@ -956,7 +1057,7 @@ class ChatService(
             ).onCompletion {
                 // 取消 Live Update 通知
                 cancelLiveUpdateNotification(conversationId)
-                stopGenerationKeepAlive()
+                scheduleGenerationKeepAliveStop()
                 subagentProgressStore.clearAll()
 
                 // 可能被取消了，或者意外结束，兜底更新
@@ -989,7 +1090,7 @@ class ChatService(
         }.onFailure {
             // 取消 Live Update 通知
             cancelLiveUpdateNotification(conversationId)
-            stopGenerationKeepAlive()
+            scheduleGenerationKeepAliveStop()
 
             val isNetworkError = it is SocketException ||
                 (it is IOException && it.message?.contains("connection", ignoreCase = true) == true)
@@ -1255,7 +1356,7 @@ class ChatService(
                     addError(it, title = context.getString(R.string.error_title_compress_conversation))
                 }
         } finally {
-            stopGenerationKeepAlive()
+            scheduleGenerationKeepAliveStop()
         }
     }
 
@@ -1369,6 +1470,7 @@ class ChatService(
     // ---- 通知 ----
 
     private fun startGenerationKeepAlive(senderName: String) {
+        keepAliveStopJob?.cancel()
         runCatching {
             val intent = Intent(context, GenerationKeepAliveService::class.java).apply {
                 putExtra(GenerationKeepAliveService.EXTRA_SENDER_NAME, senderName)
@@ -1380,6 +1482,16 @@ class ChatService(
     private fun stopGenerationKeepAlive() {
         runCatching {
             context.stopService(Intent(context, GenerationKeepAliveService::class.java))
+        }
+    }
+
+    private fun scheduleGenerationKeepAliveStop() {
+        keepAliveStopJob?.cancel()
+        keepAliveStopJob = appScope.launch {
+            delay(KEEP_ALIVE_STOP_DELAY_MS)
+            if (_generatingIds.value.isEmpty()) {
+                stopGenerationKeepAlive()
+            }
         }
     }
 

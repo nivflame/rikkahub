@@ -38,6 +38,7 @@ import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.data.repository.FavoriteRepository
 import me.rerere.rikkahub.service.ChatError
 import me.rerere.rikkahub.service.ChatService
+import me.rerere.rikkahub.service.QueuedMessage
 import me.rerere.rikkahub.ui.hooks.writeStringPreference
 import me.rerere.rikkahub.ui.hooks.ChatInputState
 import me.rerere.rikkahub.utils.saveTextToDownloads
@@ -201,6 +202,34 @@ class ChatVM(
         if (content.isEmptyInputMessage()) return
 
         chatService.sendMessage(_conversationId, content, answer)
+    }
+
+    val queuedMessages: StateFlow<List<QueuedMessage>> = chatService.queuedMessagesFlow
+        .map { it[_conversationId].orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun queueMessage(text: String, attachments: List<UIMessagePart> = emptyList()): Boolean {
+        val editingId = inputState.editingQueuedId
+        if (editingId != null) {
+            return chatService.updateQueuedMessage(_conversationId, editingId, text, attachments)
+        }
+        return chatService.queueMessage(_conversationId, text, attachments)
+    }
+
+    fun removeQueuedMessage(messageId: Uuid) {
+        chatService.removeQueuedMessage(_conversationId, messageId)
+    }
+
+    fun moveQueuedMessage(messageId: Uuid, up: Boolean) {
+        chatService.moveQueuedMessage(_conversationId, messageId, up)
+    }
+
+    fun editQueuedMessage(messageId: Uuid) {
+        val entry = chatService.peekQueuedMessage(_conversationId, messageId) ?: return
+        inputState.clearInput()
+        inputState.setMessageText(entry.text)
+        inputState.messageContent = entry.attachments
+        inputState.editingQueuedId = messageId
     }
 
     fun handleMessageEdit(parts: List<UIMessagePart>, messageId: Uuid) {

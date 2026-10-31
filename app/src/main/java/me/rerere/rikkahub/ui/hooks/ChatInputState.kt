@@ -13,6 +13,7 @@ class ChatInputState {
     val textContent = TextFieldState()
     var messageContent by mutableStateOf(listOf<UIMessagePart>())
     var editingMessage by mutableStateOf<Uuid?>(null)
+    var editingQueuedId by mutableStateOf<Uuid?>(null)
     private var editingParts: List<UIMessagePart>? = null
     private var editingAttachmentUrls: Set<String> = emptySet()
 
@@ -20,6 +21,7 @@ class ChatInputState {
         textContent.setTextAndPlaceCursorAtEnd("")
         messageContent = emptyList()
         editingMessage = null
+        editingQueuedId = null
         editingParts = null
         editingAttachmentUrls = emptySet()
     }
@@ -126,6 +128,7 @@ class ChatInputState {
     fun shouldDeleteFileOnRemove(part: UIMessagePart): Boolean {
         val url = part.attachmentUrlOrNull() ?: return false
         if (!url.startsWith("file:")) return false
+        if (editingQueuedId != null) return false
         return !isEditing() || url !in editingAttachmentUrls
     }
 

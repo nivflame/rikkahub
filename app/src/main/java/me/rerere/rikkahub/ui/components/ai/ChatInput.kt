@@ -88,6 +88,7 @@ import kotlinx.coroutines.flow.collectLatest
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.ModelType
+import me.rerere.ai.ui.UIMessagePart
 import me.rerere.asr.ASRStatus
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -114,7 +115,9 @@ import me.rerere.rikkahub.ui.components.ui.permission.rememberPermissionState
 import me.rerere.rikkahub.ui.context.LocalASRState
 import me.rerere.rikkahub.ui.context.LocalSettings
 import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.rikkahub.service.QueuedMessage
 import me.rerere.rikkahub.ui.hooks.ChatInputState
+import kotlin.uuid.Uuid
 import me.rerere.rikkahub.utils.SoundEffectPlayer
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.seconds
@@ -140,6 +143,12 @@ fun ChatInput(
     onCancelClick: () -> Unit,
     onSendClick: () -> Unit,
     onLongSendClick: () -> Unit,
+    onQueueMessage: (String, List<UIMessagePart>) -> Boolean = { _, _ -> false },
+    queuedMessages: List<QueuedMessage> = emptyList(),
+    onEditQueuedMessage: (Uuid) -> Unit = {},
+    onCancelQueuedMessage: (Uuid) -> Unit = {},
+    onMoveQueuedMessageUp: (Uuid) -> Unit = {},
+    onMoveQueuedMessageDown: (Uuid) -> Unit = {},
 ) {
     val toaster = LocalToaster.current
     val assistant = settings.getCurrentAssistant()
@@ -166,10 +175,17 @@ fun ChatInput(
         if (loading) onCancelClick() else onSendClick()
     }
 
-    fun sendMessageWithoutAnswer() {
+    fun onQueueOrSendWithoutAnswer() {
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
-        if (loading) onCancelClick() else onLongSendClick()
+        val text = state.textContent.text.toString()
+        if ((state.editingQueuedId != null || loading || queuedMessages.isNotEmpty()) && text.isNotBlank()) {
+            if (onQueueMessage(text, state.messageContent.toList())) {
+                state.clearInput()
+            }
+        } else {
+            onLongSendClick()
+        }
     }
 
     val asr = LocalASRState.current
@@ -213,6 +229,16 @@ fun ChatInput(
                 .padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (queuedMessages.isNotEmpty()) {
+                QueueCard(
+                    messages = queuedMessages,
+                    onEdit = onEditQueuedMessage,
+                    onCancel = onCancelQueuedMessage,
+                    onMoveUp = onMoveQueuedMessageUp,
+                    onMoveDown = onMoveQueuedMessageDown,
+                )
+            }
+
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -376,7 +402,7 @@ fun ChatInput(
                                         onClick = {
                                             sendMessage()
                                         }, onLongClick = {
-                                            sendMessageWithoutAnswer()
+                                            onQueueOrSendWithoutAnswer()
                                         }
                                     )
                             ) {
@@ -471,7 +497,7 @@ private fun TextInputRow(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        if (state.isEditing()) {
+        if (state.isEditing() || state.editingQueuedId != null) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
