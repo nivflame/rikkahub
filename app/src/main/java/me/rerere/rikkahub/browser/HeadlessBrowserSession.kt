@@ -38,9 +38,10 @@ object HeadlessBrowserSession {
     }
 
     private suspend fun getOrCreateHeadless(context: Context): BrowserController {
-        headless?.let { return it }
+        headless?.let { if (!it.isDead) return it }
         return withContext(Dispatchers.Main) {
-            headless ?: BrowserController(
+            headless?.let { if (!it.isDead) return@withContext it }
+            BrowserController(
                 WebView(context.applicationContext)
             ).also {
                 it.localContentRoot = localContentRoot
@@ -51,7 +52,8 @@ object HeadlessBrowserSession {
 
     suspend fun <T> withController(context: Context, block: suspend (BrowserController) -> T): T =
         mutex.withLock {
-            val controller = active ?: getOrCreateHeadless(context)
+            val current = active
+            val controller = if (current != null && !current.isDead) current else getOrCreateHeadless(context)
             block(controller)
         }
 }

@@ -193,7 +193,6 @@ private fun BrowserScreen(
     var showDeleteDataDialog by remember { mutableStateOf(false) }
     var desktopMode by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf(100) }
-    var mobileUA by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -369,7 +368,6 @@ private fun BrowserScreen(
                             }
                         )
                         controller = c
-                        mobileUA = webView.settings.userAgentString
                         webView.loadUrl(HOME_URL)
                         webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
                             if (scrollY > oldScrollY + 10) {
@@ -714,12 +712,7 @@ private fun BrowserScreen(
                                         checked = desktopMode,
                                         onCheckedChange = {
                                             desktopMode = it
-                                            val ua = if (it) {
-                                                BrowserController.DESKTOP_UA
-                                            } else {
-                                                mobileUA
-                                            }
-                                            controller?.webView?.settings?.userAgentString = ua
+                                            controller?.applyViewport(if (it) "desktop" else "mobile")
                                             controller?.webView?.reload()
                                         },
                                     )

@@ -8,6 +8,7 @@ import android.net.Uri
 import android.view.View
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -66,6 +67,14 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     var localContentRoot: File? = null
     private val perToolTimeoutMs = DEFAULT_PER_TOOL_TIMEOUT_MS
 
+    @Volatile
+    var desktopViewport = false
+        private set
+
+    @Volatile
+    var isDead = false
+        private set
+
     private val logCollector = BrowserLogCollector()
     private val scriptBridge = ScriptResultBridge()
 
@@ -113,6 +122,13 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
             }
         }
         webView.webViewClient = object : WebViewClient() {
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                isDead = true
+                loadDeferred?.complete(Unit)
+                view?.destroy()
+                return true
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 turndownInjected = false
                 onUrlChanged?.invoke(url ?: "")
@@ -166,7 +182,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
     ): String = withTimeoutOrNull(perToolTimeoutMs) {
         withContext(Dispatchers.Main) {
             lastRequestAt = System.currentTimeMillis()
-            if (action == "url" && lastResizeAt < lastLoadAt) applyViewport("mobile")
+            if (action == "url" && lastResizeAt < lastLoadAt) applyViewport(if (desktopViewport) "desktop" else "mobile")
             when (action) {
                 "back" -> {
                     if (!webView.canGoBack()) return@withContext "no history to go back to"
@@ -208,7 +224,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
         "${viewportW}x${viewportH}"
     }
 
-    private fun applyViewport(viewport: String) {
+    fun applyViewport(viewport: String) {
         val (width, height, desktop) = when (viewport.lowercase()) {
             "desktop" -> Triple(DESKTOP_WIDTH_PX, DESKTOP_HEIGHT_PX, true)
             "mobile" -> Triple(displayW, displayH, false)
@@ -220,6 +236,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 Triple(w, h, w >= DESKTOP_WIDTH_PX)
             }
         }
+        desktopViewport = desktop
         webView.settings.userAgentString = if (desktop) {
             DESKTOP_UA
         } else {
@@ -268,7 +285,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
                 "if(!el.files||el.files.length===0)return 'attach failed: input rejected the file';" +
                 "var f=el.files[0];return 'attached: '+f.name+' ('+f.size+' bytes)';})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun search(query: String, news: Boolean, resultCount: Int = 20): String {
@@ -286,7 +303,7 @@ class BrowserController(val webView: WebView, private val onUrlChanged: ((String
 
         while (allResults.size < resultCount && pagesRemaining > 0) {
             val currentUrl = if (start > 0) "$baseUrl&start=$start" else baseUrl
-            navigate(currentUrl)
+            if (navigate(currentUrl) == "timeout navigating") break
 
             val extractJs = if (news) NEWS_EXTRACT_JS else WEB_EXTRACT_JS
             var pageItems: List<JsonObject>? = null
@@ -498,7 +515,7 @@ return 'unknown';
         while (allResults.size < resultCount && pagesRemaining > 0) {
             val url = "https://$basePath?q=$encodedQuery" +
                 if (offset > 0) "&offset=$offset&spellcheck=0" else ""
-            navigate(url)
+            if (navigate(url) == "timeout navigating") break
 
             val extractJs = """
 (function(){
@@ -603,36 +620,14 @@ return '['+results.join(',')+']';
         if (url.lowercase().endsWith(".pdf")) {
             val pdfText = withContext(Dispatchers.IO) {
                 runCatching {
-                    val conn = URL(url).openConnection() as HttpURLConnection
-                    try {
-                        conn.connectTimeout = 15000
-                        conn.readTimeout = 15000
-                        conn.instanceFollowRedirects = true
-                        if (conn.responseCode !in 200..299) return@runCatching null
-                        if (conn.contentLengthLong > RAW_FETCH_MAX_BYTES) {
-                            return@runCatching null
-                        }
+                    fetchHttp(url)?.let { (bytes, _) ->
                         val tempFile = File(webView.context.appTempFolder, "webfetch-${System.currentTimeMillis()}.pdf")
                         try {
-                            var total = 0
-                            conn.inputStream.use { input ->
-                                FileOutputStream(tempFile).use { output ->
-                                    val buf = ByteArray(8192)
-                                    while (true) {
-                                        val n = input.read(buf)
-                                        if (n < 0) break
-                                        total += n
-                                        if (total > RAW_FETCH_MAX_BYTES) return@runCatching null
-                                        output.write(buf, 0, n)
-                                    }
-                                }
-                            }
+                            FileOutputStream(tempFile).use { it.write(bytes) }
                             PdfParser.parserPdf(tempFile)
                         } finally {
                             tempFile.delete()
                         }
-                    } finally {
-                        conn.disconnect()
                     }
                 }.getOrNull()
             }
@@ -643,35 +638,8 @@ return '['+results.join(',')+']';
         if (rawHost == "raw.githubusercontent.com") {
             val rawText = withContext(Dispatchers.IO) {
                 runCatching {
-                    val conn = URL(url).openConnection() as HttpURLConnection
-                    try {
-                        conn.connectTimeout = 15000
-                        conn.readTimeout = 15000
-                        conn.instanceFollowRedirects = true
-                        if (conn.responseCode !in 200..299) return@runCatching null
-                        if (!conn.url.host.equals("raw.githubusercontent.com", ignoreCase = true)) {
-                            return@runCatching null
-                        }
-                        if (conn.contentLengthLong > RAW_FETCH_MAX_BYTES) {
-                            return@runCatching null
-                        }
-                        val charset = parseCharsetFromContentType(conn.contentType)
-                        var total = 0
-                        conn.inputStream.use { input ->
-                            ByteArrayOutputStream().let { out ->
-                                val buf = ByteArray(8192)
-                                while (true) {
-                                    val n = input.read(buf)
-                                    if (n < 0) break
-                                    total += n
-                                    if (total > RAW_FETCH_MAX_BYTES) return@runCatching null
-                                    out.write(buf, 0, n)
-                                }
-                                out.toByteArray().toString(charset)
-                            }
-                        }
-                    } finally {
-                        conn.disconnect()
+                    fetchHttp(url, requireHost = "raw.githubusercontent.com")?.let { (bytes, contentType) ->
+                        bytes.toString(parseCharsetFromContentType(contentType))
                     }
                 }.getOrNull()
             }
@@ -688,6 +656,33 @@ return '['+results.join(',')+']';
 
         navigate(url)
         return getContent(maxChars, startIndex)
+    }
+
+    private fun fetchHttp(url: String, requireHost: String? = null): Pair<ByteArray, String?>? {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 15000
+            conn.readTimeout = 15000
+            conn.instanceFollowRedirects = true
+            if (conn.responseCode !in 200..299) return null
+            if (requireHost != null && !conn.url.host.equals(requireHost, ignoreCase = true)) return null
+            if (conn.contentLengthLong > RAW_FETCH_MAX_BYTES) return null
+            val out = ByteArrayOutputStream()
+            var total = 0
+            conn.inputStream.use { input ->
+                val buf = ByteArray(8192)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    total += n
+                    if (total > RAW_FETCH_MAX_BYTES) return null
+                    out.write(buf, 0, n)
+                }
+            }
+            return out.toByteArray() to conn.contentType
+        } finally {
+            conn.disconnect()
+        }
     }
 
     private suspend fun fetchThreadOld(url: String, maxChars: Int, startIndex: Int): String? {
@@ -1040,7 +1035,7 @@ return '['+results.join(',')+']';
                 "if($count>1)press(el,el,'dblclick',0,0,$count,px,py);" +
                 "return 'clicked $button x$count';})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun fill(selector: String, text: String): String = withContext(Dispatchers.Main) {
@@ -1052,7 +1047,7 @@ return '['+results.join(',')+']';
                 "el.dispatchEvent(new Event('input',{bubbles:true}));" +
                 "el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun typeText(text: String): String = withContext(Dispatchers.Main) {
@@ -1063,7 +1058,7 @@ return '['+results.join(',')+']';
                 "el.value=el.value+$value;" +
                 "el.dispatchEvent(new Event('input',{bubbles:true}));return 'typed';})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun pressKey(key: String, modifiers: Set<String> = emptySet()): String = withContext(Dispatchers.Main) {
@@ -1084,14 +1079,14 @@ return '['+results.join(',')+']';
                 "document.dispatchEvent(new KeyboardEvent('keyup',$opts));" +
                 "return 'pressed '+${Json.encodeToString(combo)};})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun scroll(dy: Int): String = withContext(Dispatchers.Main) {
         val raw = evaluateJavascriptAsync(
             "(function(){window.scrollBy(0,$dy);return 'scrolled';})();"
         )
-        raw?.let { unquoteJsString(it) } ?: "ok"
+        raw?.let { unquoteJsString(it) } ?: "timeout"
     }
 
     suspend fun domSnapshot(selector: String?, depth: Int = 15, filter: String = "all"): String = withContext(Dispatchers.Main) {
