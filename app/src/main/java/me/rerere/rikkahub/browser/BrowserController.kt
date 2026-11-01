@@ -390,51 +390,33 @@ return 'unknown';
 
     private suspend fun resolveGotoUrls(tokens: List<String>): Map<String, String> {
         if (tokens.isEmpty()) return emptyMap()
-        val context = webView.context ?: return emptyMap()
-        val resolved = java.util.concurrent.ConcurrentHashMap<String, String>()
-        withContext(Dispatchers.Main) {
-            tokens.chunked(8).forEach { batch ->
-                val resolvers = batch.map { token ->
-                    val resolver = WebView(context)
-                    resolver.settings.javaScriptEnabled = false
-                    resolver.settings.domStorageEnabled = false
-                    resolver.webViewClient = object : WebViewClient() {
-                        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-                            val url = request.url.toString()
-                            if (request.isForMainFrame &&
-                                resolved[token] == null &&
-                                !url.startsWith("https://www.google.com") &&
-                                !url.startsWith("https://google.com") &&
-                                looksLikeArticleUrl(url)
-                            ) {
-                                resolved[token] = normalizeNewsUrl(url)
-                                view.post { view.stopLoading() }
-                            }
-                            return null
+        val ua = if (desktopViewport) DESKTOP_UA else MOBILE_UA
+        return withContext(Dispatchers.IO) {
+            val resolved = LinkedHashMap<String, String>()
+            for (token in tokens.distinct()) {
+                val url = runCatching {
+                    val conn = URL("https://www.google.com/goto?url=$token").openConnection() as HttpURLConnection
+                    try {
+                        conn.connectTimeout = 10_000
+                        conn.readTimeout = 10_000
+                        conn.instanceFollowRedirects = false
+                        conn.setRequestProperty("User-Agent", ua)
+                        val code = conn.responseCode
+                        val location = conn.getHeaderField("Location")
+                        if (code in 301..308 && location != null) {
+                            val host = Uri.parse(location).host
+                            if (host == "google.com" || host == "www.google.com") null else location
+                        } else {
+                            null
                         }
-
-                        override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                            if (url != null &&
-                                !url.startsWith("https://www.google.com") &&
-                                !url.startsWith("https://google.com") &&
-                                looksLikeArticleUrl(url)
-                            ) {
-                                resolved[token] = normalizeNewsUrl(url)
-                                view.stopLoading()
-                            }
-                        }
+                    } finally {
+                        conn.disconnect()
                     }
-                    resolver.loadUrl("https://www.google.com/goto?url=$token")
-                    resolver
-                }
-                val deadline = System.currentTimeMillis() + 4000
-                while (batch.any { resolved[it] == null } && System.currentTimeMillis() < deadline) {
-                    delay(50)
-                }
-                resolvers.forEach { it.destroy() }
+                }.getOrNull() ?: continue
+                resolved[token] = normalizeNewsUrl(url)
             }
+            resolved
         }
-        return resolved
     }
 
     private fun parseCharsetFromContentType(contentType: String?): java.nio.charset.Charset {
@@ -476,30 +458,6 @@ return 'unknown';
             raw
         } catch (_: Exception) {
             raw
-        }
-    }
-
-    private val ASSET_HOSTS = setOf(
-        "fonts.googleapis.com",
-        "polyfill.io",
-        "assets.guim.co.uk",
-        "cdnjs.cloudflare.com",
-        "unpkg.com",
-        "cdn.jsdelivr.net",
-    )
-
-    private val ASSET_EXTENSIONS = setOf(".svg", ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2")
-
-    private fun looksLikeArticleUrl(url: String): Boolean {
-        return try {
-            val uri = Uri.parse(url)
-            val host = uri.host.orEmpty()
-            val path = uri.path.orEmpty()
-            if (host in ASSET_HOSTS) return false
-            if (path.startsWith("/wp-content/")) return false
-            ASSET_EXTENSIONS.none { path.endsWith(it) }
-        } catch (_: Exception) {
-            false
         }
     }
 
