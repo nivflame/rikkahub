@@ -3,9 +3,6 @@ package me.rerere.rikkahub.browser
 import android.content.Context
 import android.webkit.WebView
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -35,11 +32,6 @@ object HeadlessBrowserSession {
         headless?.localContentRoot = file
     }
 
-    fun getLocalContentRoot(): File? = localContentRoot
-
-    private val _url = MutableStateFlow("")
-    val urlFlow: StateFlow<String> = _url.asStateFlow()
-
     fun setActive(controller: BrowserController?) {
         active = controller
         controller?.localContentRoot = localContentRoot
@@ -49,8 +41,7 @@ object HeadlessBrowserSession {
         headless?.let { return it }
         return withContext(Dispatchers.Main) {
             headless ?: BrowserController(
-                WebView(context.applicationContext),
-                onUrlChanged = { _url.value = it }
+                WebView(context.applicationContext)
             ).also {
                 it.localContentRoot = localContentRoot
                 headless = it
@@ -63,7 +54,4 @@ object HeadlessBrowserSession {
             val controller = active ?: getOrCreateHeadless(context)
             block(controller)
         }
-
-    suspend fun currentUrl(context: Context): String =
-        withController(context) { it.currentUrl() }
 }

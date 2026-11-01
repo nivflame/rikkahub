@@ -64,7 +64,7 @@ internal fun serveWorkspaceAsset(root: File?, url: Uri): WebResourceResponse? {
  */
 class BrowserController(val webView: WebView, private val onUrlChanged: ((String) -> Unit)? = null) {    @Volatile
     var localContentRoot: File? = null
-    var perToolTimeoutMs: Long = DEFAULT_PER_TOOL_TIMEOUT_MS
+    private val perToolTimeoutMs = DEFAULT_PER_TOOL_TIMEOUT_MS
 
     private val logCollector = BrowserLogCollector()
     private val scriptBridge = ScriptResultBridge()
@@ -1163,9 +1163,6 @@ return body;})();
         runCatching { Json.decodeFromString<String>(rawValue) }.getOrDefault(rawValue).take(MAX_TEXT_CHARS)
     }
 
-    fun close() {
-    }
-
     suspend fun screenshot(
         maxHeightPx: Int,
         context: Context,
@@ -1271,7 +1268,6 @@ return body;})();
         const val DEFAULT_PER_TOOL_TIMEOUT_MS = 30_000L
         const val MAX_TEXT_CHARS = 64 * 1024
         const val MAX_CONTENT_CHARS = 50 * 1024
-        const val MAX_LINKS = 200
         const val RAW_FETCH_MAX_BYTES = 5L * 1024 * 1024
         const val MAX_SNAPSHOT_CHARS = 50_000
         const val MAX_SCREENSHOT_HEIGHT_PX = 8192
