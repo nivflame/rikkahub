@@ -411,7 +411,7 @@ private fun ChatListNormal(
                         RabbitLoadingIndicator(
                             modifier = Modifier.size(28.dp)
                         )
-                        if (startedAt != null) {
+                        if (startedAt != null && processingStatus == null) {
                             Text(
                                 text = "Working... ${humanizeDuration((now - startedAt).coerceAtLeast(0))}",
                                 style = MaterialTheme.typography.labelMedium,
