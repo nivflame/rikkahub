@@ -595,7 +595,7 @@ class GenerationHandler(
                 messages = internalMessages,
                 params = params,
                 onRetry = { attempt ->
-                    processingStatus.value = "Auto retrying ($attempt)..."
+                    processingStatus.value = "Auto retrying • $attempt"
                 },
             ).collect {
                 processingStatus.value = null
@@ -617,7 +617,7 @@ class GenerationHandler(
                 messages = internalMessages,
                 params = params,
                 onRetry = { attempt ->
-                    processingStatus.value = "Auto retrying ($attempt)..."
+                    processingStatus.value = "Auto retrying • $attempt"
                 },
             )
             processingStatus.value = null
