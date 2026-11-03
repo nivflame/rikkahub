@@ -11,13 +11,13 @@ interface OpenAIImpl {
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)? = null,
+        onRetry: ((attempt: Int) -> Unit)? = null,
     ): MessageChunk
 
     suspend fun streamText(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)? = null,
+        onRetry: ((attempt: Int) -> Unit)? = null,
     ): Flow<MessageChunk>
 }

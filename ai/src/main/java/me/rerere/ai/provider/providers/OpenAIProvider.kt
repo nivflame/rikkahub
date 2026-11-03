@@ -124,7 +124,7 @@ class OpenAIProvider(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
         val flow = if (providerSetting.useResponseApi) {
             responseAPI.streamText(providerSetting, messages, params)
@@ -136,12 +136,12 @@ class OpenAIProvider(
             flow.retry { e ->
                 val is429 = e.message?.lowercase()?.contains("429") == true
                 val retryable = isRetryableError(e)
-                if (retryable && retryCount < 5) {
+                if (retryable) {
                     retryCount++
                     val baseDelay = if (is429) 5000L else 10000L
-                    val backoffDelay = minOf(baseDelay * (1L shl (retryCount - 1)), 60000L)
-                    Log.w(TAG, "streamText: retryable error (${e.message}), retry $retryCount/5 in ${backoffDelay}ms")
-                    onRetry?.invoke(retryCount, 5)
+                    val backoffDelay = minOf(baseDelay * (1L shl minOf(retryCount - 1, 6)), 60000L)
+                    Log.w(TAG, "streamText: retryable error (${e.message}), retry $retryCount in ${backoffDelay}ms")
+                    onRetry?.invoke(retryCount)
                     delay(backoffDelay)
                     true
                 } else {
@@ -157,11 +157,17 @@ class OpenAIProvider(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): MessageChunk {
-        val maxRetries = if (providerSetting.autoRetry) 5 else 0
-        var lastError: Throwable? = null
-        repeat(maxRetries + 1) { attempt ->
+        if (!providerSetting.autoRetry) {
+            return if (providerSetting.useResponseApi) {
+                responseAPI.generateText(providerSetting, messages, params)
+            } else {
+                chatCompletionsAPI.generateText(providerSetting, messages, params)
+            }
+        }
+        var attempt = 0
+        while (true) {
             try {
                 return if (providerSetting.useResponseApi) {
                     responseAPI.generateText(providerSetting, messages, params)
@@ -169,18 +175,16 @@ class OpenAIProvider(
                     chatCompletionsAPI.generateText(providerSetting, messages, params)
                 }
             } catch (e: Exception) {
-                lastError = e
                 val is429 = e.message?.lowercase()?.contains("429") == true
-                val retryable = isRetryableError(e)
-                if (!retryable || attempt >= maxRetries) throw e
+                if (!isRetryableError(e)) throw e
+                attempt++
                 val baseDelay = if (is429) 5000L else 10000L
-                val backoffDelay = minOf(baseDelay * (1L shl attempt), 60000L)
-                Log.w(TAG, "generateText: retryable error (${e.message}), retry ${attempt + 1}/$maxRetries in ${backoffDelay}ms")
-                onRetry?.invoke(attempt + 1, maxRetries)
+                val backoffDelay = minOf(baseDelay * (1L shl minOf(attempt - 1, 6)), 60000L)
+                Log.w(TAG, "generateText: retryable error (${e.message}), retry $attempt in ${backoffDelay}ms")
+                onRetry?.invoke(attempt)
                 delay(backoffDelay)
             }
         }
-        throw lastError!!
     }
 
     override suspend fun generateEmbedding(

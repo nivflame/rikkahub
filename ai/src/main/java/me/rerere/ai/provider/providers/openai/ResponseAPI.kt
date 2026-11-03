@@ -70,7 +70,7 @@ class ResponseAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): MessageChunk {
         val requestBody = buildRequestBody(
             providerSetting = providerSetting,
@@ -109,7 +109,7 @@ class ResponseAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> = callbackFlow {
         val requestBody = buildRequestBody(
             providerSetting = providerSetting,

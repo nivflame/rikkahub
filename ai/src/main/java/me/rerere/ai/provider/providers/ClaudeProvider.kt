@@ -107,7 +107,7 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
         providerSetting: ProviderSetting.Claude,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): MessageChunk = withContext(Dispatchers.IO) {
         val requestBody = buildMessageRequest(providerSetting, messages, params)
         val request = Request.Builder()
@@ -155,7 +155,7 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
         providerSetting: ProviderSetting.Claude,
         messages: List<UIMessage>,
         params: TextGenerationParams,
-        onRetry: ((attempt: Int, maxAttempt: Int) -> Unit)?,
+        onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> = callbackFlow {
         val requestBody = buildMessageRequest(providerSetting, messages, params, stream = true)
         val request = Request.Builder()
