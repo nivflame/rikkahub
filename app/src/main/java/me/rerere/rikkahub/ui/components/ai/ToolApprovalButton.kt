@@ -2,7 +2,6 @@ package me.rerere.rikkahub.ui.components.ai
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -55,20 +53,13 @@ fun ToolApprovalButton(
         modifier = modifier,
         contentColor = if (yolo) MaterialTheme.colorScheme.error else Color.Unspecified,
     ) {
-        Row(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = HugeIcons.ShieldKey,
-                contentDescription = "Tool Permissions",
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = if (assistant.toolApprovalMode == ToolApprovalMode.YOLO) "YOLO" else "Ask",
-            )
-        }
+        Icon(
+            imageVector = HugeIcons.ShieldKey,
+            contentDescription = if (yolo) "Tool Permissions (YOLO)" else "Tool Permissions (Ask)",
+            modifier = Modifier
+                .padding(8.dp)
+                .size(24.dp),
+        )
     }
 
     if (showSheet) {
