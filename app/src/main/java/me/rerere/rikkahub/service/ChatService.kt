@@ -1251,44 +1251,49 @@ class ChatService(
         }
         if (!shouldGenerate) return
 
-        runCatching {
-            val settings = settingsStore.settingsFlow.first()
-            val model = settings.findModelById(settings.titleModelId) ?: return
-            val provider = poolSelector.resolve(model, settings) ?: return
+        startGenerationKeepAlive(context.getString(R.string.chat_page_updating_title))
+        try {
+            runCatching {
+                val settings = settingsStore.settingsFlow.first()
+                val model = settings.findModelById(settings.titleModelId) ?: return
+                val provider = poolSelector.resolve(model, settings) ?: return
 
-            val providerHandler = providerManager.getProviderByType(provider)
-            val sb = StringBuilder()
-            providerHandler.streamText(
-                providerSetting = provider,
-                messages = listOf(
-                    UIMessage.user(
-                        prompt = settings.titlePrompt.applyPlaceholders(
-                            "locale" to Locale.getDefault().displayName,
-                            "content" to conversation.currentMessages
-                                .takeLast(4).joinToString("\n\n") { it.summaryAsText(maxLength = 500) })
+                val providerHandler = providerManager.getProviderByType(provider)
+                val sb = StringBuilder()
+                providerHandler.streamText(
+                    providerSetting = provider,
+                    messages = listOf(
+                        UIMessage.user(
+                            prompt = settings.titlePrompt.applyPlaceholders(
+                                "locale" to Locale.getDefault().displayName,
+                                "content" to conversation.currentMessages
+                                    .takeLast(4).joinToString("\n\n") { it.summaryAsText(maxLength = 500) })
+                        ),
                     ),
-                ),
-                params = backgroundTextGenerationParams(model, provider = provider),
-            ).collect { chunk ->
-                val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
-                message?.toText()?.let { sb.append(it) }
-            }
+                    params = backgroundTextGenerationParams(model, provider = provider),
+                ).collect { chunk ->
+                    val message = chunk.choices.getOrNull(0)?.let { it.delta ?: it.message }
+                    message?.toText()?.let { sb.append(it) }
+                }
 
-            // 生成完，conversation可能不是最新了，因此需要重新获取
-            conversationRepo.getConversationById(conversation.id)?.let {
-                saveConversation(
-                    conversationId,
-                    it.copy(title = sb.toString().trim())
+                // 生成完，conversation可能不是最新了，因此需要重新获取
+                conversationRepo.getConversationById(conversation.id)?.let {
+                    saveConversation(
+                        conversationId,
+                        it.copy(title = sb.toString().trim())
+                    )
+                }
+            }.onFailure {
+                it.printStackTrace()
+                addError(
+                    error = it,
+                    conversationId = conversationId,
+                    title = context.getString(R.string.error_title_generate_title),
+                    solution = ChatErrorSolution.CheckTitleModelSettings,
                 )
             }
-        }.onFailure {
-            it.printStackTrace()
-            addError(
-                error = it,
-                conversationId = conversationId,
-                title = context.getString(R.string.error_title_generate_title),
-                solution = ChatErrorSolution.CheckTitleModelSettings,
-            )
+        } finally {
+            scheduleGenerationKeepAliveStop()
         }
     }
 
