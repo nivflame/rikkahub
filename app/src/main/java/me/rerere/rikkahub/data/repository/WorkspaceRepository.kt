@@ -434,6 +434,6 @@ class WorkspaceRepository(
     companion object {
         private const val TAG = "WorkspaceRepository"
         private const val DEFAULT_ROOTFS_URL =
-            "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/aarch64/alpine-minirootfs-3.23.4-aarch64.tar.gz"
+            "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04.1-base-arm64.tar.gz"
     }
 }
