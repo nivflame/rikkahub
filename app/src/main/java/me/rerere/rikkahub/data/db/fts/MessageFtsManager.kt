@@ -58,6 +58,16 @@ class MessageFtsManager(private val database: AppDatabase) {
         db.execSQL("DELETE FROM message_fts WHERE conversation_id = ?", arrayOf(conversationId))
     }
 
+    // No withContext hop: called inside database.withTransaction it must run on the
+    // transaction thread so the delete joins the same SQLite transaction
+    fun deleteConversations(conversationIds: List<String>) {
+        if (conversationIds.isEmpty()) return
+        db.execSQL(
+            "DELETE FROM message_fts WHERE conversation_id IN (${conversationIds.joinToString(",") { "?" }})",
+            conversationIds.toTypedArray()
+        )
+    }
+
     suspend fun deleteAll() = withContext(Dispatchers.IO) {
         db.execSQL("DELETE FROM message_fts")
     }

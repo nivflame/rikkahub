@@ -273,7 +273,24 @@ class ConversationRepository(
     }
 
     suspend fun deleteConversations(conversations: List<Conversation>) {
-        conversations.forEach { deleteConversation(it) }
+        if (conversations.isEmpty()) return
+        val fullConversations = conversations.map { conversation ->
+            if (conversation.messageNodes.isEmpty()) {
+                getConversationById(conversation.id) ?: conversation
+            } else {
+                conversation
+            }
+        }
+        val ids = fullConversations.map { it.id.toString() }
+        database.withTransaction {
+            ids.chunked(500).forEach { chunk ->
+                messageFtsManager.deleteConversations(chunk)
+            }
+            ids.chunked(500).forEach { chunk ->
+                conversationDAO.deleteByIds(chunk)
+            }
+        }
+        filesManager.deleteChatFiles(fullConversations.flatMap { it.files })
     }
 
     suspend fun searchMessages(

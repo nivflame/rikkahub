@@ -72,6 +72,9 @@ interface ConversationDAO {
     @Query("DELETE FROM conversationentity WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    @Query("DELETE FROM conversationentity WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
+
     @Query("DELETE FROM conversationentity")
     suspend fun deleteAll()
 
