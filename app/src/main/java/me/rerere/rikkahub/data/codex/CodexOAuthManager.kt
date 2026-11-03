@@ -1,7 +1,6 @@
 package me.rerere.rikkahub.data.codex
 
 import android.content.Context
-import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.Uri
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import me.rerere.common.http.await
+import me.rerere.rikkahub.data.ai.mcp.launchOAuthAuthorization
 import me.rerere.rikkahub.R
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -73,11 +73,7 @@ class CodexOAuthManager(
                 .appendQueryParameter("codex_cli_simplified_flow", "true")
                 .appendQueryParameter("originator", "codex_cli_rs")
                 .build()
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW, authUrl).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
+            launchOAuthAuthorization(context, authUrl.toString())
         } catch (error: Throwable) {
             sessions.remove(state)
             _status.value = CodexOAuthStatus.Error(
