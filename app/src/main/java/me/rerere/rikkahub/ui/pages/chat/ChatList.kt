@@ -286,14 +286,27 @@ private fun ChatListNormal(
     ) {
         // 自动滚动到底部
         if (settings.displaySetting.enableAutoScroll) {
+            var stickToBottom by remember { mutableStateOf(true) }
+            var lastFirstVisibleIndex by remember { mutableStateOf(state.firstVisibleItemIndex) }
+            var wasScrolling by remember { mutableStateOf(false) }
             LaunchedEffect(state) {
                 snapshotFlow { state.layoutInfo.visibleItemsInfo }.collect { visibleItemsInfo ->
-                    // println("is bottom = ${visibleItemsInfo.isAtBottom()}, scroll = ${state.isScrollInProgress}, can_scroll = ${state.canScrollForward}, loading = $loading")
-                    if (!state.isScrollInProgress && loadingState) {
-                        if (visibleItemsInfo.isAtBottom()) {
-                            state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
-                            // Log.i(TAG, "ChatList: scroll to ${conversationUpdated.messageNodes.lastIndex}")
-                        }
+                    // scrolling up (user drag, volume key, jump) stops following immediately
+                    val firstVisibleIndex = state.firstVisibleItemIndex
+                    if (firstVisibleIndex < lastFirstVisibleIndex) {
+                        stickToBottom = false
+                    }
+                    lastFirstVisibleIndex = firstVisibleIndex
+                    // a scroll that stopped away from the bottom stops following
+                    if (wasScrolling && !state.isScrollInProgress && !visibleItemsInfo.isAtBottom()) {
+                        stickToBottom = false
+                    }
+                    wasScrolling = state.isScrollInProgress
+                    if (visibleItemsInfo.isAtBottom()) {
+                        stickToBottom = true
+                    }
+                    if (!state.isScrollInProgress && loadingState && stickToBottom) {
+                        state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
                     }
                 }
             }

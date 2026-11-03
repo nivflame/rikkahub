@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Size
@@ -93,11 +94,20 @@ private fun rememberReasoningState(reasoning: UIMessagePart.Reasoning): Pair<Rea
         )
     }
 
-    LaunchedEffect(reasoning.reasoning, loading) {
+    LaunchedEffect(loading, settings.displaySetting.showThinkingContent) {
         if (loading) {
             if (!state.expandState.expanded && settings.displaySetting.showThinkingContent)
                 state.expandState = ReasoningCardState.Preview
-            scrollState.animateScrollTo(scrollState.maxValue)
+            var follow = true
+            var lastValue = scrollState.value
+            snapshotFlow { scrollState.maxValue }.collect { max ->
+                if (scrollState.value < lastValue) follow = false
+                if (follow && !scrollState.isScrollInProgress && max > 0) {
+                    runCatching { scrollState.scrollTo(max) }
+                }
+                if (scrollState.value >= max - 1) follow = true
+                lastValue = scrollState.value
+            }
         } else {
             if (state.expandState.expanded) {
                 state.expandState = if (settings.displaySetting.autoCloseThinking)
