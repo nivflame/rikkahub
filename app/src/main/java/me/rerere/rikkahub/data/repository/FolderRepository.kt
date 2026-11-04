@@ -2,6 +2,8 @@ package me.rerere.rikkahub.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.room.withTransaction
+import me.rerere.rikkahub.data.db.AppDatabase
 import me.rerere.rikkahub.data.db.dao.ConversationDAO
 import me.rerere.rikkahub.data.db.dao.FolderDAO
 import me.rerere.rikkahub.data.db.entity.FolderEntity
@@ -10,6 +12,7 @@ import java.time.Instant
 import kotlin.uuid.Uuid
 
 class FolderRepository(
+    private val database: AppDatabase,
     private val folderDAO: FolderDAO,
     private val conversationDAO: ConversationDAO,
 ) {
@@ -38,6 +41,16 @@ class FolderRepository(
     suspend fun deleteFolder(id: Uuid) {
         conversationDAO.clearFolder(id.toString())
         folderDAO.deleteById(id.toString())
+    }
+
+    /**
+     * 删除助手时清理其全部文件夹。会话此时已删除，清空 folder_id 仅作兜底。
+     */
+    suspend fun deleteFoldersOfAssistant(assistantId: Uuid) {
+        database.withTransaction {
+            conversationDAO.clearFoldersOfAssistant(assistantId.toString())
+            folderDAO.deleteFoldersOfAssistant(assistantId.toString())
+        }
     }
 }
 

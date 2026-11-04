@@ -293,8 +293,12 @@ class ConversationRepository(
             }
         }
         filesManager.deleteChatFiles(fullConversations.flatMap { it.files })
-        // Erase deleted content from the files: fold WAL into the db, rebuild it
-        // without dead pages, clear the WAL again. Skipped if the db is busy.
+        scrubDatabase()
+    }
+
+    // Erase deleted content from the files: fold WAL into the db, rebuild it
+    // without dead pages, clear the WAL again. Skipped if the db is busy.
+    private suspend fun scrubDatabase() {
         withContext(Dispatchers.IO) {
             runCatching {
                 val db = database.openHelper.writableDatabase
@@ -324,9 +328,26 @@ class ConversationRepository(
     }
 
     suspend fun deleteConversationOfAssistant(assistantId: Uuid) {
-        getConversationsOfAssistant(assistantId).first().forEach { conversation ->
-            deleteConversation(conversation)
+        val conversations = getConversationsOfAssistant(assistantId).first()
+        if (conversations.isEmpty()) return
+        val fullConversations = conversations.map { conversation ->
+            if (conversation.messageNodes.isEmpty()) {
+                getConversationById(conversation.id) ?: conversation
+            } else {
+                conversation
+            }
         }
+        val ids = fullConversations.map { it.id.toString() }
+        database.withTransaction {
+            ids.chunked(500).forEach { chunk ->
+                messageFtsManager.deleteConversations(chunk)
+            }
+            ids.chunked(500).forEach { chunk ->
+                conversationDAO.deleteByIds(chunk)
+            }
+        }
+        filesManager.deleteChatFiles(fullConversations.flatMap { it.files })
+        scrubDatabase()
     }
 
     fun conversationToConversationEntity(conversation: Conversation): ConversationEntity {

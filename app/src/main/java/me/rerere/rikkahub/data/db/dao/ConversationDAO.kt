@@ -90,6 +90,9 @@ interface ConversationDAO {
     @Query("UPDATE conversationentity SET folder_id = '' WHERE folder_id = :folderId")
     suspend fun clearFolder(folderId: String)
 
+    @Query("UPDATE conversationentity SET folder_id = '' WHERE folder_id IN (SELECT id FROM conversation_folder WHERE assistant_id = :assistantId)")
+    suspend fun clearFoldersOfAssistant(assistantId: String)
+
     @Query("SELECT COUNT(*) FROM conversationentity")
     suspend fun countAll(): Int
 
