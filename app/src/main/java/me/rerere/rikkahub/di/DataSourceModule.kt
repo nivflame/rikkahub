@@ -89,9 +89,10 @@ val dataSourceModule = module {
                         )
                         """.trimIndent()
                     )
-                    // Zero deleted pages at delete time; bound the WAL retained after checkpoints
-                    db.execSQL("PRAGMA secure_delete = ON")
-                    db.execSQL("PRAGMA journal_size_limit = 1048576")
+                    // Zero deleted pages at delete time; bound the WAL retained after checkpoints.
+                    // Requery execSQL cannot run PRAGMA (statement path); use the query interface.
+                    db.query("PRAGMA secure_delete = ON").use { it.moveToFirst() }
+                    db.query("PRAGMA journal_size_limit = 1048576").use { it.moveToFirst() }
                 }
             })
             .openHelperFactory(
