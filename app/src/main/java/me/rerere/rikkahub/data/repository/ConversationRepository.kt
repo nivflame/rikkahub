@@ -7,9 +7,11 @@ import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.map
 import androidx.room.withTransaction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import me.rerere.ai.ui.UIMessage
 import me.rerere.rikkahub.data.db.AppDatabase
 import me.rerere.rikkahub.data.db.fts.MessageFtsManager
@@ -291,6 +293,16 @@ class ConversationRepository(
             }
         }
         filesManager.deleteChatFiles(fullConversations.flatMap { it.files })
+        // Erase deleted content from the files: fold WAL into the db, rebuild it
+        // without dead pages, clear the WAL again. Skipped if the db is busy.
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val db = database.openHelper.writableDatabase
+                db.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+                db.execSQL("VACUUM")
+                db.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+            }
+        }
     }
 
     suspend fun searchMessages(

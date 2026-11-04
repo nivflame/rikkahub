@@ -89,6 +89,9 @@ val dataSourceModule = module {
                         )
                         """.trimIndent()
                     )
+                    // Zero deleted pages at delete time; bound the WAL retained after checkpoints
+                    db.execSQL("PRAGMA secure_delete = ON")
+                    db.execSQL("PRAGMA journal_size_limit = 1048576")
                 }
             })
             .openHelperFactory(
