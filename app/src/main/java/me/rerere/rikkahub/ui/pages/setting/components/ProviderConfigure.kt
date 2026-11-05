@@ -919,14 +919,15 @@ private fun ApiKeyTrailingIcons(
         IconButton(onClick = onToggleVisible) {
             Icon(if (keyVisible) HugeIcons.ViewOff else HugeIcons.View, contentDescription = null)
         }
-        IconButton(
-            onClick = {
-                context.writeClipboardText(value, sensitive = true)
-                toaster.show("Copied", ToastType.Success)
-            },
-            enabled = value.isNotBlank(),
-        ) {
-            Icon(HugeIcons.Copy01, contentDescription = null)
+        if (value.isNotBlank()) {
+            IconButton(
+                onClick = {
+                    context.writeClipboardText(value, sensitive = true)
+                    toaster.show("Copied", ToastType.Success)
+                },
+            ) {
+                Icon(HugeIcons.Copy01, contentDescription = null)
+            }
         }
     }
 }
