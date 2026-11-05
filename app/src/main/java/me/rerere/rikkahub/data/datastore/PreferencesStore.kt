@@ -313,12 +313,6 @@ class SettingsStore(
             )
         }
         .map {
-            var providers = it.providers.ifEmpty { DEFAULT_PROVIDERS }.toMutableList()
-            DEFAULT_PROVIDERS.filter { it.builtIn }.forEach { defaultProvider ->
-                if (providers.none { it.id == defaultProvider.id }) {
-                    providers.add(defaultProvider.copyProvider())
-                }
-            }
             val assistants = it.assistants.ifEmpty { DEFAULT_ASSISTANTS.toList() }.toMutableList()
             for (i in assistants.indices) {
                 val default = DEFAULT_ASSISTANTS.find { it.id == assistants[i].id }
@@ -333,7 +327,6 @@ class SettingsStore(
                 }
             }
             it.copy(
-                providers = providers,
                 assistants = assistants,
                 ttsProviders = ttsProviders,
             )
@@ -632,7 +625,7 @@ data class Settings(
     val autoCompressTokenThreshold: Int = 300000,
     val autoCompressKeepPercentage: Int = 50,
     val assistantId: Uuid = DEFAULT_ASSISTANT_ID,
-    val providers: List<ProviderSetting> = DEFAULT_PROVIDERS,
+    val providers: List<ProviderSetting> = emptyList(),
     val assistants: List<Assistant> = DEFAULT_ASSISTANTS,
     val assistantTags: List<Tag> = emptyList(),
     val searchServices: List<SearchServiceOptions> = listOf(SearchServiceOptions.DEFAULT),
@@ -829,7 +822,9 @@ private fun Model.findModelProviderFromList(providers: List<ProviderSetting>): P
     return null
 }
 
-internal val DEFAULT_ASSISTANT_ID = Uuid.parse("0950e2dc-9bd5-4801-afa3-aa887aa36b4e")
+internal val DEFAULT_AUTO_MODEL_ID = Uuid.parse("b7055fb4-39f9-4042-a88a-0d80ed76cf08")
+
+val DEFAULT_ASSISTANT_ID = Uuid.parse("0950e2dc-9bd5-4801-afa3-aa887aa36b4e")
 internal val DEFAULT_ASSISTANTS = listOf(
     Assistant(
         id = DEFAULT_ASSISTANT_ID,

@@ -311,7 +311,7 @@ sealed class ProviderSetting {
         override var name: String = "Codex",
         override var models: List<Model> = emptyList(),
         override val balanceOption: BalanceOption = BalanceOption(),
-        @Transient override val builtIn: Boolean = true,
+        @Transient override val builtIn: Boolean = false,
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
     ) : ProviderSetting() {
