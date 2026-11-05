@@ -213,8 +213,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     modifier = Modifier.weight(1f),
                     shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 ) {
-                    Icon(HugeIcons.Tools, null)
-                    Spacer(modifier = Modifier.size(4.dp))
                     Text(stringResource(R.string.setting_provider_page_configuration))
                 }
                 ToggleButton(
@@ -223,8 +221,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     modifier = Modifier.weight(1f),
                     shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 ) {
-                    Icon(HugeIcons.Package01, null)
-                    Spacer(modifier = Modifier.size(4.dp))
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
             }
