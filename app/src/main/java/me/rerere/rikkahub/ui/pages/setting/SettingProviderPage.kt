@@ -507,6 +507,32 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                         )
                     }
                 }
+                CardGroup(
+                    modifier = Modifier.padding(top = 8.dp),
+                    title = { Text("OAuth") },
+                ) {
+                    item(
+                        onClick = {
+                            onAdd(ProviderSetting.Codex())
+                            showSheet = false
+                        },
+                        leadingContent = {
+                            AutoAIIcon(
+                                name = "Codex",
+                                modifier = Modifier.size(40.dp)
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = "Codex",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        },
+                        trailingContent = {
+                            Icon(HugeIcons.ArrowRight01, null)
+                        },
+                    )
+                }
             }
         }
     }
