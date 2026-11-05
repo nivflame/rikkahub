@@ -564,17 +564,18 @@ private fun ProviderConfigureOpenAI(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        trailingIcon = {
-            IconButton(
-                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                enabled = !provider.isUsingDefaultBaseUrl(),
-            ) {
-                Icon(
-                    imageVector = HugeIcons.Refresh03,
-                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
-                )
+        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+            {
+                IconButton(
+                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Refresh03,
+                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                    )
+                }
             }
-        },
+        } else null,
     )
 
     if (!provider.useResponseApi) {
@@ -678,17 +679,18 @@ private fun ProviderConfigureClaude(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        trailingIcon = {
-            IconButton(
-                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                enabled = !provider.isUsingDefaultBaseUrl(),
-            ) {
-                Icon(
-                    imageVector = HugeIcons.Refresh03,
-                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
-                )
+        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+            {
+                IconButton(
+                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Refresh03,
+                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                    )
+                }
             }
-        },
+        } else null,
     )
 
     Row(
@@ -806,17 +808,18 @@ private fun ProviderConfigureGoogle(
             supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
                 { Text("The base URL usually ends with `/v1beta`") }
             } else null,
-            trailingIcon = {
-                IconButton(
-                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                    enabled = !provider.isUsingDefaultBaseUrl(),
-                ) {
-                    Icon(
-                        imageVector = HugeIcons.Refresh03,
-                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
-                    )
+        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+                {
+                    IconButton(
+                        onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.Refresh03,
+                            contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                        )
+                    }
                 }
-            },
+            } else null,
         )
     }
 
