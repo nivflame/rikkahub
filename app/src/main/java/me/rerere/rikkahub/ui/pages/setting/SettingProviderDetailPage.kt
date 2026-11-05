@@ -142,6 +142,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+    var internalProvider by remember(provider) { mutableStateOf(provider) }
 
     val onEdit = { newProvider: ProviderSetting ->
         val newSettings = settings.copy(
@@ -242,9 +243,10 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 when (page) {
                     0 -> {
                         SettingProviderConfigPage(
-                            provider = provider,
-                            onEdit = {
-                                onEdit(it)
+                            provider = internalProvider,
+                            onEdit = { internalProvider = it },
+                            onSave = {
+                                onEdit(internalProvider)
                                 toaster.show(
                                     context.getString(R.string.setting_provider_page_save_success),
                                     type = ToastType.Success
@@ -265,14 +267,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 
                     2 -> {
                         SettingProviderHeadersPage(
-                            provider = provider,
-                            onEdit = {
-                                onEdit(it)
-                                toaster.show(
-                                    context.getString(R.string.setting_provider_page_save_success),
-                                    type = ToastType.Success
-                                )
-                            }
+                            provider = internalProvider,
+                            onEdit = { internalProvider = it }
                         )
                     }
                 }
@@ -285,9 +281,9 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 private fun SettingProviderConfigPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit,
+    onSave: () -> Unit,
     onDelete: () -> Unit
 ) {
-    var internalProvider by remember(provider) { mutableStateOf(provider) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -299,17 +295,15 @@ private fun SettingProviderConfigPage(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ProviderConfigure(
-            provider = internalProvider,
-            onEdit = {
-                internalProvider = it
-            }
+            provider = provider,
+            onEdit = onEdit
         )
 
-        if (internalProvider is ProviderSetting.OpenAI) {
+        if (provider is ProviderSetting.OpenAI) {
             SettingProviderBalanceOption(
-                provider = internalProvider,
-                balanceOption = internalProvider.balanceOption,
-                onEdit = { internalProvider = internalProvider.copyProvider(balanceOption = it) }
+                provider = provider,
+                balanceOption = provider.balanceOption,
+                onEdit = { onEdit(provider.copyProvider(balanceOption = it)) }
             )
             ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
         }
@@ -319,15 +313,15 @@ private fun SettingProviderConfigPage(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (internalProvider !is ProviderSetting.Codex) {
+            if (provider !is ProviderSetting.Codex) {
                 ProviderConnectionTester(
-                    internalProvider = internalProvider,
+                    internalProvider = provider,
                 )
             }
 
             Spacer(Modifier.weight(1f))
 
-            if (!internalProvider.builtIn) {
+            if (!provider.builtIn) {
                 IconButton(
                     onClick = {
                         showDeleteDialog = true
@@ -338,9 +332,7 @@ private fun SettingProviderConfigPage(
             }
 
             Button(
-                onClick = {
-                    onEdit(internalProvider)
-                }
+                onClick = onSave
             ) {
                 Text(stringResource(R.string.setting_provider_page_save))
             }
@@ -390,8 +382,6 @@ private fun SettingProviderHeadersPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
-    var internalProvider by remember(provider) { mutableStateOf(provider) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -401,16 +391,9 @@ private fun SettingProviderHeadersPage(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         CustomHeaders(
-            headers = internalProvider.customHeaders,
-            onUpdate = { internalProvider = internalProvider.updateHeaders(it) }
+            headers = provider.customHeaders,
+            onUpdate = { onEdit(provider.updateHeaders(it)) }
         )
-
-        Button(
-            onClick = { onEdit(internalProvider) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.setting_provider_page_save))
-        }
     }
 }
 
