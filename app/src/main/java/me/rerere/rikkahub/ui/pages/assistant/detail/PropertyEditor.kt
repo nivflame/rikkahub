@@ -5,12 +5,14 @@ import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -21,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -45,77 +48,77 @@ private val jsonLenient = Json {
 
 @Composable
 fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) -> Unit) {
-    Column(
-        modifier = Modifier.padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(stringResource(R.string.assistant_page_custom_headers))
-        Spacer(Modifier.height(8.dp))
-
-        headers.forEachIndexed { index, header ->
-            var headerName by remember(header.name) { mutableStateOf(header.name) }
-            var headerValue by remember(header.value) { mutableStateOf(header.value) }
-
-            CardGroup {
-                item(
-                    supportingContent = {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            OutlinedTextField(
-                                value = headerName,
-                                onValueChange = {
-                                    headerName = it
-                                    val updatedHeaders = headers.toMutableList()
-                                    updatedHeaders[index] = updatedHeaders[index].copy(name = it.trim())
-                                    onUpdate(updatedHeaders)
-                                },
-                                label = { Text(stringResource(R.string.assistant_page_header_name)) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = headerValue,
-                                onValueChange = {
-                                    headerValue = it
-                                    val updatedHeaders = headers.toMutableList()
-                                    updatedHeaders[index] =
-                                        updatedHeaders[index].copy(value = it.trim())
-                                    onUpdate(updatedHeaders)
-                                },
-                                label = { Text(stringResource(R.string.assistant_page_header_value)) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    trailingContent = {
-                        IconButton(onClick = {
-                            val updatedHeaders = headers.toMutableList()
-                            updatedHeaders.removeAt(index)
-                            onUpdate(updatedHeaders)
-                        }) {
-                            Icon(
-                                HugeIcons.Delete01,
-                                contentDescription = stringResource(R.string.assistant_page_delete_header)
-                            )
-                        }
-                    },
-                    headlineContent = {},
-                )
+    CardGroup(
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.assistant_page_custom_headers))
+                FilledTonalIconButton(
+                    onClick = {
+                        val updatedHeaders = headers.toMutableList()
+                        updatedHeaders.add(CustomHeader("", ""))
+                        onUpdate(updatedHeaders)
+                    }
+                ) {
+                    Icon(
+                        HugeIcons.Add01,
+                        contentDescription = stringResource(R.string.assistant_page_add_header)
+                    )
+                }
             }
         }
-
-        Button(
-            onClick = {
-                val updatedHeaders = headers.toMutableList()
-                updatedHeaders.add(CustomHeader("", ""))
-                onUpdate(updatedHeaders)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(HugeIcons.Add01, contentDescription = stringResource(R.string.assistant_page_add_header))
-            Spacer(Modifier.width(4.dp))
-            Text(stringResource(R.string.assistant_page_add_header))
+    ) {
+        headers.forEachIndexed { index, header ->
+            item(
+                supportingContent = {
+                    var headerName by remember(header.name) { mutableStateOf(header.name) }
+                    var headerValue by remember(header.value) { mutableStateOf(header.value) }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = headerName,
+                            onValueChange = {
+                                headerName = it
+                                val updatedHeaders = headers.toMutableList()
+                                updatedHeaders[index] = updatedHeaders[index].copy(name = it.trim())
+                                onUpdate(updatedHeaders)
+                            },
+                            label = { Text(stringResource(R.string.assistant_page_header_name)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = headerValue,
+                            onValueChange = {
+                                headerValue = it
+                                val updatedHeaders = headers.toMutableList()
+                                updatedHeaders[index] =
+                                    updatedHeaders[index].copy(value = it.trim())
+                                onUpdate(updatedHeaders)
+                            },
+                            label = { Text(stringResource(R.string.assistant_page_header_value)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                trailingContent = {
+                    IconButton(onClick = {
+                        val updatedHeaders = headers.toMutableList()
+                        updatedHeaders.removeAt(index)
+                        onUpdate(updatedHeaders)
+                    }) {
+                        Icon(
+                            HugeIcons.Delete01,
+                            contentDescription = stringResource(R.string.assistant_page_delete_header)
+                        )
+                    }
+                },
+                headlineContent = {},
+            )
         }
     }
 }
