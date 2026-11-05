@@ -454,9 +454,12 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
 
     if (showSheet) {
         val providerTypes = listOf(
-            "OpenAI" to { ProviderSetting.OpenAI() },
-            "Google" to { ProviderSetting.Google() },
             "Claude" to { ProviderSetting.Claude() },
+            "DeepSeek" to { ProviderSetting.OpenAI(name = "DeepSeek", baseUrl = "https://api.deepseek.com") },
+            "Google" to { ProviderSetting.Google() },
+            "NVIDIA" to { ProviderSetting.OpenAI(name = "NVIDIA", baseUrl = "https://integrate.api.nvidia.com/v1") },
+            "OpenAI" to { ProviderSetting.OpenAI() },
+            "OpenRouter" to { ProviderSetting.OpenAI(name = "OpenRouter", baseUrl = "https://openrouter.ai/api/v1") },
         )
         ModalBottomSheet(
             onDismissRequest = {
@@ -477,7 +480,8 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
                     style = MaterialTheme.typography.headlineSmallEmphasized,
                 )
                 CardGroup(
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 16.dp),
+                    title = { Text("API") },
                 ) {
                     providerTypes.forEach { (label, create) ->
                         item(
