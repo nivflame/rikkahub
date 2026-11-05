@@ -8,6 +8,7 @@ import me.rerere.hugeicons.stroke.DragDropHorizontal
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Cancel01
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,14 +40,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -74,13 +78,12 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
+import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.decodeProviderSetting
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.context.LocalToaster
-import me.rerere.rikkahub.ui.hooks.useEditState
-import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.ImageUtils
 import me.rerere.rikkahub.utils.plus
@@ -439,56 +442,69 @@ private fun handleImageQRCode(
 
 @Composable
 private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
-    val dialogState = useEditState<ProviderSetting> {
-        onAdd(it)
-    }
+    var showSheet by remember { mutableStateOf(false) }
 
     IconButton(
         onClick = {
-            dialogState.open(ProviderSetting.OpenAI())
+            showSheet = true
         }
     ) {
         Icon(HugeIcons.Add01, "Add")
     }
 
-    if (dialogState.isEditing) {
-        AlertDialog(
-            onDismissRequest = {
-                dialogState.dismiss()
-            },
-            title = {
-                Text(stringResource(R.string.setting_provider_page_add_provider))
-            },
-            text = {
-                dialogState.currentState?.let {
-                    ProviderConfigure(
-                        provider = it,
-                        onEdit = { newState ->
-                            dialogState.currentState = newState
-                        },
-                        showTypeSelector = true,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        dialogState.confirm()
-                    }
-                ) {
-                    Text(stringResource(R.string.setting_provider_page_add))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        dialogState.dismiss()
-                    }
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+    if (showSheet) {
+        val providerTypes = listOf(
+            "OpenAI" to { ProviderSetting.OpenAI() },
+            "Google" to { ProviderSetting.Google() },
+            "Claude" to { ProviderSetting.Claude() },
         )
+        ModalBottomSheet(
+            onDismissRequest = {
+                showSheet = false
+            },
+            sheetState = rememberBottomSheetState(
+                initialValue = SheetValue.Hidden,
+                enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+            ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_add_provider),
+                    style = MaterialTheme.typography.headlineSmallEmphasized,
+                )
+                CardGroup(
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    providerTypes.forEach { (label, create) ->
+                        item(
+                            onClick = {
+                                onAdd(create())
+                                showSheet = false
+                            },
+                            leadingContent = {
+                                AutoAIIcon(
+                                    name = label,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                            },
+                            trailingContent = {
+                                Icon(HugeIcons.ArrowRight01, null)
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
