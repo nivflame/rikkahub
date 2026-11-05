@@ -5,7 +5,6 @@ import me.rerere.hugeicons.stroke.Package01
 import me.rerere.hugeicons.stroke.Connect
 import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.Add01
-import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
@@ -122,8 +121,6 @@ import me.rerere.rikkahub.ui.pages.assistant.detail.CustomHeaders
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConnectionTester
 import me.rerere.rikkahub.ui.pages.setting.components.SettingProviderBalanceOption
-import me.rerere.rikkahub.ui.pages.setting.components.isUsingDefaultBaseUrl
-import me.rerere.rikkahub.ui.pages.setting.components.resetBaseUrlToDefault
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.ui.theme.extendColors
 import me.rerere.rikkahub.utils.UiState
@@ -317,20 +314,6 @@ private fun SettingProviderConfigPage(
                     },
                 ) {
                     Icon(HugeIcons.Delete01, null)
-                }
-            }
-
-            if (internalProvider !is ProviderSetting.Codex) {
-                IconButton(
-                    onClick = {
-                        internalProvider = internalProvider.resetBaseUrlToDefault()
-                    },
-                    enabled = !internalProvider.isUsingDefaultBaseUrl(),
-                ) {
-                    Icon(
-                        imageVector = HugeIcons.Refresh03,
-                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default)
-                    )
                 }
             }
 

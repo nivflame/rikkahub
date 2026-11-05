@@ -51,6 +51,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -573,6 +574,17 @@ private fun ProviderConfigureOpenAI(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+        trailingIcon = {
+            IconButton(
+                onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                enabled = !provider.isUsingDefaultBaseUrl(),
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Refresh03,
+                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                )
+            }
+        },
     )
 
     if (!provider.useResponseApi) {
@@ -676,6 +688,17 @@ private fun ProviderConfigureClaude(
         label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
         modifier = Modifier.fillMaxWidth(),
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+        trailingIcon = {
+            IconButton(
+                onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                enabled = !provider.isUsingDefaultBaseUrl(),
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Refresh03,
+                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                )
+            }
+        },
     )
 
     Row(
@@ -793,6 +816,17 @@ private fun ProviderConfigureGoogle(
             supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
                 { Text("The base URL usually ends with `/v1beta`") }
             } else null,
+            trailingIcon = {
+                IconButton(
+                    onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                    enabled = !provider.isUsingDefaultBaseUrl(),
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Refresh03,
+                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                    )
+                }
+            },
         )
     }
 
