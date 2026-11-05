@@ -48,10 +48,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MultiChoiceSegmentedButtonRow
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -65,6 +64,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -194,61 +194,67 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 }
             )
         },
-        bottomBar = {
-            NavigationBar(
-                containerColor = CustomColors.cardColorsOnSurfaceContainer.containerColor
-            ) {
-                NavigationBarItem(
-                    selected = pager.currentPage == 0,
-                    label = { Text(stringResource(id = R.string.setting_provider_page_configuration)) },
-                    icon = { Icon(HugeIcons.Tools, null) },
-                    onClick = {
-                        scope.launch {
-                            pager.animateScrollToPage(0)
-                        }
-                    }
-                )
-                NavigationBarItem(
-                    selected = pager.currentPage == 1,
-                    label = { Text(stringResource(id = R.string.setting_provider_page_models)) },
-                    icon = { Icon(HugeIcons.Package01, null) },
-                    onClick = {
-                        scope.launch {
-                            pager.animateScrollToPage(1)
-                        }
-                    }
-                )
-            }
-        }
     ) {
-        HorizontalPager(
-            state = pager,
+        Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(it)
                 .consumeWindowInsets(it)
-        ) { page ->
-            when (page) {
-                0 -> {
-                    SettingProviderConfigPage(
-                        provider = provider,
-                        onEdit = {
-                            onEdit(it)
-                            toaster.show(
-                                context.getString(R.string.setting_provider_page_save_success),
-                                type = ToastType.Success
-                            )
-                        },
-                        onDelete = {
-                            onDelete()
-                        }
-                    )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+            ) {
+                ToggleButton(
+                    checked = pager.currentPage == 0,
+                    onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                ) {
+                    Icon(HugeIcons.Tools, null)
+                    Spacer(modifier = Modifier.size(4.dp))
+                    Text(stringResource(R.string.setting_provider_page_configuration))
                 }
+                ToggleButton(
+                    checked = pager.currentPage == 1,
+                    onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                ) {
+                    Icon(HugeIcons.Package01, null)
+                    Spacer(modifier = Modifier.size(4.dp))
+                    Text(stringResource(R.string.setting_provider_page_models))
+                }
+            }
+            HorizontalPager(
+                state = pager,
+                modifier = Modifier.weight(1f),
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        SettingProviderConfigPage(
+                            provider = provider,
+                            onEdit = {
+                                onEdit(it)
+                                toaster.show(
+                                    context.getString(R.string.setting_provider_page_save_success),
+                                    type = ToastType.Success
+                                )
+                            },
+                            onDelete = {
+                                onDelete()
+                            }
+                        )
+                    }
 
-                1 -> {
-                    SettingProviderModelPage(
-                        provider = provider,
-                        onEdit = onEdit
-                    )
+                    1 -> {
+                        SettingProviderModelPage(
+                            provider = provider,
+                            onEdit = onEdit
+                        )
+                    }
                 }
             }
         }
@@ -423,7 +429,7 @@ private fun ModelList(
                     onExpand = { expanded = true },
                     onCollapse = { expanded = false },
                 ),
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             state = lazyListState
