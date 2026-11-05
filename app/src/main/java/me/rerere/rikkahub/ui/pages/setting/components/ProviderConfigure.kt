@@ -566,7 +566,7 @@ private fun ProviderConfigureOpenAI(
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
         trailingIcon = {
             IconButton(
-                onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
+                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
                 enabled = !provider.isUsingDefaultBaseUrl(),
             ) {
                 Icon(
@@ -680,7 +680,7 @@ private fun ProviderConfigureClaude(
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
         trailingIcon = {
             IconButton(
-                onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
+                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
                 enabled = !provider.isUsingDefaultBaseUrl(),
             ) {
                 Icon(
@@ -808,7 +808,7 @@ private fun ProviderConfigureGoogle(
             } else null,
             trailingIcon = {
                 IconButton(
-                    onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
+                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
                     enabled = !provider.isUsingDefaultBaseUrl(),
                 ) {
                     Icon(
