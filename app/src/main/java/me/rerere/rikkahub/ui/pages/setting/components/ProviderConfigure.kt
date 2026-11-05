@@ -475,16 +475,6 @@ internal fun ProviderSetting.defaultBaseUrlForReset(): String {
     }
 }
 
-internal fun ProviderSetting.resetBaseUrlToDefault(): ProviderSetting {
-    val defaultBaseUrl = defaultBaseUrlForReset()
-    return when (this) {
-        is ProviderSetting.OpenAI -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.Google -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.Claude -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.Codex -> this
-    }
-}
-
 internal fun ProviderSetting.isUsingDefaultBaseUrl(): Boolean {
     if (this is ProviderSetting.Codex) return true
     val baseUrl = when (this) {
@@ -576,7 +566,7 @@ private fun ProviderConfigureOpenAI(
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
         trailingIcon = {
             IconButton(
-                onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
                 enabled = !provider.isUsingDefaultBaseUrl(),
             ) {
                 Icon(
@@ -690,7 +680,7 @@ private fun ProviderConfigureClaude(
         isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
         trailingIcon = {
             IconButton(
-                onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
                 enabled = !provider.isUsingDefaultBaseUrl(),
             ) {
                 Icon(
@@ -818,7 +808,7 @@ private fun ProviderConfigureGoogle(
             } else null,
             trailingIcon = {
                 IconButton(
-                    onClick = { onEdit(provider.resetBaseUrlToDefault()) },
+                    onClick = { onEdit(provider.copy(baseUrl = defaultBaseUrlForReset())) },
                     enabled = !provider.isUsingDefaultBaseUrl(),
                 ) {
                     Icon(
