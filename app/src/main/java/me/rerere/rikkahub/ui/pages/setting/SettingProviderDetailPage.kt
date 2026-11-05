@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -202,13 +203,13 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
             ) {
                 ToggleButton(
                     checked = pager.currentPage == 0,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
-                    modifier = Modifier.weight(1f),
                     shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_configuration))
@@ -216,7 +217,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ToggleButton(
                     checked = pager.currentPage == 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
-                    modifier = Modifier.weight(1f),
                     shapes = if (pageCount == 3) {
                         ButtonGroupDefaults.connectedMiddleButtonShapes()
                     } else {
@@ -229,7 +229,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     ToggleButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                        modifier = Modifier.weight(1f),
                         shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
