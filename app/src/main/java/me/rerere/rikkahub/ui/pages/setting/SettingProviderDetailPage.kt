@@ -136,7 +136,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
-    val pager = rememberPagerState { 2 }
+    val pageCount = if (provider is ProviderSetting.Codex) 2 else 3
+    val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
@@ -216,9 +217,23 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     checked = pager.currentPage == 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
                     modifier = Modifier.weight(1f),
-                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                    shapes = if (pageCount == 3) {
+                        ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    } else {
+                        ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    },
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
+                }
+                if (pageCount == 3) {
+                    ToggleButton(
+                        checked = pager.currentPage == 2,
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                        modifier = Modifier.weight(1f),
+                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                    ) {
+                        Text(stringResource(R.string.assistant_page_custom_headers))
+                    }
                 }
             }
             HorizontalPager(
@@ -246,6 +261,19 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                         SettingProviderModelPage(
                             provider = provider,
                             onEdit = onEdit
+                        )
+                    }
+
+                    2 -> {
+                        SettingProviderHeadersPage(
+                            provider = provider,
+                            onEdit = {
+                                onEdit(it)
+                                toaster.show(
+                                    context.getString(R.string.setting_provider_page_save_success),
+                                    type = ToastType.Success
+                                )
+                            }
                         )
                     }
                 }
@@ -277,13 +305,6 @@ private fun SettingProviderConfigPage(
                 internalProvider = it
             }
         )
-
-        if (internalProvider !is ProviderSetting.Codex) {
-            CustomHeaders(
-                headers = internalProvider.customHeaders,
-                onUpdate = { internalProvider = internalProvider.updateHeaders(it) }
-            )
-        }
 
         if (internalProvider is ProviderSetting.OpenAI) {
             SettingProviderBalanceOption(
@@ -362,6 +383,35 @@ private fun SettingProviderConfigPage(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingProviderHeadersPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit
+) {
+    var internalProvider by remember(provider) { mutableStateOf(provider) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CustomHeaders(
+            headers = internalProvider.customHeaders,
+            onUpdate = { internalProvider = internalProvider.updateHeaders(it) }
+        )
+
+        Button(
+            onClick = { onEdit(internalProvider) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.setting_provider_page_save))
+        }
     }
 }
 
