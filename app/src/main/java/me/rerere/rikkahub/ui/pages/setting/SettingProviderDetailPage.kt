@@ -10,9 +10,8 @@ import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Cancel01
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -143,19 +142,21 @@ private fun BouncingTabButton(
     onCheckedChange: (Boolean) -> Unit,
     label: @Composable () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val tabScaleX by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
-        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-        label = "tabPressScale",
-    )
+    val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
     ToggleButton(
         checked = checked,
-        onCheckedChange = onCheckedChange,
-        modifier = Modifier.graphicsLayer { scaleX = tabScaleX },
+        onCheckedChange = { value ->
+            if (!checked) {
+                scope.launch {
+                    scale.snapTo(0.84f)
+                    scale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 900f))
+                }
+            }
+            onCheckedChange(value)
+        },
+        modifier = Modifier.graphicsLayer { scaleX = scale.value },
         shapes = ToggleButtonShapes(shape = CircleShape, pressedShape = CircleShape, checkedShape = CircleShape),
-        interactionSource = interactionSource,
         content = { label() },
     )
 }
