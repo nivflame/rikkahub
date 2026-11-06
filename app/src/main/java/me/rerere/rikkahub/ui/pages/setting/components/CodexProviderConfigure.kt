@@ -46,6 +46,7 @@ import me.rerere.rikkahub.data.codex.CodexOAuthManager
 import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.CodexTokenStatus
 import me.rerere.rikkahub.data.codex.CodexUsageWindow
+import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import org.koin.compose.koinInject
@@ -177,6 +178,15 @@ fun CodexProviderConfigure(
                                 text = account.email.ifBlank { account.name },
                                 style = MaterialTheme.typography.titleMedium,
                             )
+                        },
+                        supportingContent = account.planType?.let { plan ->
+                            {
+                                Text(
+                                    text = codexPlanDisplayName(plan),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         },
                         trailingContent = {
                             Switch(
