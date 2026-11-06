@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -77,7 +78,7 @@ fun CodexProviderConfigure(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
-    var selectedAccount by remember { mutableStateOf<CodexAccount?>(null) }
+    var selectedAccountId by remember { mutableStateOf<String?>(null) }
     val canEnable = accounts.any { it.enabled && it.tokenStatus != CodexTokenStatus.INVALID }
 
     LaunchedEffect(oauthStatus) {
@@ -199,21 +200,23 @@ fun CodexProviderConfigure(
                             }
                         },
                         onClick = {
-                            selectedAccount = account
+                            selectedAccountId = account.id
                         },
                     )
                 }
             }
         }
 
-        selectedAccount?.let { account ->
+        accounts.firstOrNull { it.id == selectedAccountId }?.let { account ->
             CodexAccountSheet(
                 account = account,
                 onToggleEnabled = {
                     scope.launch { repository.setEnabled(account.id, !account.enabled) }
-                    selectedAccount = account.copy(enabled = !account.enabled)
                 },
-                onDismiss = { selectedAccount = null },
+                onRefresh = {
+                    scope.launch { runCatching { repository.refreshAccount(account.id) } }
+                },
+                onDismiss = { selectedAccountId = null },
             )
         }
     }
@@ -223,6 +226,7 @@ fun CodexProviderConfigure(
 private fun CodexAccountSheet(
     account: CodexAccount,
     onToggleEnabled: () -> Unit,
+    onRefresh: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -232,6 +236,7 @@ private fun CodexAccountSheet(
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
         ),
     ) {
+        LaunchedEffect(account.id) { onRefresh() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -284,16 +289,19 @@ private fun CodexAccountSheet(
                                 .coerceIn(0.0, 100.0).roundToInt()
                             item(
                                 headlineContent = {
-                                    Text(
-                                        text = stringResource(labelRes),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                },
-                                trailingContent = {
-                                    Text(
-                                        text = stringResource(R.string.codex_percent, remaining),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(
+                                            text = stringResource(labelRes),
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.codex_percent, remaining),
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                    }
                                 },
                                 supportingContent = {
                                     Column(
@@ -307,8 +315,13 @@ private fun CodexAccountSheet(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
+                                        val progress by animateFloatAsState(
+                                            targetValue = remaining / 100f,
+                                            label = "usageProgress",
+                                        )
                                         LinearWavyProgressIndicator(
-                                            progress = { remaining / 100f },
+                                            progress = { progress },
+                                            amplitude = { 1f },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
