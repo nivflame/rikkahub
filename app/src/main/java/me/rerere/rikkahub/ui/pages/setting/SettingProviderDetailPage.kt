@@ -60,6 +60,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SheetValue
@@ -1041,7 +1042,7 @@ private fun ModelTypeSelector(
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         ModelType.entries.forEachIndexed { index, type ->
-            ToggleButton(
+            TonalToggleButton(
                 checked = selectedType == type,
                 onCheckedChange = { onTypeSelected(type) },
                 modifier = Modifier.weight(1f),
@@ -1083,7 +1084,7 @@ private fun ModelModalitySelector(
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
             Modality.entries.forEachIndexed { index, modality ->
-                ToggleButton(
+                TonalToggleButton(
                     checked = modality in inputModalities,
                     onCheckedChange = {
                         if (it) {
@@ -1120,7 +1121,7 @@ private fun ModelModalitySelector(
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
             Modality.entries.forEachIndexed { index, modality ->
-                ToggleButton(
+                TonalToggleButton(
                     checked = modality in outputModalities,
                     onCheckedChange = {
                         if (it) {
@@ -1164,7 +1165,7 @@ fun ModalAbilitySelector(
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         ModelAbility.entries.forEachIndexed { index, ability ->
-            ToggleButton(
+            TonalToggleButton(
                 checked = ability in abilities,
                 onCheckedChange = {
                     if (it) {
