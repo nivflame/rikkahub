@@ -1340,6 +1340,12 @@
   <string name="codex_monthly_limit">Monthly limit</string>
   <string name="codex_minute_limit">%d-minute limit</string>
   <string name="codex_percent_remaining">%d%% remaining</string>
+  <string name="codex_percent">%d%%</string>
+  <string name="codex_resets_on_date_at">Resets on %1$s at %2$s</string>
+  <string name="codex_resets_weekday_at">Resets this %1$s at %2$s</string>
+  <string name="codex_resets_tomorrow_at">Resets tomorrow at %1$s</string>
+  <string name="codex_resets_in_hours">Resets in %d hours</string>
+  <string name="codex_resets_in_minutes">Resets in %d minutes</string>
   <string name="codex_enable_account">Enable this account</string>
   <string name="codex_usage_title">Usage</string>
   <string name="codex_resets_at">Resets at %s</string>

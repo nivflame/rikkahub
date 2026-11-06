@@ -14,6 +14,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -56,7 +57,11 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
@@ -273,10 +278,10 @@ private fun CodexAccountSheet(
                             10_080L to R.string.codex_weekly_limit,
                             43_200L to R.string.codex_monthly_limit,
                         ).forEach { (windowMinutes, labelRes) ->
-                            val remaining = windows
-                                .firstOrNull { it.windowMinutes == windowMinutes }
-                                ?.let { (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt() }
+                            val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
                                 ?: return@forEach
+                            val remaining = (100.0 - window.usedPercent)
+                                .coerceIn(0.0, 100.0).roundToInt()
                             item(
                                 headlineContent = {
                                     Text(
@@ -286,16 +291,61 @@ private fun CodexAccountSheet(
                                 },
                                 trailingContent = {
                                     Text(
-                                        text = stringResource(R.string.codex_percent_remaining, remaining),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        text = stringResource(R.string.codex_percent, remaining),
+                                        style = MaterialTheme.typography.titleMedium,
                                     )
+                                },
+                                supportingContent = {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        formatCodexResetText(window.resetsAt)?.let {
+                                            Text(
+                                                text = it,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        LinearWavyProgressIndicator(
+                                            progress = { remaining / 100f },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
                                 },
                             )
                         }
                     }
                 }
         }
+    }
+}
+
+@Composable
+private fun formatCodexResetText(resetsAt: Long?): String? {
+    if (resetsAt == null) return null
+    val zone = ZoneId.systemDefault()
+    val now = ZonedDateTime.now(zone)
+    val reset = Instant.ofEpochSecond(resetsAt).atZone(zone)
+    val days = ChronoUnit.DAYS.between(now.toLocalDate(), reset.toLocalDate())
+    val time = reset.format(DateTimeFormatter.ofPattern("h:mm a"))
+    return when {
+        days == 0L -> {
+            val minutes = ChronoUnit.MINUTES.between(now, reset)
+            if (minutes >= 60) stringResource(R.string.codex_resets_in_hours, minutes / 60)
+            else stringResource(R.string.codex_resets_in_minutes, minutes.coerceAtLeast(1))
+        }
+        days == 1L -> stringResource(R.string.codex_resets_tomorrow_at, time)
+        days in 2..7 -> stringResource(
+            R.string.codex_resets_weekday_at,
+            reset.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()),
+            time,
+        )
+        else -> stringResource(
+            R.string.codex_resets_on_date_at,
+            reset.format(DateTimeFormatter.ofPattern("MMM d")),
+            time,
+        )
     }
 }
 
