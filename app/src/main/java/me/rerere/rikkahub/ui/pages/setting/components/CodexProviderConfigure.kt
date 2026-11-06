@@ -41,7 +41,7 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Power
+import me.rerere.hugeicons.stroke.Energy
 import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
@@ -243,7 +243,7 @@ private fun CodexAccountSheet(
                             modifier = Modifier.size(40.dp),
                         ) {
                             Icon(
-                                imageVector = HugeIcons.Power,
+                                imageVector = HugeIcons.Energy,
                                 contentDescription = null,
                                 modifier = Modifier.padding(8.dp),
                             )
