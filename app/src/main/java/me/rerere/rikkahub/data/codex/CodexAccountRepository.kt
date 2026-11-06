@@ -72,6 +72,7 @@ class CodexAccountRepository internal constructor(
             enabled = existing?.enabled ?: true,
             tokenStatus = CodexTokenStatus.AVAILABLE,
             usage = existing?.usage,
+            planType = identity.planType ?: existing?.planType,
         )
         updateState(
             state.copy(
@@ -166,6 +167,8 @@ class CodexAccountRepository internal constructor(
             error("Token refresh failed: ${response.code}")
         }
         val token = json.parseToJsonElement(responseBody).jsonObject
+        val refreshedIdentity = token["id_token"]?.jsonPrimitive?.contentOrNull
+            ?.let { runCatching { parseCodexIdentity(it, json) }.getOrNull() }
         val updated = account.copy(
             accessToken = token["access_token"]?.jsonPrimitive?.contentOrNull
                 ?: error("Missing refreshed access token"),
@@ -175,6 +178,7 @@ class CodexAccountRepository internal constructor(
                 token["expires_in"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 3600L
                 ) * 1000,
             tokenStatus = CodexTokenStatus.AVAILABLE,
+            planType = refreshedIdentity?.planType ?: account.planType,
         )
         replaceAccount(account.id) { updated }
         return updated

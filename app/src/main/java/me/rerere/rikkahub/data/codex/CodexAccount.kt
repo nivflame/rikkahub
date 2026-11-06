@@ -15,6 +15,7 @@ data class CodexAccount(
     val enabled: Boolean = true,
     val tokenStatus: CodexTokenStatus = CodexTokenStatus.UNKNOWN,
     val usage: CodexUsageSnapshot? = null,
+    val planType: String? = null,
 )
 
 @Serializable
