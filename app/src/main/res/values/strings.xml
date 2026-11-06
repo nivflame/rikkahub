@@ -1330,7 +1330,6 @@
   <string name="codex_sign_in_required">Sign in with at least one ChatGPT account to enable Codex.</string>
   <string name="codex_round_robin_description">Round-robin across available accounts. Multiple accounts supported.</string>
   <string name="codex_accounts_count">Accounts: %d</string>
-  <string name="codex_check_status">Check Status</string>
   <string name="codex_no_accounts">No accounts signed in. Tap "Sign in with ChatGPT" to add one.</string>
   <string name="codex_token_available">Available</string>
   <string name="codex_token_expired">Expired</string>
