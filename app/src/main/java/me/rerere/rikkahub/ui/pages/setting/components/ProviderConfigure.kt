@@ -10,8 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -100,8 +99,6 @@ fun ProviderConfigure(
             is ProviderSetting.Claude -> ProviderConfigureClaude(provider, onEdit)
             is ProviderSetting.Codex -> CodexProviderConfigure(provider, onEdit)
         }
-
-        ProviderPoolSection(provider, onEdit)
     }
 }
 
@@ -132,7 +129,7 @@ private fun ProviderSetting.updatePool(
 }
 
 @Composable
-private fun ProviderPoolSection(
+fun ProviderPoolSection(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit,
 ) {
@@ -155,62 +152,108 @@ private fun ProviderPoolSection(
         is ProviderSetting.Claude -> provider.apiKey
         else -> return
     }
+    val context = LocalContext.current
+    val toaster = LocalToaster.current
 
     var showDisableWarning by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = "Account Rotation")
-        Switch(
-            checked = poolEnabled,
-            onCheckedChange = { enable ->
-                when (val plan = planPoolToggle(currentApiKey, poolAccounts, enable)) {
+    CardGroup {
+        item(
+            onClick = {
+                when (val plan = planPoolToggle(currentApiKey, poolAccounts, !poolEnabled)) {
                     is PoolTogglePlan.ConfirmDisable -> showDisableWarning = true
                     is PoolTogglePlan.Apply -> onEdit(
                         provider.updatePool(plan.enabled, plan.accounts, plan.newApiKey)
                     )
                 }
             },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = poolEnabled,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
-
-    if (!poolEnabled) return
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
 
-    if (poolAccounts.isEmpty()) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
-        ) {
-            Text(
-                text = "No accounts yet. Add an account to enable rotation.",
-                modifier = Modifier.padding(16.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    if (poolEnabled) {
+        CardGroup(
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = "Accounts")
+                FilledTonalIconButton(onClick = { showAddDialog = true }) {
+                    Icon(HugeIcons.Add01, contentDescription = "Add account")
+                }
+            }
+        }
+    ) {
+        if (poolAccounts.isEmpty()) {
+            item(
+                headlineContent = {
+                    Text(
+                        text = "No accounts yet. Add an account to enable rotation.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
+        }
+        poolAccounts.forEach { account ->
+            item(
+                onClick = { editTarget = account },
+                headlineContent = {
+                    Text(
+                        text = account.name,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    val maskedKey = if (account.apiKey.length > 12) {
+                        account.apiKey.take(6) + "..." + account.apiKey.takeLast(4)
+                    } else {
+                        account.apiKey
+                    }
+                    Text(
+                        text = maskedKey,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = JetbrainsMono,
+                    )
+                    PoolAccountCooldown(account) {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                trailingContent = {
+                    Row {
+                        IconButton(
+                            onClick = {
+                                context.writeClipboardText(account.apiKey, sensitive = true)
+                                toaster.show("Copied", ToastType.Success)
+                            },
+                        ) {
+                            Icon(HugeIcons.Copy01, contentDescription = "Copy API key")
+                        }
+                        IconButton(onClick = { deleteTarget = account }) {
+                            Icon(HugeIcons.Delete01, contentDescription = "Delete")
+                        }
+                    }
+                },
             )
         }
     }
-    poolAccounts.forEach { account ->
-        PoolAccountCard(
-            account = account,
-            onEdit = { editTarget = account },
-            onDelete = { deleteTarget = account },
-        )
-    }
-
-    OutlinedButton(
-        onClick = { showAddDialog = true },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(HugeIcons.Add01, contentDescription = null)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text("Add Account")
     }
 
     if (showAddDialog) {
@@ -303,13 +346,10 @@ private fun ProviderPoolSection(
 }
 
 @Composable
-private fun PoolAccountCard(
+private fun PoolAccountCooldown(
     account: PoolAccount,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    content: @Composable (String) -> Unit,
 ) {
-    val context = LocalContext.current
-    val toaster = LocalToaster.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(account.rateLimitedUntil) {
         while (account.rateLimitedUntil > System.currentTimeMillis()) {
@@ -319,58 +359,16 @@ private fun PoolAccountCard(
         nowMillis = System.currentTimeMillis()
     }
     val remainingMillis = account.rateLimitedUntil - nowMillis
-    val rateLimited = remainingMillis > 0
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-        onClick = onEdit,
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = account.name, style = MaterialTheme.typography.titleMedium)
-                val maskedKey = if (account.apiKey.length > 12) {
-                    account.apiKey.take(6) + "..." + account.apiKey.takeLast(4)
-                } else {
-                    account.apiKey
-                }
-                Text(
-                    text = maskedKey,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = JetbrainsMono,
-                )
-                if (rateLimited) {
-                    Text(
-                        text = buildString {
-                            append("Rate limited")
-                            account.rateLimitedModel?.let { append(" · $it") }
-                            append(" · ")
-                            append(formatPoolCooldown(remainingMillis))
-                            append(" left")
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+    if (remainingMillis > 0) {
+        content(
+            buildString {
+                append("Rate limited")
+                account.rateLimitedModel?.let { append(" · $it") }
+                append(" · ")
+                append(formatPoolCooldown(remainingMillis))
+                append(" left")
             }
-            IconButton(
-                onClick = {
-                    context.writeClipboardText(account.apiKey, sensitive = true)
-                    toaster.show("Copied", ToastType.Success)
-                },
-            ) {
-                Icon(HugeIcons.Copy01, contentDescription = "Copy API key")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(HugeIcons.Delete01, contentDescription = "Delete")
-            }
-        }
+        )
     }
 }
 

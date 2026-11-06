@@ -125,6 +125,7 @@ import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomHeaders
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
+import me.rerere.rikkahub.ui.pages.setting.components.ProviderPoolSection
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConnectionTester
 import me.rerere.rikkahub.ui.pages.setting.components.SettingProviderBalanceOption
 import me.rerere.rikkahub.ui.theme.CustomColors
@@ -167,7 +168,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
-    val pageCount = if (provider is ProviderSetting.Codex) 2 else 3
+    val pageCount = if (provider is ProviderSetting.Codex) 2 else 4
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -250,10 +251,16 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
-                if (pageCount == 3) {
+                if (provider !is ProviderSetting.Codex) {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                    ) {
+                        Text(stringResource(R.string.setting_provider_page_accounts))
+                    }
+                    BouncingTabButton(
+                        checked = pager.currentPage == 3,
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(3) } },
                     ) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
                     }
@@ -289,6 +296,13 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     }
 
                     2 -> {
+                        SettingProviderAccountsPage(
+                            provider = internalProvider,
+                            onEdit = { internalProvider = it }
+                        )
+                    }
+
+                    3 -> {
                         SettingProviderHeadersPage(
                             provider = internalProvider,
                             onEdit = { internalProvider = it }
@@ -402,6 +416,22 @@ private fun SettingProviderConfigPage(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingProviderAccountsPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        ProviderPoolSection(provider, onEdit)
     }
 }
 
