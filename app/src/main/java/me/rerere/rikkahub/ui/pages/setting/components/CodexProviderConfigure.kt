@@ -330,32 +330,6 @@ private fun CodexAccountSheet(
                     Text(stringResource(R.string.codex_sign_out))
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilledTonalButton(
-                    onClick = onRefresh,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.codex_refresh))
-                }
-                FilledTonalButton(
-                    onClick = onReauthenticate,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.codex_reauthenticate))
-                }
-                FilledTonalButton(
-                    onClick = { showSignOutDialog = true },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    Text(stringResource(R.string.codex_sign_out))
-                }
-            }
                 val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
                 if (windows.isNotEmpty()) {
                     CardGroup(
