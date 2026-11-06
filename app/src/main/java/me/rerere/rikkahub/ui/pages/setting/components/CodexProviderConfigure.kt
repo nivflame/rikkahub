@@ -12,6 +12,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -43,6 +44,7 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
@@ -118,13 +120,6 @@ fun CodexProviderConfigure(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Button(
-            onClick = oauthManager::startLogin,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.codex_sign_in))
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -154,7 +149,19 @@ fun CodexProviderConfigure(
 
         CardGroup(
             title = {
-                Text(stringResource(R.string.codex_accounts_count, accounts.size))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.codex_accounts_count, accounts.size))
+                    FilledTonalIconButton(onClick = oauthManager::startLogin) {
+                        Icon(
+                            HugeIcons.Add01,
+                            contentDescription = stringResource(R.string.codex_sign_in),
+                        )
+                    }
+                }
             }
         ) {
             if (accounts.isEmpty()) {
