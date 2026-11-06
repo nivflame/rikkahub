@@ -475,8 +475,20 @@ private fun ModelList(
                             .fillParentMaxHeight(0.8f)
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
                     ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = HugeIcons.Package01,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
                         Text(
                             text = stringResource(R.string.setting_provider_page_no_models),
                             style = MaterialTheme.typography.bodyLarge,
