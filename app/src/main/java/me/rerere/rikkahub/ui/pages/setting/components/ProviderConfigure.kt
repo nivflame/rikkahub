@@ -600,17 +600,20 @@ private fun ProviderConfigureOpenAI(
                 )
             },
         )
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("Auto Retry")
-        Switch(
-            checked = provider.autoRetry,
-            onCheckedChange = { onEdit(provider.copy(autoRetry = it)) }
+        item(
+            onClick = { onEdit(provider.copy(autoRetry = !provider.autoRetry)) },
+            headlineContent = {
+                Text(
+                    text = "Auto Retry",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.autoRetry,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
 }
