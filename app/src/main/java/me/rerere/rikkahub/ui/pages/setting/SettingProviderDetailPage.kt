@@ -256,7 +256,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
                     ) {
-                        Text(stringResource(R.string.setting_provider_page_accounts))
+                        Text(stringResource(R.string.setting_provider_page_rotation))
                     }
                     BouncingTabButton(
                         checked = pager.currentPage == 3,
