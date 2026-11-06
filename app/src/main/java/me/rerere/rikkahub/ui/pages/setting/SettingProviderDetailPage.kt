@@ -8,6 +8,7 @@ import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Tools
 import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.FloppyDisk
 import me.rerere.hugeicons.stroke.Cancel01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -307,15 +308,22 @@ private fun SettingProviderConfigPage(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .floatingToolbarVerticalNestedScroll(
+                    expanded = toolbarExpanded,
+                    onExpand = { toolbarExpanded = true },
+                    onCollapse = { toolbarExpanded = false },
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
         ProviderConfigure(
             provider = provider,
             onEdit = onEdit
@@ -330,36 +338,6 @@ private fun SettingProviderConfigPage(
             ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (provider !is ProviderSetting.Codex) {
-                ProviderConnectionTester(
-                    internalProvider = provider,
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            if (!provider.builtIn) {
-                IconButton(
-                    onClick = {
-                        showDeleteDialog = true
-                    },
-                ) {
-                    Icon(HugeIcons.Delete01, null)
-                }
-            }
-
-            Button(
-                onClick = onSave
-            ) {
-                Text(stringResource(R.string.setting_provider_page_save))
-            }
-        }
-
         // 硅基流动图标
         if (provider is ProviderSetting.OpenAI && provider.baseUrl.contains("siliconflow.cn")) {
             SiliconFlowPowerByIcon(
@@ -367,6 +345,34 @@ private fun SettingProviderConfigPage(
                     .align(Alignment.CenterHorizontally)
                     .padding(vertical = 16.dp)
             )
+        }
+        }
+
+        HorizontalFloatingToolbar(
+            expanded = toolbarExpanded,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -ScreenOffset),
+        ) {
+            if (provider !is ProviderSetting.Codex) {
+                ProviderConnectionTester(
+                    internalProvider = provider,
+                )
+            }
+            IconButton(onClick = onSave) {
+                Icon(HugeIcons.FloppyDisk, null)
+            }
+            if (!provider.builtIn) {
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                ) {
+                    Icon(
+                        HugeIcons.Delete01,
+                        null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
         }
     }
 
