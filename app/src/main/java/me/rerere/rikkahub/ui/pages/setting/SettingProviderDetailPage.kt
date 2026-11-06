@@ -1462,6 +1462,10 @@ private fun BuiltInToolsSettings(
             )
         )
 
+        val toolItemColors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+
         CardGroup {
             availableTools.forEach { (tool, info) ->
                 val (title, description) = info
@@ -1492,9 +1496,7 @@ private fun BuiltInToolsSettings(
                             onCheckedChange = null,
                         )
                     },
-                    colors = ListItemDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    ),
+                    colors = toolItemColors,
                 )
             }
         }
