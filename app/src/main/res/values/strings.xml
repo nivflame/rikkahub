@@ -1347,6 +1347,7 @@
   <string name="codex_resets_at">Resets at %s</string>
   <string name="codex_refresh">Refresh</string>
   <string name="codex_reauthenticate">Re-authenticate</string>
+  <string name="codex_sign_out">Sign out</string>
   <string name="codex_remove_account_title">Remove account</string>
   <string name="codex_remove_account_message">Are you sure you want to remove this account?</string>
   <string name="codex_remove">Remove</string>

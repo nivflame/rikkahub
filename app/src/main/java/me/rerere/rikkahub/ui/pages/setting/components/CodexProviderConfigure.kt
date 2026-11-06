@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -214,6 +215,15 @@ fun CodexProviderConfigure(
                 onRefresh = {
                     scope.launch { runCatching { repository.refreshAccount(account.id) } }
                 },
+                onReauthenticate = oauthManager::startLogin,
+                onSignOut = {
+                    scope.launch {
+                        repository.delete(account.id)
+                        if (accounts.none { it.id != account.id } && provider.enabled) {
+                            onEdit(provider.copy(enabled = false))
+                        }
+                    }
+                },
                 onDismiss = { selectedAccountId = null },
             )
         }
@@ -225,8 +235,39 @@ private fun CodexAccountSheet(
     account: CodexAccount,
     onToggleEnabled: () -> Unit,
     onRefresh: () -> Unit,
+    onReauthenticate: () -> Unit,
+    onSignOut: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var showSignOutDialog by remember { mutableStateOf(false) }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text(stringResource(R.string.codex_remove_account_title)) },
+            text = { Text(stringResource(R.string.codex_remove_account_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSignOutDialog = false
+                        onSignOut()
+                        onDismiss()
+                    }
+                ) {
+                    Text(
+                        stringResource(R.string.codex_remove),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(
@@ -261,6 +302,58 @@ private fun CodexAccountSheet(
                         )
                     },
                 )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilledTonalButton(
+                    onClick = onRefresh,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.codex_refresh))
+                }
+                FilledTonalButton(
+                    onClick = onReauthenticate,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.codex_reauthenticate))
+                }
+                FilledTonalButton(
+                    onClick = { showSignOutDialog = true },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(stringResource(R.string.codex_sign_out))
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilledTonalButton(
+                    onClick = onRefresh,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.codex_refresh))
+                }
+                FilledTonalButton(
+                    onClick = onReauthenticate,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.codex_reauthenticate))
+                }
+                FilledTonalButton(
+                    onClick = { showSignOutDialog = true },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text(stringResource(R.string.codex_sign_out))
+                }
             }
                 val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
                 if (windows.isNotEmpty()) {
