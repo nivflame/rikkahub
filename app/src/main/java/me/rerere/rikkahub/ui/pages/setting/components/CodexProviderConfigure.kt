@@ -15,10 +15,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +41,7 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Power
 import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
@@ -68,6 +72,7 @@ fun CodexProviderConfigure(
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
     val context = LocalContext.current
+    var selectedAccount by remember { mutableStateOf<CodexAccount?>(null) }
     val canEnable = accounts.any { it.enabled && it.tokenStatus != CodexTokenStatus.INVALID }
 
     LaunchedEffect(oauthStatus) {
@@ -189,7 +194,100 @@ fun CodexProviderConfigure(
                             }
                         },
                         onClick = {
-                            scope.launch { repository.setEnabled(account.id, !account.enabled) }
+                            selectedAccount = account
+                        },
+                    )
+                }
+            }
+        }
+
+        selectedAccount?.let { account ->
+            CodexAccountSheet(
+                account = account,
+                onToggleEnabled = {
+                    scope.launch { repository.setEnabled(account.id, !account.enabled) }
+                    selectedAccount = account.copy(enabled = !account.enabled)
+                },
+                onDismiss = { selectedAccount = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun CodexAccountSheet(
+    account: CodexAccount,
+    onToggleEnabled: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CardGroup {
+                item(
+                    onClick = onToggleEnabled,
+                    leadingContent = {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Icon(
+                                imageVector = HugeIcons.Power,
+                                contentDescription = null,
+                                modifier = Modifier.padding(8.dp),
+                            )
+                        }
+                    },
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.codex_enable_account),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = account.enabled,
+                            onCheckedChange = null,
+                        )
+                    },
+                )
+            }
+            CardGroup(
+                title = { Text(stringResource(R.string.codex_usage_title)) },
+            ) {
+                listOf(
+                    300L to R.string.codex_five_hour_limit,
+                    10_080L to R.string.codex_weekly_limit,
+                    43_200L to R.string.codex_monthly_limit,
+                ).forEach { (windowMinutes, labelRes) ->
+                    val remaining = listOfNotNull(account.usage?.primary, account.usage?.secondary)
+                        .firstOrNull { it.windowMinutes == windowMinutes }
+                        ?.let { (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt() }
+                    item(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(labelRes),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        },
+                        trailingContent = {
+                            Text(
+                                text = remaining?.let { stringResource(R.string.codex_percent_remaining, it) }
+                                    ?: "—",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         },
                     )
                 }
