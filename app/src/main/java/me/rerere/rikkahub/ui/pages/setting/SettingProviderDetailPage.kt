@@ -62,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -1046,6 +1047,10 @@ private fun ModelTypeSelector(
                 checked = selectedType == type,
                 onCheckedChange = { onTypeSelected(type) },
                 modifier = Modifier.weight(1f),
+                colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     ModelType.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
@@ -1175,6 +1180,10 @@ fun ModalAbilitySelector(
                     }
                 },
                 modifier = Modifier.weight(1f),
+                colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     ModelAbility.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
