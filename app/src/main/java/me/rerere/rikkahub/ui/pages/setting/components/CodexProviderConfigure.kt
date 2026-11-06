@@ -263,35 +263,38 @@ private fun CodexAccountSheet(
                     },
                 )
             }
-            CardGroup(
-                title = { Text(stringResource(R.string.codex_usage_title)) },
-            ) {
-                listOf(
-                    300L to R.string.codex_five_hour_limit,
-                    10_080L to R.string.codex_weekly_limit,
-                    43_200L to R.string.codex_monthly_limit,
-                ).forEach { (windowMinutes, labelRes) ->
-                    val remaining = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                        .firstOrNull { it.windowMinutes == windowMinutes }
-                        ?.let { (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt() }
-                    item(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(labelRes),
-                                style = MaterialTheme.typography.titleMedium,
+                val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
+                if (windows.isNotEmpty()) {
+                    CardGroup(
+                        title = { Text(stringResource(R.string.codex_usage_title)) },
+                    ) {
+                        listOf(
+                            300L to R.string.codex_five_hour_limit,
+                            10_080L to R.string.codex_weekly_limit,
+                            43_200L to R.string.codex_monthly_limit,
+                        ).forEach { (windowMinutes, labelRes) ->
+                            val remaining = windows
+                                .firstOrNull { it.windowMinutes == windowMinutes }
+                                ?.let { (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt() }
+                                ?: return@forEach
+                            item(
+                                headlineContent = {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                },
+                                trailingContent = {
+                                    Text(
+                                        text = stringResource(R.string.codex_percent_remaining, remaining),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
                             )
-                        },
-                        trailingContent = {
-                            Text(
-                                text = remaining?.let { stringResource(R.string.codex_percent_remaining, it) }
-                                    ?: "—",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                    )
+                        }
+                    }
                 }
-            }
         }
     }
 }
