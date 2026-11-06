@@ -11,10 +11,10 @@ import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Cancel01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -145,7 +145,7 @@ private fun BouncingTabButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val scaleX by animateFloatAsState(
+    val tabScaleX by animateFloatAsState(
         targetValue = if (pressed) 0.88f else 1f,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "tabPressScale",
@@ -153,7 +153,7 @@ private fun BouncingTabButton(
     ToggleButton(
         checked = checked,
         onCheckedChange = onCheckedChange,
-        modifier = Modifier.graphicsLayer { scaleX = scaleX },
+        modifier = Modifier.graphicsLayer { scaleX = tabScaleX },
         shapes = ToggleButtonShapes(shape = CircleShape, pressedShape = CircleShape, checkedShape = CircleShape),
         interactionSource = interactionSource,
         content = { label() },
