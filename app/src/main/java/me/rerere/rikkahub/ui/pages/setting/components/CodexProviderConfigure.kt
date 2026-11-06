@@ -324,7 +324,8 @@ private fun CodexAccountSheet(
                     onClick = { showSignOutDialog = true },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
                 ) {
                     Text(stringResource(R.string.codex_sign_out))
