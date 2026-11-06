@@ -84,7 +84,7 @@ fun SettingProviderBalanceOption(
         if (expand) {
             item(
                 headlineContent = {
-                    Text(stringResource(R.string.setting_provider_page_reset_to_default))
+                    Text(stringResource(R.string.setting_model_page_reset_to_default))
                 },
                 trailingContent = {
                     IconButton(
