@@ -188,13 +188,6 @@ fun CodexProviderConfigure(
                                 )
                             }
                         },
-                        trailingContent = {
-                            Switch(
-                                checked = account.enabled,
-                                onCheckedChange = null,
-                                enabled = account.enabled,
-                            )
-                        },
                         onClick = {
                             scope.launch { repository.setEnabled(account.id, !account.enabled) }
                         },
