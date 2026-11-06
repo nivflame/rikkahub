@@ -382,15 +382,9 @@ private fun SettingProviderConfigPage(
                     )
                 }
             }
-        }
-
-        FilledIconButton(
-            onClick = onSave,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = -ScreenOffset, y = -ScreenOffset),
-        ) {
-            Icon(HugeIcons.FloppyDisk, null)
+            FilledIconButton(onClick = onSave) {
+                Icon(HugeIcons.FloppyDisk, null)
+            }
         }
     }
 
