@@ -243,6 +243,10 @@ private fun CodexAccountSheet(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Text(
+                text = account.email.ifBlank { account.name },
+                style = MaterialTheme.typography.headlineSmallEmphasized,
+            )
             CardGroup {
                 item(
                     onClick = onToggleEnabled,
