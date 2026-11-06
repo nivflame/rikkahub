@@ -41,6 +41,8 @@ import com.dokar.sonner.ToastType
 import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.data.ai.PoolTogglePlan
@@ -529,6 +531,15 @@ private val OFFICIAL_PROVIDER_HOSTS = setOf(
 )
 
 @Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
 private fun ProviderConfigureOpenAI(
     provider: ProviderSetting.OpenAI,
     onEdit: (provider: ProviderSetting.OpenAI) -> Unit
@@ -537,56 +548,84 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
-    OutlinedTextField(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val nameLabel = stringResource(R.string.setting_provider_page_name)
+    val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
+    val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
+    val apiPathLabel = stringResource(R.string.setting_provider_page_api_path)
+    var keyVisible by remember { mutableStateOf(false) }
 
-    if (!provider.poolEnabled) {
-        var keyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
-            value = provider.apiKey,
-            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 3,
-            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+    CardGroup {
+        item(
+            headlineContent = { FieldLabel(nameLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.name,
+                    onValueChange = { onEdit(provider.copy(name = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = nameLabel },
+                )
             },
         )
-    }
-
-    OutlinedTextField(
-        value = provider.baseUrl,
-        onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-        modifier = Modifier.fillMaxWidth(),
-        isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
-            {
-                IconButton(
-                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                ) {
-                    Icon(
-                        imageVector = HugeIcons.Refresh03,
-                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+        if (!provider.poolEnabled) {
+            item(
+                headlineContent = { FieldLabel(apiKeyLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.apiKey,
+                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = apiKeyLabel },
+                        maxLines = 3,
+                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+                        },
                     )
-                }
-            }
-        } else null,
-    )
-
-    if (!provider.useResponseApi) {
-        OutlinedTextField(
-            value = provider.chatCompletionsPath,
-            onValueChange = { onEdit(provider.copy(chatCompletionsPath = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_path)) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !provider.builtIn,
+                },
+            )
+        }
+        item(
+            headlineContent = { FieldLabel(baseUrlLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.baseUrl,
+                    onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = baseUrlLabel },
+                    isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+                    trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+                        {
+                            IconButton(
+                                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                            ) {
+                                Icon(
+                                    imageVector = HugeIcons.Refresh03,
+                                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                                )
+                            }
+                        }
+                    } else null,
+                )
+            },
         )
+        if (!provider.useResponseApi) {
+            item(
+                headlineContent = { FieldLabel(apiPathLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.chatCompletionsPath,
+                        onValueChange = { onEdit(provider.copy(chatCompletionsPath = it.trim())) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = apiPathLabel },
+                        enabled = !provider.builtIn,
+                    )
+                },
+            )
+        }
     }
 
     CardGroup {
@@ -657,48 +696,70 @@ private fun ProviderConfigureClaude(
 ) {
     provider.description()
 
-    OutlinedTextField(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 3,
-    )
+    val nameLabel = stringResource(R.string.setting_provider_page_name)
+    val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
+    val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
+    var keyVisible by remember { mutableStateOf(false) }
 
-    if (!provider.poolEnabled) {
-        var keyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
-            value = provider.apiKey,
-            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 3,
-            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+    CardGroup {
+        item(
+            headlineContent = { FieldLabel(nameLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.name,
+                    onValueChange = { onEdit(provider.copy(name = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = nameLabel },
+                    maxLines = 3,
+                )
+            },
+        )
+        if (!provider.poolEnabled) {
+            item(
+                headlineContent = { FieldLabel(apiKeyLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.apiKey,
+                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = apiKeyLabel },
+                        maxLines = 3,
+                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+                        },
+                    )
+                },
+            )
+        }
+        item(
+            headlineContent = { FieldLabel(baseUrlLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.baseUrl,
+                    onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = baseUrlLabel },
+                    isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
+                    trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+                        {
+                            IconButton(
+                                onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                            ) {
+                                Icon(
+                                    imageVector = HugeIcons.Refresh03,
+                                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                                )
+                            }
+                        }
+                    } else null,
+                )
             },
         )
     }
-
-    OutlinedTextField(
-        value = provider.baseUrl,
-        onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-        modifier = Modifier.fillMaxWidth(),
-        isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
-            {
-                IconButton(
-                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                ) {
-                    Icon(
-                        imageVector = HugeIcons.Refresh03,
-                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
-                    )
-                }
-            }
-        } else null,
-    )
 
     CardGroup {
         item(
@@ -787,53 +848,75 @@ private fun ProviderConfigureGoogle(
 
     provider.description()
 
-    OutlinedTextField(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val nameLabel = stringResource(R.string.setting_provider_page_name)
+    val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
+    val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
+    var keyVisible by remember { mutableStateOf(false) }
 
-    if (!provider.poolEnabled && !(provider.vertexAI && provider.useServiceAccount)) {
-        var keyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
-            value = provider.apiKey,
-            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 3,
-            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+    CardGroup {
+        item(
+            headlineContent = { FieldLabel(nameLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.name,
+                    onValueChange = { onEdit(provider.copy(name = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = nameLabel },
+                )
             },
         )
-    }
-
-    if (!provider.vertexAI) {
-        OutlinedTextField(
-            value = provider.baseUrl,
-            onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-            modifier = Modifier.fillMaxWidth(),
-            isError = provider.baseUrl.isNotBlank() && (
-                !provider.baseUrl.isValidBaseUrl() || !provider.baseUrl.endsWith("/v1beta")
-                ),
-            supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
-                { Text("The base URL usually ends with `/v1beta`") }
-            } else null,
-        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
-                {
-                    IconButton(
-                        onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
-                    ) {
-                        Icon(
-                            imageVector = HugeIcons.Refresh03,
-                            contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
-                        )
-                    }
-                }
-            } else null,
-        )
+        if (!provider.poolEnabled && !(provider.vertexAI && provider.useServiceAccount)) {
+            item(
+                headlineContent = { FieldLabel(apiKeyLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.apiKey,
+                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = apiKeyLabel },
+                        maxLines = 3,
+                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+                        },
+                    )
+                },
+            )
+        }
+        if (!provider.vertexAI) {
+            item(
+                headlineContent = { FieldLabel(baseUrlLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.baseUrl,
+                        onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = baseUrlLabel },
+                        isError = provider.baseUrl.isNotBlank() && (
+                            !provider.baseUrl.isValidBaseUrl() || !provider.baseUrl.endsWith("/v1beta")
+                            ),
+                        supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
+                            { Text("The base URL usually ends with `/v1beta`") }
+                        } else null,
+                        trailingIcon = if (!provider.isUsingDefaultBaseUrl()) {
+                            {
+                                IconButton(
+                                    onClick = { onEdit(provider.copy(baseUrl = provider.defaultBaseUrlForReset())) },
+                                ) {
+                                    Icon(
+                                        imageVector = HugeIcons.Refresh03,
+                                        contentDescription = stringResource(R.string.setting_model_page_reset_to_default),
+                                    )
+                                }
+                            }
+                        } else null,
+                    )
+                },
+            )
+        }
     }
 
     CardGroup {
