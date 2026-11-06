@@ -132,6 +132,12 @@ fun ProviderPoolSection(
     onEdit: (ProviderSetting) -> Unit,
 ) {
     if (provider is ProviderSetting.Codex) return
+    val poolAccounts = when (provider) {
+        is ProviderSetting.OpenAI -> provider.poolAccounts
+        is ProviderSetting.Google -> provider.poolAccounts
+        is ProviderSetting.Claude -> provider.poolAccounts
+        else -> return
+    }
     val context = LocalContext.current
     val toaster = LocalToaster.current
 
