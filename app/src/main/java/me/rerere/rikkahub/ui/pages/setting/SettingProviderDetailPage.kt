@@ -837,7 +837,7 @@ private fun AddModelButton(
                         ) {
                             Text(stringResource(R.string.cancel))
                         }
-                        TextButton(
+                        Button(
                             onClick = {
                                 if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
                                     dialogState.confirm()
