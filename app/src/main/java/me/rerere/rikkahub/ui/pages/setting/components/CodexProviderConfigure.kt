@@ -1,17 +1,21 @@
 package me.rerere.rikkahub.ui.pages.setting.components
 
+import androidx.compose.foundation.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,6 +37,8 @@ import kotlinx.coroutines.launch
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
 import me.rerere.rikkahub.data.codex.CodexAccountRepository
@@ -41,6 +47,7 @@ import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.CodexTokenStatus
 import me.rerere.rikkahub.data.codex.CodexUsageWindow
 import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.rikkahub.ui.components.ui.CardGroup
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
@@ -134,60 +141,55 @@ fun CodexProviderConfigure(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.codex_accounts_count, accounts.size),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        if (accounts.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            ) {
-                Text(
-                    text = stringResource(R.string.codex_no_accounts),
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        CardGroup(
+            title = {
+                Text(stringResource(R.string.codex_accounts_count, accounts.size))
             }
-        } else {
-            accounts.forEach { account ->
-                CodexAccountCard(
-                    account = account,
-                    onEnabledChange = { enabled ->
-                        scope.launch { repository.setEnabled(account.id, enabled) }
-                    },
-                    onRefresh = {
-                        scope.launch {
-                            runCatching { repository.refreshAccount(account.id) }
-                                .onFailure {
-                                    toaster.show(
-                                        it.message ?: context.getString(
-                                            R.string.codex_refresh_failed
-                                        ),
-                                        type = ToastType.Error,
-                                    )
-                                }
-                        }
-                    },
-                    onReauthenticate = oauthManager::startLogin,
-                    onDelete = {
-                        scope.launch {
-                            repository.delete(account.id)
-                            if (repository.accounts.value.isEmpty() && provider.enabled) {
-                                onEdit(provider.copy(enabled = false))
-                            }
-                        }
+        ) {
+            if (accounts.isEmpty()) {
+                item(
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.codex_no_accounts),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     },
                 )
+            } else {
+                accounts.forEach { account ->
+                    item(
+                        leadingContent = {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(
+                                    imageVector = HugeIcons.UserCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(8.dp),
+                                )
+                            }
+                        },
+                        headlineContent = {
+                            Text(
+                                text = account.email.ifBlank { account.name },
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = account.enabled,
+                                onCheckedChange = null,
+                                enabled = account.enabled,
+                            )
+                        },
+                        onClick = {
+                            scope.launch { repository.setEnabled(account.id, !account.enabled) }
+                        },
+                    )
+                }
             }
         }
     }
