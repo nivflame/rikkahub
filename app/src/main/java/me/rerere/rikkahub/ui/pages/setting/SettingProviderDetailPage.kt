@@ -50,14 +50,10 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
@@ -1040,26 +1036,31 @@ private fun ModelTypeSelector(
         stringResource(R.string.setting_provider_page_model_type),
         style = MaterialTheme.typography.titleSmall
     )
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         ModelType.entries.forEachIndexed { index, type ->
-            SegmentedButton(
-                shape = SegmentedButtonDefaults.itemShape(index, ModelType.entries.size),
-                label = {
-                    Text(
-                        text = stringResource(
-                            when (type) {
-                                ModelType.CHAT -> R.string.setting_provider_page_chat_model
-                                ModelType.EMBEDDING -> R.string.setting_provider_page_embedding_model
-                                ModelType.IMAGE -> R.string.setting_provider_page_image_model
-                            }
-                        )
-                    )
+            ToggleButton(
+                checked = selectedType == type,
+                onCheckedChange = { onTypeSelected(type) },
+                modifier = Modifier.weight(1f),
+                shapes = when (index) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    ModelType.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                 },
-                selected = selectedType == type,
-                onClick = { onTypeSelected(type) }
-            )
+            ) {
+                Text(
+                    text = stringResource(
+                        when (type) {
+                            ModelType.CHAT -> R.string.setting_provider_page_chat_model
+                            ModelType.EMBEDDING -> R.string.setting_provider_page_embedding_model
+                            ModelType.IMAGE -> R.string.setting_provider_page_image_model
+                        }
+                    )
+                )
+            }
         }
     }
 }
@@ -1077,20 +1078,26 @@ private fun ModelModalitySelector(
             stringResource(R.string.setting_provider_page_input_modality),
             style = MaterialTheme.typography.titleSmall
         )
-        MultiChoiceSegmentedButtonRow(
+        Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
             Modality.entries.forEachIndexed { index, modality ->
-                SegmentedButton(
+                ToggleButton(
                     checked = modality in inputModalities,
-                    shape = SegmentedButtonDefaults.itemShape(index, Modality.entries.size),
                     onCheckedChange = {
                         if (it) {
                             onUpdateInputModalities(inputModalities + modality)
                         } else {
                             onUpdateInputModalities(inputModalities - modality)
                         }
-                    }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shapes = when (index) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        Modality.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    },
                 ) {
                     Text(
                         text = stringResource(
@@ -1108,20 +1115,26 @@ private fun ModelModalitySelector(
             stringResource(R.string.setting_provider_page_output_modality),
             style = MaterialTheme.typography.titleSmall
         )
-        MultiChoiceSegmentedButtonRow(
+        Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
             Modality.entries.forEachIndexed { index, modality ->
-                SegmentedButton(
+                ToggleButton(
                     checked = modality in outputModalities,
-                    shape = SegmentedButtonDefaults.itemShape(index, Modality.entries.size),
                     onCheckedChange = {
                         if (it) {
                             onUpdateOutputModalities(outputModalities + modality)
                         } else {
                             onUpdateOutputModalities(outputModalities - modality)
                         }
-                    }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shapes = when (index) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        Modality.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    },
                 ) {
                     Text(
                         text = stringResource(
@@ -1146,13 +1159,13 @@ fun ModalAbilitySelector(
         stringResource(R.string.setting_provider_page_abilities),
         style = MaterialTheme.typography.titleSmall
     )
-    MultiChoiceSegmentedButtonRow(
+    Row(
         modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         ModelAbility.entries.forEachIndexed { index, ability ->
-            SegmentedButton(
+            ToggleButton(
                 checked = ability in abilities,
-                shape = SegmentedButtonDefaults.itemShape(index, ModelAbility.entries.size),
                 onCheckedChange = {
                     if (it) {
                         onUpdateAbilities(abilities + ability)
@@ -1160,17 +1173,22 @@ fun ModalAbilitySelector(
                         onUpdateAbilities(abilities - ability)
                     }
                 },
-                label = {
-                    Text(
-                        text = stringResource(
-                            when (ability) {
-                                ModelAbility.TOOL -> R.string.setting_provider_page_tool
-                                ModelAbility.REASONING -> R.string.setting_provider_page_reasoning
-                            }
-                        )
+                modifier = Modifier.weight(1f),
+                shapes = when (index) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    ModelAbility.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                },
+            ) {
+                Text(
+                    text = stringResource(
+                        when (ability) {
+                            ModelAbility.TOOL -> R.string.setting_provider_page_tool
+                            ModelAbility.REASONING -> R.string.setting_provider_page_reasoning
+                        }
                     )
-                }
-            )
+                )
+            }
         }
     }
 }
