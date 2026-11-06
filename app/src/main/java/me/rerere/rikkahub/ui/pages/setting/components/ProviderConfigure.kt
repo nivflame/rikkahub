@@ -44,8 +44,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.CardGroup
-import me.rerere.rikkahub.data.ai.PoolTogglePlan
 import me.rerere.rikkahub.data.ai.formatPoolCooldown
+import me.rerere.rikkahub.data.ai.nextAccountName
 import me.rerere.rikkahub.data.ai.nextAccountName
 import me.rerere.rikkahub.data.ai.planPoolToggle
 import me.rerere.rikkahub.utils.writeClipboardText
@@ -134,59 +134,14 @@ fun ProviderPoolSection(
     onEdit: (ProviderSetting) -> Unit,
 ) {
     if (provider is ProviderSetting.Codex) return
-    val poolEnabled = when (provider) {
-        is ProviderSetting.OpenAI -> provider.poolEnabled
-        is ProviderSetting.Google -> provider.poolEnabled
-        is ProviderSetting.Claude -> provider.poolEnabled
-        else -> return
-    }
-    val poolAccounts = when (provider) {
-        is ProviderSetting.OpenAI -> provider.poolAccounts
-        is ProviderSetting.Google -> provider.poolAccounts
-        is ProviderSetting.Claude -> provider.poolAccounts
-        else -> return
-    }
-    val currentApiKey = when (provider) {
-        is ProviderSetting.OpenAI -> provider.apiKey
-        is ProviderSetting.Google -> provider.apiKey
-        is ProviderSetting.Claude -> provider.apiKey
-        else -> return
-    }
     val context = LocalContext.current
     val toaster = LocalToaster.current
-
-    var showDisableWarning by remember { mutableStateOf(false) }
-    CardGroup {
-        item(
-            onClick = {
-                when (val plan = planPoolToggle(currentApiKey, poolAccounts, !poolEnabled)) {
-                    is PoolTogglePlan.ConfirmDisable -> showDisableWarning = true
-                    is PoolTogglePlan.Apply -> onEdit(
-                        provider.updatePool(plan.enabled, plan.accounts, plan.newApiKey)
-                    )
-                }
-            },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = poolEnabled,
-                    onCheckedChange = null,
-                )
-            },
-        )
-    }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
 
-    if (poolEnabled) {
-        CardGroup(
+    CardGroup(
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -254,7 +209,6 @@ fun ProviderPoolSection(
             )
         }
     }
-    }
 
     if (showAddDialog) {
         PoolAccountDialog(
@@ -304,40 +258,6 @@ fun ProviderPoolSection(
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    if (showDisableWarning) {
-        AlertDialog(
-            onDismissRequest = { showDisableWarning = false },
-            title = { Text("Disable Account Rotation") },
-            text = {
-                Text(
-                    "Disabling rotation will delete all accounts except the first. " +
-                        "The first account's API key becomes the provider API key."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onEdit(
-                            provider.updatePool(
-                                enabled = false,
-                                accounts = emptyList(),
-                                apiKey = poolAccounts.first().apiKey,
-                            )
-                        )
-                        showDisableWarning = false
-                    }
-                ) {
-                    Text(text = "Disable", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDisableWarning = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
