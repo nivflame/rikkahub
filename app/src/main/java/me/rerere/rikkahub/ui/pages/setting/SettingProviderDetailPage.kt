@@ -1099,6 +1099,10 @@ private fun ModelModalitySelector(
                         }
                     },
                     modifier = Modifier.weight(1f),
+                    colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                     shapes = when (index) {
                         0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                         Modality.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
@@ -1136,6 +1140,10 @@ private fun ModelModalitySelector(
                         }
                     },
                     modifier = Modifier.weight(1f),
+                    colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                     shapes = when (index) {
                         0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                         Modality.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
