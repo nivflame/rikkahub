@@ -79,7 +79,6 @@ fun CodexProviderConfigure(
     val toaster = LocalToaster.current
     val context = LocalContext.current
     var selectedAccountId by remember { mutableStateOf<String?>(null) }
-    val canEnable = accounts.any { it.enabled && it.tokenStatus != CodexTokenStatus.INVALID }
 
     LaunchedEffect(oauthStatus) {
         when (val status = oauthStatus) {
@@ -114,25 +113,10 @@ fun CodexProviderConfigure(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.codex_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = if (canEnable) {
-                        stringResource(R.string.codex_round_robin_description)
-                    } else {
-                        stringResource(R.string.codex_sign_in_required)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(stringResource(R.string.setting_provider_page_enable))
             Switch(
                 checked = provider.enabled,
                 onCheckedChange = { onEdit(provider.copy(enabled = it)) },
-                enabled = provider.enabled || canEnable,
             )
         }
 

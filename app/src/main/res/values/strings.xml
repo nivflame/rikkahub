@@ -1325,9 +1325,6 @@
   <string name="chat_page_selected_count">%1$d selected</string>
   <string name="chat_page_batch_delete_confirm">Delete %1$d conversations? This cannot be undone.</string>
   <string name="codex_sign_in">Sign in with ChatGPT</string>
-  <string name="codex_enable">Enable Codex</string>
-  <string name="codex_sign_in_required">Sign in with at least one ChatGPT account to enable Codex.</string>
-  <string name="codex_round_robin_description">Round-robin across available accounts. Multiple accounts supported.</string>
   <string name="codex_accounts_count">Accounts • %d</string>
   <string name="codex_no_accounts">No accounts signed in. Tap "Sign in with ChatGPT" to add one.</string>
   <string name="codex_token_available">Available</string>
