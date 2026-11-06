@@ -110,15 +110,21 @@ fun CodexProviderConfigure(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.setting_provider_page_enable))
-            Switch(
-                checked = provider.enabled,
-                onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+        CardGroup {
+            item(
+                onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.setting_provider_page_enable),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = provider.enabled,
+                        onCheckedChange = null,
+                    )
+                },
             )
         }
 

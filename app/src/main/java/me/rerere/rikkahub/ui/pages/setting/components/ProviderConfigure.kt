@@ -42,6 +42,7 @@ import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolAccount
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.data.ai.PoolTogglePlan
 import me.rerere.rikkahub.data.ai.formatPoolCooldown
 import me.rerere.rikkahub.data.ai.nextAccountName
@@ -588,15 +589,21 @@ private fun ProviderConfigureOpenAI(
         )
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
 
@@ -693,15 +700,21 @@ private fun ProviderConfigureClaude(
         } else null,
     )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
 
@@ -823,15 +836,21 @@ private fun ProviderConfigureGoogle(
         )
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_enable))
-        Switch(
-            checked = provider.enabled,
-            onCheckedChange = { onEdit(provider.copy(enabled = it)) }
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
 
