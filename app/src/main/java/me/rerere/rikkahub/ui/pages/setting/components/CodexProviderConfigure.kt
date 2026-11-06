@@ -164,10 +164,29 @@ fun CodexProviderConfigure(
                             }
                         },
                         headlineContent = {
-                            Text(
-                                text = account.email.ifBlank { account.name },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
+                            val busiestWindow = listOfNotNull(
+                                account.usage?.primary,
+                                account.usage?.secondary,
+                            ).maxByOrNull { it.usedPercent }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = account.email.ifBlank { account.name },
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                busiestWindow?.let {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.codex_percent,
+                                            (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt(),
+                                        ),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                }
+                            }
                         },
                         supportingContent = account.planType?.let { plan ->
                             {
