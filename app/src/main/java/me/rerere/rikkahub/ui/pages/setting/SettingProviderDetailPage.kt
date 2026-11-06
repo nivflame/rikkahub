@@ -373,9 +373,6 @@ private fun SettingProviderConfigPage(
                     internalProvider = provider,
                 )
             }
-            IconButton(onClick = onSave) {
-                Icon(HugeIcons.FloppyDisk, null)
-            }
             if (!provider.builtIn) {
                 IconButton(
                     onClick = { showDeleteDialog = true },
@@ -387,6 +384,15 @@ private fun SettingProviderConfigPage(
                     )
                 }
             }
+        }
+
+        FilledIconButton(
+            onClick = onSave,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = -ScreenOffset, y = -ScreenOffset),
+        ) {
+            Icon(HugeIcons.FloppyDisk, null)
         }
     }
 
