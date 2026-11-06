@@ -10,6 +10,10 @@ import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Cancel01
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.CircleShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +68,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.ToggleButtonShapes
+import androidx.compose.material3.motionScheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -131,6 +137,29 @@ import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
+
+@Composable
+private fun BouncingTabButton(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: @Composable () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scaleX by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "tabPressScale",
+    )
+    ToggleButton(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = Modifier.graphicsLayer { scaleX = scaleX },
+        shapes = ToggleButtonShapes(shape = CircleShape, pressedShape = CircleShape, checkedShape = CircleShape),
+        interactionSource = interactionSource,
+        content = { label() },
+    )
+}
 
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
@@ -206,31 +235,24 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ToggleButton(
+                BouncingTabButton(
                     checked = pager.currentPage == 0,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
-                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_configuration))
                 }
-                ToggleButton(
+                BouncingTabButton(
                     checked = pager.currentPage == 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
-                    shapes = if (pageCount == 3) {
-                        ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    } else {
-                        ButtonGroupDefaults.connectedTrailingButtonShapes()
-                    },
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
                 if (pageCount == 3) {
-                    ToggleButton(
+                    BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                        shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                     ) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
                     }
