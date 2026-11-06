@@ -1324,7 +1324,6 @@
   <string name="chat_page_select">Select</string>
   <string name="chat_page_selected_count">%1$d selected</string>
   <string name="chat_page_batch_delete_confirm">Delete %1$d conversations? This cannot be undone.</string>
-  <string name="codex_provider_description">Sign in with your ChatGPT account to use Codex models. Uses the official Codex CLI OAuth flow.</string>
   <string name="codex_sign_in">Sign in with ChatGPT</string>
   <string name="codex_enable">Enable Codex</string>
   <string name="codex_sign_in_required">Sign in with at least one ChatGPT account to enable Codex.</string>
