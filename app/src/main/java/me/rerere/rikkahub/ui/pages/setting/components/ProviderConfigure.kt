@@ -647,32 +647,42 @@ private fun ProviderConfigureOpenAI(
     }
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_response_api))
-        Switch(
-            checked = provider.useResponseApi,
-            onCheckedChange = {
-                onEdit(provider.copy(useResponseApi = it))
-                if (it && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
+    CardGroup {
+        item(
+            onClick = {
+                val newValue = !provider.useResponseApi
+                onEdit(provider.copy(useResponseApi = newValue))
+                if (newValue && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
                     toaster.show(message = responseAPIWarning, type = ToastType.Warning)
                 }
-            }
+            },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_response_api),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.useResponseApi,
+                    onCheckedChange = null,
+                )
+            },
         )
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_include_history_reasoning))
-        Switch(
-            checked = provider.includeHistoryReasoning,
-            onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) }
+        item(
+            onClick = { onEdit(provider.copy(includeHistoryReasoning = !provider.includeHistoryReasoning)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_include_history_reasoning),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.includeHistoryReasoning,
+                    onCheckedChange = null,
+                )
+            },
         )
     }
 
