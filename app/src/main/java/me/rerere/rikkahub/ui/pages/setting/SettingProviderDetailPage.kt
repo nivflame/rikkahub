@@ -368,11 +368,9 @@ private fun SettingProviderConfigPage(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
-            if (provider !is ProviderSetting.Codex) {
-                ProviderConnectionTester(
-                    internalProvider = provider,
-                )
-            }
+            ProviderConnectionTester(
+                internalProvider = provider,
+            )
             if (!provider.builtIn) {
                 IconButton(
                     onClick = { showDeleteDialog = true },
