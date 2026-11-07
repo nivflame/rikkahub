@@ -1122,8 +1122,17 @@ private fun ModelPicker(
                         },
                         trailingIcon = if (filterText.isNotEmpty()) {
                             {
-                                IconButton(onClick = { filterText = "" }) {
-                                    Icon(HugeIcons.Cancel01, null)
+                                Surface(
+                                    onClick = { filterText = "" },
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceBright,
+                                ) {
+                                    Icon(
+                                        HugeIcons.Cancel01,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(6.dp),
+                                    )
                                 }
                             }
                         } else null,
