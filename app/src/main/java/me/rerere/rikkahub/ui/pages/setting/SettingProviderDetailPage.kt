@@ -1126,13 +1126,13 @@ private fun ModelPicker(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 16.dp)
-                            .shadow(3.dp, CircleShape)
+                            .shadow(6.dp, CircleShape)
                             .fillMaxWidth(searchWidthFraction)
                             .onFocusChanged { searchFocused = it.isFocused },
                         shape = CircleShape,
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                         ),
