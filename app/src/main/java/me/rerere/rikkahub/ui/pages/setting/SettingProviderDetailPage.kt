@@ -993,68 +993,77 @@ private fun ModelPicker(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(8.dp),
                 ) {
-                    items(filteredModels) {
-                        Card {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    8.dp
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                            ) {
-                                AutoAIIcon(
-                                    it.modelId,
-                                    Modifier.size(32.dp)
-                                )
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(
-                                        4.dp
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                ) {
-                                    Text(
-                                        text = it.modelId,
-                                        style = MaterialTheme.typography.titleSmall,
-                                    )
-
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        val modelMeta = remember(it) {
-                                            it.copy(
-                                                inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(it.modelId),
-                                                outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(it.modelId),
-                                                abilities = ModelRegistry.MODEL_ABILITIES.getData(it.modelId),
+                    item {
+                        val modelItemColors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                        CardGroup {
+                            filteredModels.forEach { model ->
+                                item(
+                                    onClick = {
+                                        if (selectedModels.any { it.modelId == model.modelId }) {
+                                            onModelDeselected(
+                                                selectedModels.firstOrNull { it.modelId == model.modelId }
+                                                    ?: model
+                                            )
+                                        } else {
+                                            onModelSelected(model)
+                                        }
+                                    },
+                                    leadingContent = {
+                                        AutoAIIcon(
+                                            model.modelId,
+                                            Modifier.size(32.dp)
+                                        )
+                                    },
+                                    headlineContent = {
+                                        Text(
+                                            text = model.modelId,
+                                            style = MaterialTheme.typography.titleSmall,
+                                        )
+                                    },
+                                    supportingContent = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            val modelMeta = remember(model) {
+                                                model.copy(
+                                                    inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
+                                                    outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
+                                                    abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId),
+                                                )
+                                            }
+                                            ModelModalityTag(
+                                                model = modelMeta,
+                                            )
+                                            ModelAbilityTag(
+                                                model = modelMeta,
                                             )
                                         }
-                                        ModelModalityTag(
-                                            model = modelMeta,
-                                        )
-                                        ModelAbilityTag(
-                                            model = modelMeta,
-                                        )
-                                    }
-                                }
-                                IconButton(
-                                    onClick = {
-                                        if (selectedModels.any { model -> model.modelId == it.modelId }) {
-                                            // 从selectedModels中计算出要删除的model，因为删除需要id匹配，而不是ModelId
-                                            onModelDeselected(selectedModels.firstOrNull { model -> model.modelId == it.modelId }
-                                                ?: it)
-                                        } else {
-                                            onModelSelected(it)
+                                    },
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                if (selectedModels.any { it.modelId == model.modelId }) {
+                                                    onModelDeselected(
+                                                        selectedModels.firstOrNull { it.modelId == model.modelId }
+                                                            ?: model
+                                                    )
+                                                } else {
+                                                    onModelSelected(model)
+                                                }
+                                            }
+                                        ) {
+                                            if (selectedModels.any { it.modelId == model.modelId }) {
+                                                Icon(HugeIcons.Cancel01, null)
+                                            } else {
+                                                Icon(HugeIcons.Add01, null)
+                                            }
                                         }
-                                    }
-                                ) {
-                                    if (selectedModels.any { model -> model.modelId == it.modelId }) {
-                                        Icon(HugeIcons.Cancel01, null)
-                                    } else {
-                                        Icon(HugeIcons.Add01, null)
-                                    }
-                                }
+                                    },
+                                    colors = modelItemColors,
+                                )
                             }
                         }
                     }
