@@ -156,6 +156,9 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
             mutableStateOf(jsonLenient.encodeToString(JsonElement.serializer(), body.value))
         }
     }
+    val errorStates = customBodies.map { body ->
+        remember(body) { mutableStateOf<String?>(null) }
+    }
 
     CardGroup(
         title = {
@@ -181,7 +184,6 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
         }
     ) {
         customBodies.forEachIndexed { index, body ->
-            var jsonParseError by remember { mutableStateOf<String?>(null) }
             item(
                 supportingContent = {
                     Column(
@@ -209,9 +211,9 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                                     updatedBodies[index] =
                                         updatedBodies[index].copy(value = newJsonValue)
                                     onUpdate(updatedBodies)
-                                    jsonParseError = null
+                                    errorStates[index].value = null
                                 } catch (e: Exception) {
-                                    jsonParseError =
+                                    errorStates[index].value =
                                         context.getString(
                                             R.string.assistant_page_invalid_json,
                                             e.message?.take(100) ?: ""
@@ -220,10 +222,10 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                             },
                             label = { Text(stringResource(R.string.assistant_page_body_value)) },
                             modifier = Modifier.fillMaxWidth(),
-                            isError = jsonParseError != null,
+                            isError = errorStates[index].value != null,
                             supportingText = {
-                                if (jsonParseError != null) {
-                                    Text(jsonParseError!!)
+                                if (errorStates[index].value != null) {
+                                    Text(errorStates[index].value!!)
                                 }
                             },
                             minLines = 3,
