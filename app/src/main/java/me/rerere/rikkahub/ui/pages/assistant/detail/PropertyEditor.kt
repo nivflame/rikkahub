@@ -2,6 +2,8 @@ package me.rerere.rikkahub.ui.pages.assistant.detail
 
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.ArrowDown01
+import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -212,15 +214,39 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                     }
                 },
                 trailingContent = {
-                    IconButton(onClick = {
-                        val updatedBodies = customBodies.toMutableList()
-                        updatedBodies.removeAt(index)
-                        onUpdate(updatedBodies)
-                    }) {
-                        Icon(
-                            HugeIcons.Delete01,
-                            contentDescription = stringResource(R.string.assistant_page_delete_body)
-                        )
+                    Row {
+                        IconButton(
+                            enabled = index > 0,
+                            onClick = {
+                                val updatedBodies = customBodies.toMutableList()
+                                val previous = updatedBodies.removeAt(index - 1)
+                                updatedBodies.add(index, previous)
+                                onUpdate(updatedBodies)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
+                        }
+                        IconButton(
+                            enabled = index < customBodies.lastIndex,
+                            onClick = {
+                                val updatedBodies = customBodies.toMutableList()
+                                val next = updatedBodies.removeAt(index + 1)
+                                updatedBodies.add(index, next)
+                                onUpdate(updatedBodies)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
+                        }
+                        IconButton(onClick = {
+                            val updatedBodies = customBodies.toMutableList()
+                            updatedBodies.removeAt(index)
+                            onUpdate(updatedBodies)
+                        }) {
+                            Icon(
+                                HugeIcons.Delete01,
+                                contentDescription = stringResource(R.string.assistant_page_delete_body)
+                            )
+                        }
                     }
                 },
                 headlineContent = {},
