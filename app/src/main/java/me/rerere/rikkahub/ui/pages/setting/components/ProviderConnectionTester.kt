@@ -139,7 +139,7 @@ fun ProviderConnectionTester(
                                             params = TextGenerationParams(
                                                 model = model!!,
                                                 customHeaders = testProvider.customHeaders,
-                                                customBody = model!!.customBodies
+                                                customBody = testProvider.customBodies + model!!.customBodies
                                             )
                                         )
                                         chunk.choices.firstOrNull()?.message?.parts
@@ -165,7 +165,7 @@ fun ProviderConnectionTester(
                                             params = TextGenerationParams(
                                                 model = model!!,
                                                 customHeaders = testProvider.customHeaders,
-                                                customBody = model!!.customBodies
+                                                customBody = testProvider.customBodies + model!!.customBodies
                                             )
                                         )
                                         flow.collect { chunk ->
@@ -194,7 +194,7 @@ fun ProviderConnectionTester(
                                                 model = model!!,
                                                 tools = listOf(testTool),
                                                 customHeaders = testProvider.customHeaders,
-                                                customBody = model!!.customBodies
+                                                customBody = testProvider.customBodies + model!!.customBodies
                                             )
                                         )
                                         val message = chunk.choices.firstOrNull()?.message
