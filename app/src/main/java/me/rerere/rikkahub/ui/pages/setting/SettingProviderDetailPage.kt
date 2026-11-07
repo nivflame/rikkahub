@@ -82,7 +82,6 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -95,7 +94,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -1107,18 +1105,12 @@ private fun ModelPicker(
                         }
                     }
                     }
-                    var searchFocused by remember { mutableStateOf(false) }
+                    val isImeVisible = WindowInsets.isImeVisible
                     val searchWidthFraction by animateFloatAsState(
-                        targetValue = if (searchFocused) 1f else 0.6f,
+                        targetValue = if (isImeVisible) 1f else 0.6f,
                         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                         label = "searchWidth",
                     )
-                    val isImeVisible = WindowInsets.isImeVisible
-                    LaunchedEffect(isImeVisible) {
-                        if (!isImeVisible && searchFocused) {
-                            filterText = ""
-                        }
-                    }
                     TextField(
                         value = filterText,
                         onValueChange = {
@@ -1128,8 +1120,7 @@ private fun ModelPicker(
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 16.dp)
                             .shadow(6.dp, CircleShape)
-                            .fillMaxWidth(searchWidthFraction)
-                            .onFocusChanged { searchFocused = it.isFocused },
+                            .fillMaxWidth(searchWidthFraction),
                         shape = CircleShape,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
