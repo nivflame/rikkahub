@@ -967,10 +967,28 @@ private fun ModelPicker(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_avaliable_models),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    val totalModels = filteredModels.size
+                    val selectedModelsCount = filteredModels.count { model ->
+                        selectedModels.any { it.modelId == model.modelId }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.setting_provider_page_avaliable_models),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = if (selectedModelsCount == 0) {
+                                "$totalModels"
+                            } else {
+                                "$selectedModelsCount / $totalModels"
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     val unselectedCount = filteredModels.count { model ->
                         selectedModels.none { it.modelId == model.modelId }
