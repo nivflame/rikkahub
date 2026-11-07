@@ -1004,8 +1004,7 @@ private fun ModelPicker(
                     ) {
                         Text(
                             if (unselectedCount > 0) stringResource(
-                                R.string.setting_provider_page_select_all,
-                                unselectedCount
+                                R.string.setting_provider_page_select_all
                             ) else stringResource(R.string.setting_provider_page_deselect_models)
                         )
                     }
