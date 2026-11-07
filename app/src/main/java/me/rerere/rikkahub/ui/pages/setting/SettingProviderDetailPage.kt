@@ -562,6 +562,8 @@ private fun ModelList(
                             onEdit = { editedModel ->
                                 onUpdateProvider(providerSetting.editModel(editedModel))
                             },
+                            showBuiltInTools = providerSetting is ProviderSetting.Google ||
+                                (providerSetting is ProviderSetting.OpenAI && providerSetting.useResponseApi),
                             modifier = Modifier
                                 .longPressDraggableHandle()
                                 .graphicsLayer {
@@ -606,8 +608,9 @@ private fun ModelSettingsForm(
     model: Model,
     onModelChange: (Model) -> Unit,
     isEdit: Boolean,
+    showBuiltInTools: Boolean = false,
 ) {
-    val pagerState = rememberPagerState { 3 }
+    val pagerState = rememberPagerState { if (showBuiltInTools) 3 else 2 }
     val scope = rememberCoroutineScope()
 
     fun setModelId(id: String) {
@@ -648,15 +651,17 @@ private fun ModelSettingsForm(
                 },
                 text = { Text(stringResource(R.string.setting_provider_page_advanced_settings)) }
             )
-            Tab(
-                selected = pagerState.currentPage == 2,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(2)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_page_built_in_tools)) }
-            )
+            if (showBuiltInTools) {
+                Tab(
+                    selected = pagerState.currentPage == 2,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(2)
+                        }
+                    },
+                    text = { Text(stringResource(R.string.setting_page_built_in_tools)) }
+                )
+            }
         }
 
         HorizontalPager(
@@ -753,12 +758,14 @@ private fun ModelSettingsForm(
 
                 2 -> {
                     // 内置工具页面
-                    BuiltInToolsSettings(
-                        tools = model.tools,
-                        onUpdateTools = { tools ->
-                            onModelChange(model.copy(tools = tools))
-                        }
-                    )
+                    if (showBuiltInTools) {
+                        BuiltInToolsSettings(
+                            tools = model.tools,
+                            onUpdateTools = { tools ->
+                                onModelChange(model.copy(tools = tools))
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -895,6 +902,8 @@ private fun AddModelButton(
                             model = modelState,
                             onModelChange = { dialogState.currentState = it },
                             isEdit = false,
+                            showBuiltInTools = parentProvider is ProviderSetting.Google ||
+                                (parentProvider is ProviderSetting.OpenAI && parentProvider.useResponseApi),
                         )
                     }
 
@@ -1367,6 +1376,7 @@ private fun ModelCard(
     modifier: Modifier = Modifier,
     onDelete: () -> Unit,
     onEdit: (Model) -> Unit,
+    showBuiltInTools: Boolean = false,
 ) {
     val dialogState = useEditState<Model> {
         onEdit(it)
@@ -1424,6 +1434,7 @@ private fun ModelCard(
                             model = editingModel,
                             onModelChange = { dialogState.currentState = it },
                             isEdit = true,
+                            showBuiltInTools = showBuiltInTools,
                         )
                     }
 
