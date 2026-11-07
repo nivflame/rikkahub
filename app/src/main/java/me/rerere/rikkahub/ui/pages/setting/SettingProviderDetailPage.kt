@@ -10,9 +10,11 @@ import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.FloppyDisk
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
@@ -64,6 +66,8 @@ import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -87,6 +91,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -1076,13 +1082,47 @@ private fun ModelPicker(
                         }
                     }
                 }
-                OutlinedTextField(
+                var searchFocused by remember { mutableStateOf(false) }
+                val searchWidthFraction by animateFloatAsState(
+                    targetValue = if (searchFocused) 1f else 0.6f,
+                    animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                    label = "searchWidth",
+                )
+                TextField(
                     value = filterText,
                     onValueChange = {
                         filterText = it
                     },
-                    label = { Text(stringResource(R.string.setting_provider_page_filter_placeholder)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .shadow(3.dp, CircleShape)
+                        .fillMaxWidth(searchWidthFraction)
+                        .onFocusChanged { searchFocused = it.isFocused },
+                    shape = CircleShape,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    leadingIcon = {
+                        Icon(HugeIcons.Search01, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.setting_provider_page_filter_placeholder),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    trailingIcon = if (filterText.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { filterText = "" }) {
+                                Icon(HugeIcons.Cancel01, null)
+                            }
+                        }
+                    } else null,
+                    singleLine = true,
                 )
             }
         }
