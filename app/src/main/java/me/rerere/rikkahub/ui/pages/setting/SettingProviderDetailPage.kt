@@ -335,7 +335,7 @@ private fun SettingProviderConfigPage(
                     onExpand = { toolbarExpanded = true },
                     onCollapse = { toolbarExpanded = false },
                 )
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
         ProviderConfigure(
