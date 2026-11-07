@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -22,6 +23,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -714,39 +716,59 @@ private fun ProviderConfigureClaude(
         )
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_claude_prompt_caching))
-        Switch(
-            checked = provider.promptCaching,
-            onCheckedChange = { onEdit(provider.copy(promptCaching = it)) }
-        )
-    }
-
-    if (provider.promptCaching) {
-        Text(stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl))
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ClaudePromptCacheTtl.entries.forEachIndexed { index, ttl ->
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = ClaudePromptCacheTtl.entries.size
-                    ),
-                    label = {
-                        Text(
-                            when (ttl) {
-                                ClaudePromptCacheTtl.FIVE_MINUTES -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m)
-                                ClaudePromptCacheTtl.ONE_HOUR -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h)
-                            }
-                        )
-                    },
-                    selected = provider.promptCacheTtl == ttl,
-                    onClick = { onEdit(provider.copy(promptCacheTtl = ttl)) }
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(promptCaching = !provider.promptCaching)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_claude_prompt_caching),
+                    style = MaterialTheme.typography.titleMedium,
                 )
-            }
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.promptCaching,
+                    onCheckedChange = null,
+                )
+            },
+        )
+        if (provider.promptCaching) {
+            item(
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                supportingContent = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    ) {
+                        ClaudePromptCacheTtl.entries.forEachIndexed { index, ttl ->
+                            TonalToggleButton(
+                                checked = provider.promptCacheTtl == ttl,
+                                onCheckedChange = { onEdit(provider.copy(promptCacheTtl = ttl)) },
+                                modifier = Modifier.weight(1f),
+                                shapes = when (index) {
+                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                    ClaudePromptCacheTtl.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                },
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        when (ttl) {
+                                            ClaudePromptCacheTtl.FIVE_MINUTES -> R.string.setting_provider_page_claude_prompt_cache_ttl_5m
+                                            ClaudePromptCacheTtl.ONE_HOUR -> R.string.setting_provider_page_claude_prompt_cache_ttl_1h
+                                        }
+                                    )
+                                )
+                            }
+                        }
+                    }
+                },
+            )
         }
     }
 }
