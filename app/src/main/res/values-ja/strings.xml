@@ -866,7 +866,6 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="setting_provider_page_add_models_hint">下のボタンをクリックしてモデルを追加</string>
   <string name="setting_provider_page_add_new_model">新しいモデルを追加</string>
   <string name="setting_provider_page_add_provider">プロバイダーを追加</string>
-  <string name="setting_provider_page_add_provider_override">プロバイダーオーバーライドを追加</string>
   <string name="setting_provider_page_advanced_settings">詳細設定</string>
   <string name="setting_provider_page_api_base_url">API Base Url</string>
   <string name="setting_provider_page_api_key">API Key</string>
@@ -882,7 +881,6 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="setting_provider_page_claude_prompt_cache_ttl_5m">5分</string>
   <string name="setting_provider_page_claude_prompt_caching">プロンプトキャッシュ（cache_control）</string>
   <string name="setting_provider_page_configuration">設定</string>
-  <string name="setting_provider_page_configure_provider_override">プロバイダーオーバーライドを構成</string>
   <string name="setting_provider_page_delete_dialog_text">このプロバイダーを削除してもよろしいですか？この操作は元に戻せません。</string>
   <string name="setting_provider_page_deselect_models">すべて選択解除</string>
   <string name="setting_provider_page_disabled">無効</string>
@@ -916,8 +914,6 @@ mDNSアドレス: .localホスト名を使用し、IPを知らなくても同じ
   <string name="setting_provider_page_output_modality">出力モダリティ</string>
   <string name="setting_provider_page_private_key">秘密鍵</string>
   <string name="setting_provider_page_project_id">プロジェクト ID</string>
-  <string name="setting_provider_page_provider_override">プロバイダーオーバーライド</string>
-  <string name="setting_provider_page_provider_override_desc">この特定のモデル用にカスタムプロバイダー設定を構成します。親プロバイダーから共通プロパティを継承します。</string>
   <string name="setting_provider_page_qr_decode_failed">QRコードの解析に失敗しました：%s</string>
   <string name="setting_provider_page_reasoning">推論</string>
   <string name="setting_provider_page_response_api">Response API</string>

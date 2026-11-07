@@ -781,7 +781,7 @@ private fun TopBar(
             ) {
                 Column {
                     val model = settings.getCurrentChatModel()
-                    val provider = model?.findProvider(providers = settings.providers, checkOverwrite = false)
+                    val provider = model?.findProvider(providers = settings.providers)
                     Text(
                         text = conversation.title.ifBlank { stringResource(R.string.chat_page_new_chat) },
                         maxLines = 1,

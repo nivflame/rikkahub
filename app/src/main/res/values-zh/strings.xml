@@ -896,7 +896,6 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_provider_page_add_models_hint">点击下方按钮添加模型</string>
   <string name="setting_provider_page_add_new_model">添加新模型</string>
   <string name="setting_provider_page_add_provider">添加提供商</string>
-  <string name="setting_provider_page_add_provider_override">添加提供商重写</string>
   <string name="setting_provider_page_advanced_settings">高级设置</string>
   <string name="setting_provider_page_api_base_url">API Base Url</string>
   <string name="setting_provider_page_api_key">API Key</string>
@@ -912,7 +911,6 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_provider_page_claude_prompt_cache_ttl_5m">5 分钟</string>
   <string name="setting_provider_page_claude_prompt_caching">提示缓存 (cache_control)</string>
   <string name="setting_provider_page_configuration">配置</string>
-  <string name="setting_provider_page_configure_provider_override">配置提供商重写</string>
   <string name="setting_provider_page_delete_dialog_text">确定要删除这个提供商吗？此操作无法撤销。</string>
   <string name="setting_provider_page_deselect_models">取消全选</string>
   <string name="setting_provider_page_disabled">禁用</string>
@@ -946,8 +944,6 @@ mDNS 地址：使用 .local 主机名，同一网络中的其他设备可通过�
   <string name="setting_provider_page_output_modality">输出模态</string>
   <string name="setting_provider_page_private_key">私钥</string>
   <string name="setting_provider_page_project_id">项目 ID</string>
-  <string name="setting_provider_page_provider_override">提供商重写</string>
-  <string name="setting_provider_page_provider_override_desc">为此特定模型配置自定义提供商设置。将从父提供商继承通用属性。</string>
   <string name="setting_provider_page_qr_decode_failed">解析二维码失败：%s</string>
   <string name="setting_provider_page_reasoning">推理</string>
   <string name="setting_provider_page_response_api">Response API</string>

@@ -864,7 +864,6 @@
   <string name="setting_provider_page_add_models_hint">點擊下方按鈕添加模型</string>
   <string name="setting_provider_page_add_new_model">添加新模型</string>
   <string name="setting_provider_page_add_provider">添加提供商</string>
-  <string name="setting_provider_page_add_provider_override">新增提供商覆寫</string>
   <string name="setting_provider_page_advanced_settings">進階設定</string>
   <string name="setting_provider_page_api_base_url">API Base Url</string>
   <string name="setting_provider_page_api_key">API Key</string>
@@ -880,7 +879,6 @@
   <string name="setting_provider_page_claude_prompt_cache_ttl_5m">5 分鐘</string>
   <string name="setting_provider_page_claude_prompt_caching">提示快取 (cache_control)</string>
   <string name="setting_provider_page_configuration">配置</string>
-  <string name="setting_provider_page_configure_provider_override">配置提供商覆寫</string>
   <string name="setting_provider_page_delete_dialog_text">確定要刪除這個提供商嗎？此操作無法撤銷。</string>
   <string name="setting_provider_page_deselect_models">取消全選</string>
   <string name="setting_provider_page_disabled">禁用</string>
@@ -914,8 +912,6 @@
   <string name="setting_provider_page_output_modality">輸出模態</string>
   <string name="setting_provider_page_private_key">私鑰</string>
   <string name="setting_provider_page_project_id">專案 ID</string>
-  <string name="setting_provider_page_provider_override">提供商覆寫</string>
-  <string name="setting_provider_page_provider_override_desc">為此特定模型配置自訂提供商設定。將從父提供商繼承通用屬性。</string>
   <string name="setting_provider_page_qr_decode_failed">解析二維碼失敗：%s</string>
   <string name="setting_provider_page_reasoning">推理</string>
   <string name="setting_provider_page_response_api">Response API</string>

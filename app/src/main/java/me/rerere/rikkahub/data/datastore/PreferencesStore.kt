@@ -802,13 +802,8 @@ fun Settings.getSelectedASRProvider(): ASRProviderSetting? {
     } ?: asrProviders.firstOrNull()
 }
 
-fun Model.findProvider(providers: List<ProviderSetting>, checkOverwrite: Boolean = true): ProviderSetting? {
-    val provider = findModelProviderFromList(providers) ?: return null
-    val providerOverwrite = this.providerOverwrite
-    if (checkOverwrite && providerOverwrite != null) {
-        return providerOverwrite.copyProvider(models = emptyList())
-    }
-    return provider
+fun Model.findProvider(providers: List<ProviderSetting>): ProviderSetting? {
+    return findModelProviderFromList(providers)
 }
 
 private fun Model.findModelProviderFromList(providers: List<ProviderSetting>): ProviderSetting? {

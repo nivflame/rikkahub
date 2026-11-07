@@ -306,7 +306,7 @@ private fun ColumnScope.ModelList(
     val favoriteModels = settings.value.favoriteModels.mapNotNull { modelId ->
         val model = settings.value.providers.findModelById(modelId) ?: return@mapNotNull null
         if (model.type != modelType) return@mapNotNull null
-        val provider = model.findProvider(providers = settings.value.providers, checkOverwrite = false) ?: return@mapNotNull null
+        val provider = model.findProvider(providers = settings.value.providers) ?: return@mapNotNull null
         model to provider
     }
 

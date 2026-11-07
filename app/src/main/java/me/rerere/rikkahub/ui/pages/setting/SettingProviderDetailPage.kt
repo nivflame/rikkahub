@@ -549,7 +549,6 @@ private fun ModelList(
                             onEdit = { editedModel ->
                                 onUpdateProvider(providerSetting.editModel(editedModel))
                             },
-                            parentProvider = providerSetting,
                             modifier = Modifier
                                 .longPressDraggableHandle()
                                 .graphicsLayer {
@@ -594,7 +593,6 @@ private fun ModelSettingsForm(
     model: Model,
     onModelChange: (Model) -> Unit,
     isEdit: Boolean,
-    parentProvider: ProviderSetting? = null
 ) {
     val pagerState = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
@@ -731,14 +729,6 @@ private fun ModelSettingsForm(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        ProviderOverrideSettings(
-                            providerOverride = model.providerOverwrite,
-                            onUpdateProviderOverride = { providerOverride ->
-                                onModelChange(model.copy(providerOverwrite = providerOverride))
-                            },
-                            parentProvider = parentProvider
-                        )
-
                         CustomBodies(
                             customBodies = model.customBodies,
                             onUpdate = { bodies ->
@@ -892,7 +882,6 @@ private fun AddModelButton(
                             model = modelState,
                             onModelChange = { dialogState.currentState = it },
                             isEdit = false,
-                            parentProvider = parentProvider
                         )
                     }
 
@@ -1287,7 +1276,6 @@ private fun ModelCard(
     modifier: Modifier = Modifier,
     onDelete: () -> Unit,
     onEdit: (Model) -> Unit,
-    parentProvider: ProviderSetting
 ) {
     val dialogState = useEditState<Model> {
         onEdit(it)
@@ -1345,7 +1333,6 @@ private fun ModelCard(
                             model = editingModel,
                             onModelChange = { dialogState.currentState = it },
                             isEdit = true,
-                            parentProvider = parentProvider
                         )
                     }
 
@@ -1444,14 +1431,6 @@ private fun ModelCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        if (model.providerOverwrite != null) {
-                            Tag(type = TagType.INFO) {
-                                Text(
-                                    model.providerOverwrite?.javaClass?.simpleName ?: model.providerOverwrite?.name
-                                    ?: "ProviderOverwrite"
-                                )
-                            }
-                        }
                         ModelTypeTag(model = model)
                         ModelModalityTag(model = model)
                         ModelAbilityTag(model = model)
@@ -1545,152 +1524,6 @@ private fun BuiltInToolsSettings(
                     },
                     colors = toolItemColors,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProviderOverrideSettings(
-    providerOverride: ProviderSetting?,
-    onUpdateProviderOverride: (ProviderSetting?) -> Unit,
-    parentProvider: ProviderSetting?
-) {
-    var showProviderConfig by remember { mutableStateOf(false) }
-    var editingProvider by remember { mutableStateOf<ProviderSetting?>(null) }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.setting_provider_page_provider_override),
-            style = MaterialTheme.typography.titleSmall
-        )
-
-        Text(
-            text = stringResource(R.string.setting_provider_page_provider_override_desc),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        if (providerOverride != null) {
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AutoAIIcon(
-                            providerOverride.name,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "${providerOverride.name} (Override)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = {
-                                editingProvider = providerOverride
-                                showProviderConfig = true
-                            }
-                        ) {
-                            Icon(HugeIcons.Tools, contentDescription = "Edit override")
-                        }
-                        IconButton(
-                            onClick = {
-                                onUpdateProviderOverride(null)
-                            }
-                        ) {
-                            Icon(HugeIcons.Cancel01, contentDescription = "Remove override")
-                        }
-                    }
-                }
-            }
-        } else {
-            Button(
-                onClick = {
-                    editingProvider = parentProvider?.copyProvider(
-                        id = Uuid.random(),
-                        builtIn = false,
-                        models = emptyList(), // 这里必须设置为空，不然会导致循环依赖JSON
-                        description = {},
-                    )
-                    showProviderConfig = true
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(HugeIcons.Add01, contentDescription = null)
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(stringResource(R.string.setting_provider_page_add_provider_override))
-            }
-        }
-
-        // Provider configuration modal
-        if (showProviderConfig && editingProvider != null) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showProviderConfig = false
-                    editingProvider = null
-                },
-                sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
-            ) {
-                var internalProvider by remember(editingProvider) { mutableStateOf(editingProvider!!) }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.9f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_configure_provider_override),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        ProviderConfigure(
-                            provider = internalProvider,
-                            onEdit = { internalProvider = it }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                showProviderConfig = false
-                                editingProvider = null
-                            },
-                        ) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        TextButton(
-                            onClick = {
-                                onUpdateProviderOverride(internalProvider)
-                                showProviderConfig = false
-                                editingProvider = null
-                            },
-                        ) {
-                            Text(stringResource(R.string.setting_provider_page_save))
-                        }
-                    }
-                }
             }
         }
     }
