@@ -1083,9 +1083,6 @@ private fun ModelPicker(
                     },
                     label = { Text(stringResource(R.string.setting_provider_page_filter_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(stringResource(R.string.setting_provider_page_filter_example))
-                    },
                 )
             }
         }
