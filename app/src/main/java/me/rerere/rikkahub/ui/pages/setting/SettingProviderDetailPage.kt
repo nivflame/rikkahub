@@ -1521,15 +1521,6 @@ private fun ModelCard(
                         ModelAbilityTag(model = model)
                     }
                 },
-                trailingContent = {
-                    IconButton(
-                        onClick = {
-                            dialogState.open(model.copy())
-                        }
-                    ) {
-                        Icon(HugeIcons.Tools, "Edit")
-                    }
-                },
             )
         }
     }
