@@ -894,28 +894,37 @@ private fun ProviderConfigureGoogle(
         )
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(stringResource(R.string.setting_provider_page_vertex_ai))
-        Switch(
-            checked = provider.vertexAI,
-            onCheckedChange = { onEdit(provider.copy(vertexAI = it)) }
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(vertexAI = !provider.vertexAI)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_vertex_ai),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.vertexAI,
+                    onCheckedChange = null,
+                )
+            },
         )
-    }
-
-    if (provider.vertexAI) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(stringResource(R.string.setting_provider_page_use_service_account))
-            Switch(
-                checked = provider.useServiceAccount,
-                onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) }
+        if (provider.vertexAI) {
+            item(
+                onClick = { onEdit(provider.copy(useServiceAccount = !provider.useServiceAccount)) },
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.setting_provider_page_use_service_account),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = provider.useServiceAccount,
+                        onCheckedChange = null,
+                    )
+                },
             )
         }
     }
