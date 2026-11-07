@@ -61,7 +61,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
@@ -1489,34 +1488,31 @@ private fun ModelCard(
         gesturesEnabled = true,
         modifier = modifier
     ) {
-        OutlinedCard {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    AutoAIIcon(
-                        name = model.modelId,
-                        modifier = Modifier.size(36.dp),
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
+        CardGroup {
+            item(
+                onClick = { dialogState.open(model.copy()) },
+                leadingContent = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        AutoAIIcon(
+                            name = model.modelId,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                },
+                headlineContent = {
                     Text(
                         text = model.displayName,
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                },
+                supportingContent = {
                     FlowRow(
+                        modifier = Modifier.padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
@@ -1524,17 +1520,17 @@ private fun ModelCard(
                         ModelModalityTag(model = model)
                         ModelAbilityTag(model = model)
                     }
-                }
-
-                // Edit button
-                IconButton(
-                    onClick = {
-                        dialogState.open(model.copy())
+                },
+                trailingContent = {
+                    IconButton(
+                        onClick = {
+                            dialogState.open(model.copy())
+                        }
+                    ) {
+                        Icon(HugeIcons.Tools, "Edit")
                     }
-                ) {
-                    Icon(HugeIcons.Tools, "Edit")
-                }
-            }
+                },
+            )
         }
     }
 }
