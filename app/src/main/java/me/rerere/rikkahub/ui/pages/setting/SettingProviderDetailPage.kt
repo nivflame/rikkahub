@@ -390,10 +390,12 @@ private fun SettingProviderConfigPage(
                     )
                 }
             }
-            FilledTonalButton(onClick = onSave) {
+            Button(onClick = onSave) {
                 Icon(HugeIcons.FloppyDisk, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.setting_provider_page_save))
+                AnimatedVisibility(toolbarExpanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.setting_provider_page_save))
+                }
             }
         }
     }
