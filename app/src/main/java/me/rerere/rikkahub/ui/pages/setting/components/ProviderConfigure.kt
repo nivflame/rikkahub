@@ -472,6 +472,24 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
+        )
+    }
+
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
     val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
@@ -552,24 +570,6 @@ private fun ProviderConfigureOpenAI(
         }
     }
 
-    CardGroup {
-        item(
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
-                )
-            },
-        )
-    }
-
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
     CardGroup {
         item(
@@ -633,6 +633,24 @@ private fun ProviderConfigureClaude(
 ) {
     provider.description()
 
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
+        )
+    }
+
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
     val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
@@ -693,24 +711,6 @@ private fun ProviderConfigureClaude(
                             }
                         }
                     } else null,
-                )
-            },
-        )
-    }
-
-    CardGroup {
-        item(
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
                 )
             },
         )
@@ -805,6 +805,24 @@ private fun ProviderConfigureGoogle(
 
     provider.description()
 
+    CardGroup {
+        item(
+            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+            headlineContent = {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_enable),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = provider.enabled,
+                    onCheckedChange = null,
+                )
+            },
+        )
+    }
+
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
     val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
@@ -874,24 +892,6 @@ private fun ProviderConfigureGoogle(
                 },
             )
         }
-    }
-
-    CardGroup {
-        item(
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
-                )
-            },
-        )
     }
 
     CardGroup {
