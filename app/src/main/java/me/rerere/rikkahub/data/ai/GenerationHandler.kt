@@ -585,6 +585,7 @@ class GenerationHandler(
                 addAll(assistant.customHeaders)
             },
             customBody = buildList {
+                addAll(provider.customBodies)
                 addAll(assistant.customBodies)
                 addAll(model.customBodies)
             }

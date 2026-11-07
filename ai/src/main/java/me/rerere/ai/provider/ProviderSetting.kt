@@ -48,6 +48,7 @@ sealed class ProviderSetting {
     abstract val apiKey: String
     abstract val balanceOption: BalanceOption
     abstract val customHeaders: List<CustomHeader>
+    abstract val customBodies: List<CustomBody>
 
     abstract val builtIn: Boolean
     abstract val description: @Composable() () -> Unit
@@ -58,6 +59,7 @@ sealed class ProviderSetting {
     abstract fun delModel(model: Model): ProviderSetting
     abstract fun moveMove(from: Int, to: Int): ProviderSetting
     abstract fun updateHeaders(headers: List<CustomHeader>): ProviderSetting
+    abstract fun updateBodies(bodies: List<CustomBody>): ProviderSetting
     abstract fun copyProvider(
         id: Uuid = this.id,
         enabled: Boolean = this.enabled,
@@ -87,6 +89,7 @@ sealed class ProviderSetting {
         var includeHistoryReasoning: Boolean = true,
         var autoRetry: Boolean = false,
         override var customHeaders: List<CustomHeader> = emptyList(),
+        override var customBodies: List<CustomBody> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -114,6 +117,10 @@ sealed class ProviderSetting {
 
         override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
             return copy(customHeaders = headers)
+        }
+
+        override fun updateBodies(bodies: List<CustomBody>): ProviderSetting {
+            return copy(customBodies = bodies)
         }
 
         override fun copyProvider(
@@ -167,6 +174,7 @@ sealed class ProviderSetting {
         var location: String = "us-central1", // only for vertex AI service account
         var projectId: String = "", // only for vertex AI service account
         override var customHeaders: List<CustomHeader> = emptyList(),
+        override var customBodies: List<CustomBody> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -194,6 +202,10 @@ sealed class ProviderSetting {
 
         override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
             return copy(customHeaders = headers)
+        }
+
+        override fun updateBodies(bodies: List<CustomBody>): ProviderSetting {
+            return copy(customBodies = bodies)
         }
 
         override fun copyProvider(
@@ -243,6 +255,7 @@ sealed class ProviderSetting {
         var promptCaching: Boolean = false,
         var promptCacheTtl: ClaudePromptCacheTtl = ClaudePromptCacheTtl.FIVE_MINUTES,
         override var customHeaders: List<CustomHeader> = emptyList(),
+        override var customBodies: List<CustomBody> = emptyList(),
         override var poolEnabled: Boolean = false,
         override var poolAccounts: List<PoolAccount> = emptyList(),
     ) : ProviderSetting(), PoolableProvider {
@@ -270,6 +283,10 @@ sealed class ProviderSetting {
 
         override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
             return copy(customHeaders = headers)
+        }
+
+        override fun updateBodies(bodies: List<CustomBody>): ProviderSetting {
+            return copy(customBodies = bodies)
         }
 
         override fun copyProvider(
@@ -317,6 +334,7 @@ sealed class ProviderSetting {
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
         override val customHeaders: List<CustomHeader> get() = emptyList()
+        override val customBodies: List<CustomBody> get() = emptyList()
         override fun addModel(model: Model): ProviderSetting = copy(models = models + model)
 
         override fun editModel(model: Model): ProviderSetting = copy(models = models.map { if (it.id == model.id) model.copy() else it })
@@ -329,6 +347,8 @@ sealed class ProviderSetting {
         })
 
         override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting = this
+
+        override fun updateBodies(bodies: List<CustomBody>): ProviderSetting = this
 
         override fun copyProvider(
             id: Uuid,

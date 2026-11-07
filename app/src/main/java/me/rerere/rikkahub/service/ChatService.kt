@@ -154,7 +154,7 @@ internal fun backgroundTextGenerationParams(
     model = model,
     reasoningLevel = reasoningLevel,
     customHeaders = provider?.customHeaders ?: emptyList(),
-    customBody = model.customBodies,
+    customBody = (provider?.customBodies ?: emptyList()) + model.customBodies,
 )
 
 data class ChatError(

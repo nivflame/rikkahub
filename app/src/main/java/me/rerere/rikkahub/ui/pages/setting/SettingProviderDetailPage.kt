@@ -177,7 +177,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
-    val pageCount = if (provider is ProviderSetting.Codex) 2 else 4
+    val pageCount = if (provider is ProviderSetting.Codex) 3 else 5
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -274,6 +274,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
                     }
                 }
+                BouncingTabButton(
+                    checked = pager.currentPage == pageCount - 1,
+                    onCheckedChange = { scope.launch { pager.animateScrollToPage(pageCount - 1) } },
+                ) {
+                    Text(stringResource(R.string.assistant_page_custom_bodies))
+                }
             }
             HorizontalPager(
                 state = pager,
@@ -313,6 +319,13 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 
                     3 -> {
                         SettingProviderHeadersPage(
+                            provider = internalProvider,
+                            onEdit = { internalProvider = it }
+                        )
+                    }
+
+                    4 -> {
+                        SettingProviderCustomBodyPage(
                             provider = internalProvider,
                             onEdit = { internalProvider = it }
                         )
@@ -462,6 +475,26 @@ private fun SettingProviderHeadersPage(
         CustomHeaders(
             headers = provider.customHeaders,
             onUpdate = { onEdit(provider.updateHeaders(it)) }
+        )
+    }
+}
+
+@Composable
+private fun SettingProviderCustomBodyPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CustomBodies(
+            customBodies = provider.customBodies,
+            onUpdate = { onEdit(provider.updateBodies(it)) }
         )
     }
 }
