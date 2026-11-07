@@ -10,6 +10,7 @@ import me.rerere.hugeicons.stroke.Share01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.FloppyDisk
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Tick01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -1042,9 +1043,11 @@ private fun ModelPicker(
                                         }
                                     },
                                     trailingContent = {
-                                        IconButton(
-                                            onClick = {
-                                                if (selectedModels.any { it.modelId == model.modelId }) {
+                                        val isSelected = selectedModels.any { it.modelId == model.modelId }
+                                        TonalToggleButton(
+                                            checked = isSelected,
+                                            onCheckedChange = {
+                                                if (isSelected) {
                                                     onModelDeselected(
                                                         selectedModels.firstOrNull { it.modelId == model.modelId }
                                                             ?: model
@@ -1052,10 +1055,15 @@ private fun ModelPicker(
                                                 } else {
                                                     onModelSelected(model)
                                                 }
-                                            }
+                                            },
+                                            shapes = ToggleButtonShapes(
+                                                shape = CircleShape,
+                                                pressedShape = CircleShape,
+                                                checkedShape = CircleShape,
+                                            ),
                                         ) {
-                                            if (selectedModels.any { it.modelId == model.modelId }) {
-                                                Icon(HugeIcons.Cancel01, null)
+                                            if (isSelected) {
+                                                Icon(HugeIcons.Tick01, null)
                                             } else {
                                                 Icon(HugeIcons.Add01, null)
                                             }
