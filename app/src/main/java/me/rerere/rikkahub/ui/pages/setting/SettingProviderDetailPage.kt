@@ -992,13 +992,17 @@ private fun ModelPicker(
                     }
                 }
 
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(8.dp),
+                        .weight(1f)
                 ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(8.dp) + PaddingValues(bottom = 96.dp),
+                    ) {
                     item {
                         val modelItemColors = ListItemDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -1081,50 +1085,51 @@ private fun ModelPicker(
                             }
                         }
                     }
-                }
-                var searchFocused by remember { mutableStateOf(false) }
-                val searchWidthFraction by animateFloatAsState(
-                    targetValue = if (searchFocused) 1f else 0.6f,
-                    animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                    label = "searchWidth",
-                )
-                TextField(
-                    value = filterText,
-                    onValueChange = {
-                        filterText = it
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .shadow(3.dp, CircleShape)
-                        .fillMaxWidth(searchWidthFraction)
-                        .onFocusChanged { searchFocused = it.isFocused },
-                    shape = CircleShape,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                    leadingIcon = {
-                        Icon(HugeIcons.Search01, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    },
-                    placeholder = {
-                        Text(
-                            text = stringResource(R.string.setting_provider_page_filter_placeholder),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    trailingIcon = if (filterText.isNotEmpty()) {
-                        {
-                            IconButton(onClick = { filterText = "" }) {
-                                Icon(HugeIcons.Cancel01, null)
+                    }
+                    var searchFocused by remember { mutableStateOf(false) }
+                    val searchWidthFraction by animateFloatAsState(
+                        targetValue = if (searchFocused) 1f else 0.6f,
+                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                        label = "searchWidth",
+                    )
+                    TextField(
+                        value = filterText,
+                        onValueChange = {
+                            filterText = it
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                            .shadow(3.dp, CircleShape)
+                            .fillMaxWidth(searchWidthFraction)
+                            .onFocusChanged { searchFocused = it.isFocused },
+                        shape = CircleShape,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        leadingIcon = {
+                            Icon(HugeIcons.Search01, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.setting_provider_page_filter_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingIcon = if (filterText.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { filterText = "" }) {
+                                    Icon(HugeIcons.Cancel01, null)
+                                }
                             }
-                        }
-                    } else null,
-                    singleLine = true,
-                )
-            }
+                        } else null,
+                        singleLine = true,
+                    )
+                }            }
         }
     }
     BadgedBox(
