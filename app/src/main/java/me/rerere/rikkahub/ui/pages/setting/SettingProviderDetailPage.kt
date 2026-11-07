@@ -1024,6 +1024,7 @@ private fun ModelPicker(
                                     },
                                     supportingContent = {
                                         Row(
+                                            modifier = Modifier.padding(top = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(2.dp)
                                         ) {
