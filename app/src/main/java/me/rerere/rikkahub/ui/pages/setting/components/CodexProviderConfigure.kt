@@ -199,7 +199,7 @@ fun CodexProviderConfigure(
                         supportingContent = account.planType?.let { plan ->
                             {
                                 Text(
-                                    text = codexPlanDisplayName(plan),
+                                    text = "ChatGPT " + codexPlanDisplayName(plan),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
