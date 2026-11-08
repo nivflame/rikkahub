@@ -140,6 +140,7 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                                 providers = listOf(it) + settings.providers
                             )
                         )
+                        navController.navigate(Screen.SettingProviderDetail(providerId = it.id.toString()))
                     }
                 },
                 scrollBehavior = scrollBehavior,
