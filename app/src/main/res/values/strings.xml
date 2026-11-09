@@ -927,6 +927,8 @@
   <string name="setting_page_web_server_stop">Stop</string>
   <string name="setting_provider_page_abilities">Abilities</string>
   <string name="setting_provider_page_rotation">Rotation</string>
+  <string name="setting_provider_page_enable_rotation">Enable rotation</string>
+  <string name="setting_provider_page_enable_rotation_desc">Rotate between pool accounts for each request</string>
   <string name="setting_provider_page_add">Confirm</string>
   <string name="setting_provider_page_add_model">Add Model</string>
   <string name="setting_provider_page_add_models_hint">Click the button below to add models</string>

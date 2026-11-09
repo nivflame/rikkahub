@@ -147,6 +147,32 @@ fun ProviderPoolSection(
     var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
 
+    val poolEnabled = when (provider) {
+        is ProviderSetting.OpenAI -> provider.poolEnabled
+        is ProviderSetting.Google -> provider.poolEnabled
+        is ProviderSetting.Claude -> provider.poolEnabled
+        else -> return
+    }
+
+    CardGroup {
+        item(
+            headlineContent = {
+                Text(stringResource(R.string.setting_provider_page_enable_rotation))
+            },
+            supportingContent = {
+                Text(stringResource(R.string.setting_provider_page_enable_rotation_desc))
+            },
+            trailingContent = {
+                Switch(
+                    checked = poolEnabled,
+                    onCheckedChange = { enabled ->
+                        onEdit(provider.updatePool(enabled, poolAccounts))
+                    },
+                )
+            },
+        )
+    }
+
     CardGroup(
         title = {
             Row(
@@ -221,7 +247,7 @@ fun ProviderPoolSection(
             account = null,
             accounts = poolAccounts,
             onConfirm = { name, apiKey ->
-                onEdit(provider.updatePool(true, poolAccounts + PoolAccount(name = name, apiKey = apiKey)))
+                onEdit(provider.updatePool(poolEnabled, poolAccounts + PoolAccount(name = name, apiKey = apiKey)))
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
@@ -235,7 +261,7 @@ fun ProviderPoolSection(
             onConfirm = { name, apiKey ->
                 onEdit(
                     provider.updatePool(
-                        enabled = true,
+                        enabled = poolEnabled,
                         accounts = poolAccounts.map {
                             if (it.id == account.id) it.copy(name = name, apiKey = apiKey) else it
                         }
@@ -255,7 +281,7 @@ fun ProviderPoolSection(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onEdit(provider.updatePool(true, poolAccounts - account))
+                        onEdit(provider.updatePool(poolEnabled, poolAccounts - account))
                         deleteTarget = null
                     }
                 ) {
