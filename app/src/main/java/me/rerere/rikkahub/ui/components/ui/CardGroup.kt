@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,6 +49,7 @@ private data class CardGroupItem(
     val leadingContent: (@Composable () -> Unit)?,
     val trailingContent: (@Composable () -> Unit)?,
     val colors: ListItemColors?,
+    val verticalAlignment: Alignment.Vertical?,
 )
 
 @DslMarker
@@ -62,6 +65,7 @@ interface CardGroupScope {
         leadingContent: (@Composable () -> Unit)? = null,
         trailingContent: (@Composable () -> Unit)? = null,
         colors: ListItemColors? = null,
+        verticalAlignment: Alignment.Vertical? = null,
         headlineContent: @Composable () -> Unit,
     )
 }
@@ -77,6 +81,7 @@ private class CardGroupScopeImpl : CardGroupScope {
         leadingContent: (@Composable () -> Unit)?,
         trailingContent: (@Composable () -> Unit)?,
         colors: ListItemColors?,
+        verticalAlignment: Alignment.Vertical?,
         headlineContent: @Composable () -> Unit,
     ) {
         items.add(
@@ -89,6 +94,7 @@ private class CardGroupScopeImpl : CardGroupScope {
                 leadingContent = leadingContent,
                 trailingContent = trailingContent,
                 colors = colors,
+                verticalAlignment = verticalAlignment,
             )
         )
     }
@@ -142,6 +148,7 @@ private fun CardGroupListItem(
         leadingContent = item.leadingContent,
         trailingContent = item.trailingContent,
         colors = item.colors ?: CustomColors.listItemColors,
+        verticalAlignment = item.verticalAlignment ?: ListItemDefaults.verticalAlignment(),
     )
 }
 
