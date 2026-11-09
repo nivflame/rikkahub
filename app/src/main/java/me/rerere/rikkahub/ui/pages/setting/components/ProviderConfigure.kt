@@ -90,7 +90,7 @@ fun ProviderConfigure(
     showTypeSelector: Boolean = false,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
         if (showTypeSelector && !provider.builtIn) {
