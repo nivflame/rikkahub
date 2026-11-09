@@ -60,6 +60,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ModalBottomSheet
@@ -77,6 +78,7 @@ import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.ToggleButtonShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -619,33 +621,38 @@ private fun ModelList(
                 item {
                     Column(
                         modifier = Modifier
-                            .fillParentMaxHeight(0.8f)
+                            .fillParentMaxHeight(0.9f)
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+                        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Bottom)
                     ) {
                         Surface(
-                            shape = CircleShape,
+                            shape = MaterialShapes.Cookie12Sided.toShape(),
                             color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(80.dp)
                         ) {
                             Icon(
                                 imageVector = HugeIcons.Package01,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(14.dp)
+                                modifier = Modifier.padding(20.dp)
                             )
                         }
-                        Text(
-                            text = stringResource(R.string.setting_provider_page_no_models),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.setting_provider_page_add_models_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.setting_provider_page_no_models),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.setting_provider_page_add_models_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             } else {
