@@ -149,8 +149,8 @@ fun ProviderPoolSection(
     val toaster = LocalToaster.current
 
     var showAddDialog by remember { mutableStateOf(false) }
-    var editTarget by remember { mutableState }
-?>(null) }
+    var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
+    var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
     val poolEnabled = when (provider) {
