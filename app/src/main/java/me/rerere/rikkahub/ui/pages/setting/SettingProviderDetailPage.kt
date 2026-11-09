@@ -65,7 +65,6 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -727,38 +726,31 @@ private fun ModelSettingsForm(
     }
 
     Column {
-        SecondaryScrollableTabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = Color.Transparent,
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Tab(
-                selected = pagerState.currentPage == 0,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(0)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_provider_page_basic_settings)) }
-            )
-            Tab(
-                selected = pagerState.currentPage == 1,
-                onClick = {
-                    scope.launch {
-                        pagerState.animateScrollToPage(1)
-                    }
-                },
-                text = { Text(stringResource(R.string.setting_provider_page_advanced_settings)) }
-            )
+            BouncingTabButton(
+                checked = pagerState.currentPage == 0,
+                onCheckedChange = { scope.launch { pagerState.animateScrollToPage(0) } },
+            ) {
+                Text(stringResource(R.string.setting_provider_page_basic_settings))
+            }
+            BouncingTabButton(
+                checked = pagerState.currentPage == 1,
+                onCheckedChange = { scope.launch { pagerState.animateScrollToPage(1) } },
+            ) {
+                Text(stringResource(R.string.setting_provider_page_advanced_settings))
+            }
             if (showBuiltInTools) {
-                Tab(
-                    selected = pagerState.currentPage == 2,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(2)
-                        }
-                    },
-                    text = { Text(stringResource(R.string.setting_page_built_in_tools)) }
-                )
+                BouncingTabButton(
+                    checked = pagerState.currentPage == 2,
+                    onCheckedChange = { scope.launch { pagerState.animateScrollToPage(2) } },
+                ) {
+                    Text(stringResource(R.string.setting_page_built_in_tools))
+                }
             }
         }
 
