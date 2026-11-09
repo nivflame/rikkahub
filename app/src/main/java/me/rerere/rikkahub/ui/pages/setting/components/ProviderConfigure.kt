@@ -156,6 +156,7 @@ fun ProviderPoolSection(
 
     CardGroup {
         item(
+            verticalAlignment = Alignment.CenterVertically,
             headlineContent = {
                 Text(stringResource(R.string.setting_provider_page_enable_rotation))
             },
