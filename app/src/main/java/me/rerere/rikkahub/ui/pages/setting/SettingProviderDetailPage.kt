@@ -443,7 +443,7 @@ private fun SettingProviderConfigPage(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = {
-                Text(stringResource(R.string.confirm_delete))
+                Text(stringResource(R.string.setting_provider_page_delete_dialog_title))
             },
             text = {
                 Text(stringResource(R.string.setting_provider_page_delete_dialog_text))
