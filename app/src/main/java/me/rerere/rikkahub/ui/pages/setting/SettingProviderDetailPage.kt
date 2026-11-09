@@ -171,6 +171,10 @@ private fun BouncingTabButton(
         },
         modifier = Modifier.graphicsLayer { scaleX = scale.value },
         shapes = ToggleButtonShapes(shape = CircleShape, pressedShape = CircleShape, checkedShape = CircleShape),
+        colors = ToggleButtonDefaults.toggleButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
         content = { label() },
     )
 }
