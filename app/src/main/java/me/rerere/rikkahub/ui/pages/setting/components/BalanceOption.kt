@@ -70,13 +70,13 @@ fun SettingProviderBalanceOption(
             } else null,
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = balanceOption.enabled,
-                        onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
-                    )
                     Icon(
                         imageVector = if (expand) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
                         contentDescription = null,
+                    )
+                    Switch(
+                        checked = balanceOption.enabled,
+                        onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
                     )
                 }
             },
