@@ -435,7 +435,7 @@ private fun PoolAccountDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     onConfirm(
                         name.trim().ifBlank { nextAccountName(accounts, account?.id) },
