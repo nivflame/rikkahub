@@ -1189,7 +1189,7 @@ private fun ModelPicker(
                                 Surface(
                                     onClick = { filterText = "" },
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceBright,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 ) {
                                     Icon(
                                         HugeIcons.Cancel01,
