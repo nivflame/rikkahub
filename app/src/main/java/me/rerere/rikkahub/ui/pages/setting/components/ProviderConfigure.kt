@@ -188,16 +188,6 @@ fun ProviderPoolSection(
             }
         }
     ) {
-        if (poolAccounts.isEmpty()) {
-            item(
-                headlineContent = {
-                    Text(
-                        text = "No accounts yet. Add an account to enable rotation.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-            )
-        }
         poolAccounts.forEach { account ->
             item(
                 onClick = { editTarget = account },
