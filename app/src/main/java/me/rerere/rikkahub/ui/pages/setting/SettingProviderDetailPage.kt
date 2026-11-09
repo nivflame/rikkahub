@@ -472,15 +472,7 @@ private fun SettingProviderAccountsPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        ProviderPoolSection(provider, onEdit)
-    }
+    ProviderPoolSection(provider, onEdit)
 }
 
 @Composable

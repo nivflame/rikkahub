@@ -5,19 +5,29 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
+import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -32,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -160,40 +171,48 @@ fun ProviderPoolSection(
         else -> return
     }
 
-    CardGroup {
-        item(
-            verticalAlignment = Alignment.CenterVertically,
-            headlineContent = {
-                Text(stringResource(R.string.setting_provider_page_enable_rotation))
-            },
-            supportingContent = {
-                Text(stringResource(R.string.setting_provider_page_enable_rotation_desc))
-            },
-            trailingContent = {
-                Switch(
-                    checked = poolEnabled,
-                    onCheckedChange = { enabled ->
-                        onEdit(provider.updatePool(enabled, poolAccounts))
+    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .floatingToolbarVerticalNestedScroll(
+                    expanded = toolbarExpanded,
+                    onExpand = { toolbarExpanded = true },
+                    onCollapse = { toolbarExpanded = false },
+                )
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CardGroup {
+                item(
+                    verticalAlignment = Alignment.CenterVertically,
+                    headlineContent = {
+                        Text(stringResource(R.string.setting_provider_page_enable_rotation))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.setting_provider_page_enable_rotation_desc))
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = poolEnabled,
+                            onCheckedChange = { enabled ->
+                                onEdit(provider.updatePool(enabled, poolAccounts))
+                            },
+                        )
                     },
                 )
-            },
-        )
-    }
-
-    CardGroup(
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = "Accounts")
-                FilledTonalIconButton(onClick = { showAddDialog = true }) {
-                    Icon(HugeIcons.Add01, contentDescription = "Add account")
-                }
             }
-        }
-    ) {
+
+            CardGroup(
+                title = {
+                    Text(text = "Accounts")
+                }
+            ) {
         poolAccounts.forEachIndexed { index, account ->
             item(
                 onClick = { editTarget = account },
@@ -285,6 +304,23 @@ fun ProviderPoolSection(
                     }
                 },
             )
+        }
+        }
+        }
+
+        HorizontalFloatingToolbar(
+            expanded = toolbarExpanded,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -ScreenOffset),
+        ) {
+            Button(onClick = { showAddDialog = true }) {
+                Icon(HugeIcons.Add01, null)
+                AnimatedVisibility(toolbarExpanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add account")
+                }
+            }
         }
     }
 
