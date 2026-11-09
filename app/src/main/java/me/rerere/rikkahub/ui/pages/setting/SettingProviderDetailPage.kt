@@ -53,6 +53,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -105,7 +106,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dokar.sonner.ToastType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
 import me.rerere.ai.provider.BuiltInTools
+import me.rerere.ai.provider.CustomBody
+import me.rerere.ai.provider.CustomHeader
 import me.rerere.ai.provider.Modality
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
@@ -465,18 +469,42 @@ private fun SettingProviderHeadersPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        CustomHeaders(
-            headers = provider.customHeaders,
-            onUpdate = { onEdit(provider.updateHeaders(it)) }
-        )
+    var expanded by rememberSaveable { mutableStateOf(true) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .floatingToolbarVerticalNestedScroll(
+                    expanded = expanded,
+                    onExpand = { expanded = true },
+                    onCollapse = { expanded = false },
+                )
+                .padding(16.dp)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CustomHeaders(
+                headers = provider.customHeaders,
+                onUpdate = { onEdit(provider.updateHeaders(it)) },
+                showAddButton = false,
+            )
+        }
+        HorizontalFloatingToolbar(
+            expanded = expanded,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -ScreenOffset),
+        ) {
+            FilledTonalIconButton(
+                onClick = {
+                    onEdit(provider.updateHeaders(provider.customHeaders + CustomHeader("", "")))
+                }
+            ) {
+                Icon(HugeIcons.Add01, stringResource(R.string.assistant_page_add_header))
+            }
+        }
     }
 }
 
@@ -485,18 +513,46 @@ private fun SettingProviderCustomBodyPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        CustomBodies(
-            customBodies = provider.customBodies,
-            onUpdate = { onEdit(provider.updateBodies(it)) }
-        )
+    var expanded by rememberSaveable { mutableStateOf(true) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .floatingToolbarVerticalNestedScroll(
+                    expanded = expanded,
+                    onExpand = { expanded = true },
+                    onCollapse = { expanded = false },
+                )
+                .padding(16.dp)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CustomBodies(
+                customBodies = provider.customBodies,
+                onUpdate = { onEdit(provider.updateBodies(it)) },
+                showAddButton = false,
+            )
+        }
+        HorizontalFloatingToolbar(
+            expanded = expanded,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -ScreenOffset),
+        ) {
+            FilledTonalIconButton(
+                onClick = {
+                    onEdit(
+                        provider.updateBodies(
+                            provider.customBodies + CustomBody("", JsonPrimitive(""))
+                        )
+                    )
+                }
+            ) {
+                Icon(HugeIcons.Add01, stringResource(R.string.assistant_page_add_body))
+            }
+        }
     }
 }
 

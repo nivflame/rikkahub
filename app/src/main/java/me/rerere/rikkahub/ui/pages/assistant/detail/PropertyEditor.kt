@@ -45,7 +45,11 @@ private val jsonLenient = Json {
 }
 
 @Composable
-fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) -> Unit) {
+fun CustomHeaders(
+    headers: List<CustomHeader>,
+    onUpdate: (List<CustomHeader>) -> Unit,
+    showAddButton: Boolean = true,
+) {
     CardGroup(
         title = {
             Row(
@@ -54,17 +58,19 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(stringResource(R.string.assistant_page_custom_headers))
-                FilledTonalIconButton(
-                    onClick = {
-                        val updatedHeaders = headers.toMutableList()
-                        updatedHeaders.add(CustomHeader("", ""))
-                        onUpdate(updatedHeaders)
+                if (showAddButton) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            val updatedHeaders = headers.toMutableList()
+                            updatedHeaders.add(CustomHeader("", ""))
+                            onUpdate(updatedHeaders)
+                        }
+                    ) {
+                        Icon(
+                            HugeIcons.Add01,
+                            contentDescription = stringResource(R.string.assistant_page_add_header)
+                        )
                     }
-                ) {
-                    Icon(
-                        HugeIcons.Add01,
-                        contentDescription = stringResource(R.string.assistant_page_add_header)
-                    )
                 }
             }
         }
@@ -150,7 +156,11 @@ fun CustomHeaders(headers: List<CustomHeader>, onUpdate: (List<CustomHeader>) ->
 }
 
 @Composable
-fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) -> Unit) {
+fun CustomBodies(
+    customBodies: List<CustomBody>,
+    onUpdate: (List<CustomBody>) -> Unit,
+    showAddButton: Boolean = true,
+) {
     val context = LocalContext.current
     val keyStates = customBodies.map { body ->
         remember(body.key) { mutableStateOf(body.key) }
@@ -172,17 +182,19 @@ fun CustomBodies(customBodies: List<CustomBody>, onUpdate: (List<CustomBody>) ->
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(stringResource(R.string.assistant_page_custom_bodies))
-                FilledTonalIconButton(
-                    onClick = {
-                        val updatedBodies = customBodies.toMutableList()
-                        updatedBodies.add(CustomBody("", JsonPrimitive("")))
-                        onUpdate(updatedBodies)
+                if (showAddButton) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            val updatedBodies = customBodies.toMutableList()
+                            updatedBodies.add(CustomBody("", JsonPrimitive("")))
+                            onUpdate(updatedBodies)
+                        }
+                    ) {
+                        Icon(
+                            HugeIcons.Add01,
+                            contentDescription = stringResource(R.string.assistant_page_add_body)
+                        )
                     }
-                ) {
-                    Icon(
-                        HugeIcons.Add01,
-                        contentDescription = stringResource(R.string.assistant_page_add_body)
-                    )
                 }
             }
         }
