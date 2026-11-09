@@ -3,14 +3,15 @@ package me.rerere.rikkahub.ui.pages.setting.components
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.ArrowUp01
-import me.rerere.hugeicons.stroke.Refresh03
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -74,6 +75,7 @@ fun SettingProviderBalanceOption(
                         imageVector = if (expand) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
                         contentDescription = null,
                     )
+                    Spacer(Modifier.width(8.dp))
                     Switch(
                         checked = balanceOption.enabled,
                         onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
@@ -83,14 +85,10 @@ fun SettingProviderBalanceOption(
         )
         if (expand) {
             item(
-                headlineContent = {
-                    Text(stringResource(R.string.setting_model_page_reset_to_default))
-                },
+                headlineContent = {},
                 trailingContent = {
-                    IconButton(
-                        onClick = { onEdit(balanceOption.copy()) }
-                    ) {
-                        Icon(HugeIcons.Refresh03, null)
+                    TextButton(onClick = { onEdit(balanceOption.copy()) }) {
+                        Text(stringResource(R.string.setting_model_page_reset_to_default))
                     }
                 },
             )
