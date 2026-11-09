@@ -110,32 +110,28 @@ fun CustomHeaders(
                     }
                 },
                 trailingContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            IconButton(
-                                enabled = index > 0,
-                                onClick = {
-                                    val updatedHeaders = headers.toMutableList()
-                                    val previous = updatedHeaders.removeAt(index - 1)
-                                    updatedHeaders.add(index, previous)
-                                    onUpdate(updatedHeaders)
-                                },
-                            ) {
-                                Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
-                            }
-                            IconButton(
-                                enabled = index < headers.lastIndex,
-                                onClick = {
-                                    val updatedHeaders = headers.toMutableList()
-                                    val next = updatedHeaders.removeAt(index + 1)
-                                    updatedHeaders.add(index, next)
-                                    onUpdate(updatedHeaders)
-                                },
-                            ) {
-                                Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
-                            }
+                    Column {
+                        IconButton(
+                            enabled = index > 0,
+                            onClick = {
+                                val updatedHeaders = headers.toMutableList()
+                                val previous = updatedHeaders.removeAt(index - 1)
+                                updatedHeaders.add(index, previous)
+                                onUpdate(updatedHeaders)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
+                        }
+                        IconButton(
+                            enabled = index < headers.lastIndex,
+                            onClick = {
+                                val updatedHeaders = headers.toMutableList()
+                                val next = updatedHeaders.removeAt(index + 1)
+                                updatedHeaders.add(index, next)
+                                onUpdate(updatedHeaders)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
                         }
                         IconButton(onClick = {
                             val updatedHeaders = headers.toMutableList()
@@ -256,32 +252,28 @@ fun CustomBodies(
                     }
                 },
                 trailingContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            IconButton(
-                                enabled = index > 0,
-                                onClick = {
-                                    val updatedBodies = customBodies.toMutableList()
-                                    val previous = updatedBodies.removeAt(index - 1)
-                                    updatedBodies.add(index, previous)
-                                    onUpdate(updatedBodies)
-                                },
-                            ) {
-                                Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
-                            }
-                            IconButton(
-                                enabled = index < customBodies.lastIndex,
-                                onClick = {
-                                    val updatedBodies = customBodies.toMutableList()
-                                    val next = updatedBodies.removeAt(index + 1)
-                                    updatedBodies.add(index, next)
-                                    onUpdate(updatedBodies)
-                                },
-                            ) {
-                                Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
-                            }
+                    Column {
+                        IconButton(
+                            enabled = index > 0,
+                            onClick = {
+                                val updatedBodies = customBodies.toMutableList()
+                                val previous = updatedBodies.removeAt(index - 1)
+                                updatedBodies.add(index, previous)
+                                onUpdate(updatedBodies)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
+                        }
+                        IconButton(
+                            enabled = index < customBodies.lastIndex,
+                            onClick = {
+                                val updatedBodies = customBodies.toMutableList()
+                                val next = updatedBodies.removeAt(index + 1)
+                                updatedBodies.add(index, next)
+                                onUpdate(updatedBodies)
+                            },
+                        ) {
+                            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
                         }
                         IconButton(onClick = {
                             val updatedBodies = customBodies.toMutableList()
