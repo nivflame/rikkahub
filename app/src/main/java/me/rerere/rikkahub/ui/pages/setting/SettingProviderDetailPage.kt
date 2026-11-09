@@ -1552,7 +1552,7 @@ private fun ModelCard(
                         ) {
                             Text(stringResource(R.string.cancel))
                         }
-                        TextButton(
+                        Button(
                             onClick = {
                                 if (editingModel.displayName.isNotBlank()) {
                                     dialogState.confirm()
