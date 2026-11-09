@@ -53,6 +53,8 @@ import me.rerere.rikkahub.data.ai.nextAccountName
 import me.rerere.rikkahub.utils.writeClipboardText
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.ArrowDown01
+import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.EllipsisVertical
@@ -147,8 +149,9 @@ fun ProviderPoolSection(
     val toaster = LocalToaster.current
 
     var showAddDialog by remember { mutableStateOf(false) }
-    var editTarget by remember { mutableStateOf<PoolAccount?>(null) }
-    var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
+    var editTarget by remember { mutableState }
+?>(null) }
+    var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
     val poolEnabled = when (provider) {
         is ProviderSetting.OpenAI -> provider.poolEnabled
@@ -191,8 +194,7 @@ fun ProviderPoolSection(
             }
         }
     ) {
-        poolAccounts.forEach { account ->
-            var menuExpanded by remember { mutableStateOf(false) }
+        poolAccounts.forEachIndexed { index, account ->
             item(
                 onClick = { editTarget = account },
                 headlineContent = {
@@ -219,19 +221,45 @@ fun ProviderPoolSection(
                     }
                 },
                 trailingContent = {
-                    IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                    IconButton(onClick = {
+                        expandedMenuId = if (expandedMenuId == account.id.toString()) null else account.id.toString()
+                    }) {
                         Icon(HugeIcons.EllipsisVertical, contentDescription = "More")
                         DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
+                            expanded = expandedMenuId == account.id.toString(),
+                            onDismissRequest = { expandedMenuId = null },
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Move up") },
+                                leadingIcon = { Icon(HugeIcons.ArrowUp01, null) },
+                                enabled = index > 0,
+                                onClick = {
+                                    val updated = poolAccounts.toMutableList()
+                                    val previous = updated.removeAt(index - 1)
+                                    updated.add(index, previous)
+                                    onEdit(provider.updatePool(poolEnabled, updated))
+                                    expandedMenuId = null
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move down") },
+                                leadingIcon = { Icon(HugeIcons.ArrowDown01, null) },
+                                enabled = index < poolAccounts.lastIndex,
+                                onClick = {
+                                    val updated = poolAccounts.toMutableList()
+                                    val next = updated.removeAt(index + 1)
+                                    updated.add(index, next)
+                                    onEdit(provider.updatePool(poolEnabled, updated))
+                                    expandedMenuId = null
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Copy API key") },
                                 leadingIcon = { Icon(HugeIcons.Copy01, null) },
                                 onClick = {
                                     context.writeClipboardText(account.apiKey, sensitive = true)
                                     toaster.show("Copied", ToastType.Success)
-                                    menuExpanded = false
+                                    expandedMenuId = null
                                 },
                             )
                             DropdownMenuItem(
@@ -250,7 +278,7 @@ fun ProviderPoolSection(
                                 },
                                 onClick = {
                                     deleteTarget = account
-                                    menuExpanded = false
+                                    expandedMenuId = null
                                 },
                             )
                         }
