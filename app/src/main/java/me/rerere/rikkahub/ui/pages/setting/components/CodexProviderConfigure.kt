@@ -12,7 +12,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -51,6 +50,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.UserCircle
+import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
 import me.rerere.rikkahub.data.codex.CodexAccountRepository
@@ -158,9 +158,8 @@ fun CodexProviderConfigure(
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier.size(40.dp),
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(10.dp),
-                                strokeWidth = 2.dp,
+                            RabbitLoadingIndicator(
+                                modifier = Modifier.padding(8.dp),
                             )
                         }
                     },
