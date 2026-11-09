@@ -498,12 +498,16 @@ private fun SettingProviderHeadersPage(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
-            FilledTonalIconButton(
+            Button(
                 onClick = {
                     onEdit(provider.updateHeaders(provider.customHeaders + CustomHeader("", "")))
                 }
             ) {
-                Icon(HugeIcons.Add01, stringResource(R.string.assistant_page_add_header))
+                Icon(HugeIcons.Add01, null)
+                AnimatedVisibility(expanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.assistant_page_add_header))
+                }
             }
         }
     }
@@ -542,7 +546,7 @@ private fun SettingProviderCustomBodyPage(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
-            FilledTonalIconButton(
+            Button(
                 onClick = {
                     onEdit(
                         provider.updateBodies(
@@ -551,7 +555,11 @@ private fun SettingProviderCustomBodyPage(
                     )
                 }
             ) {
-                Icon(HugeIcons.Add01, stringResource(R.string.assistant_page_add_body))
+                Icon(HugeIcons.Add01, null)
+                AnimatedVisibility(expanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.assistant_page_add_body))
+                }
             }
         }
     }
