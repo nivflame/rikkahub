@@ -1038,15 +1038,27 @@ private fun ModelPicker(
                         selectedModels.none { it.modelId == model.modelId }
                     }
 
-                    TextButton(
-                        onClick = {
+                    TonalToggleButton(
+                        checked = unselectedCount == 0,
+                        onCheckedChange = {
                             if (unselectedCount > 0) {
                                 onAllModelSelected(filteredModels)
                             } else {
                                 onAllModelDeselected(filteredModels)
                             }
                         },
+                        shapes = ToggleButtonShapes(
+                            shape = CircleShape,
+                            pressedShape = CircleShape,
+                            checkedShape = CircleShape,
+                        ),
                     ) {
+                        if (unselectedCount == 0) {
+                            Icon(HugeIcons.Tick01, null)
+                        } else {
+                            Icon(HugeIcons.Add01, null)
+                        }
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             if (unselectedCount > 0) stringResource(
                                 R.string.setting_provider_page_select_all
