@@ -636,10 +636,10 @@ private fun ModelList(
                 item {
                     Column(
                         modifier = Modifier
-                            .fillParentMaxHeight(0.9f)
+                            .fillParentMaxHeight(0.75f)
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Bottom)
+                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Bottom)
                     ) {
                         Surface(
                             shape = MaterialShapes.Cookie12Sided.toShape(),
