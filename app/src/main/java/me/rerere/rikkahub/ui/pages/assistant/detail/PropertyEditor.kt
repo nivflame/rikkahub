@@ -93,7 +93,8 @@ fun CustomHeaders(
                                 onUpdate(updatedHeaders)
                             },
                             label = { Text(stringResource(R.string.assistant_page_header_name)) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
                         )
                         OutlinedTextField(
                             value = headerValue,
@@ -105,7 +106,8 @@ fun CustomHeaders(
                                 onUpdate(updatedHeaders)
                             },
                             label = { Text(stringResource(R.string.assistant_page_header_value)) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
                         )
                     }
                 },
@@ -211,7 +213,8 @@ fun CustomBodies(
                                 onUpdate(updatedBodies)
                             },
                             label = { Text(stringResource(R.string.assistant_page_body_key)) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
                         )
                         OutlinedTextField(
                             value = valueStates[index].value,
@@ -240,8 +243,8 @@ fun CustomBodies(
                                     Text(errorStates[index].value!!)
                                 }
                             },
-                            minLines = 3,
-                            maxLines = 5,
+                            minLines = 1,
+                            maxLines = 1,
                             visualTransformation = HighlightCodeVisualTransformation(
                                 language = "json",
                                 highlighter = LocalHighlighter.current,
