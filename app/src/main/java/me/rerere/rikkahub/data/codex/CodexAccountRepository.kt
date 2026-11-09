@@ -76,7 +76,11 @@ class CodexAccountRepository internal constructor(
         )
         updateState(
             state.copy(
-                accounts = state.accounts.filterNot { it.id == account.id } + account
+                accounts = if (existing != null) {
+                    state.accounts.map { if (it.id == account.id) account else it }
+                } else {
+                    state.accounts + account
+                }
             )
         )
         account
