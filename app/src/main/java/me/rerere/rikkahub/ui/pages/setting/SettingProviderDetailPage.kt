@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -1059,94 +1060,96 @@ private fun ModelPicker(
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
+                    val segmentedColors = ListItemDefaults.segmentedColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
                         contentPadding = PaddingValues(8.dp) + PaddingValues(bottom = 96.dp),
                     ) {
-                    item {
-                        val modelItemColors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                        CardGroup {
-                            filteredModels.forEach { model ->
-                                item(
-                                    onClick = {
-                                        if (selectedModels.any { it.modelId == model.modelId }) {
-                                            onModelDeselected(
-                                                selectedModels.firstOrNull { it.modelId == model.modelId }
-                                                    ?: model
-                                            )
-                                        } else {
-                                            onModelSelected(model)
-                                        }
-                                    },
-                                    leadingContent = {
-                                        AutoAIIcon(
-                                            model.modelId,
-                                            Modifier.size(32.dp)
+                        itemsIndexed(
+                            filteredModels,
+                            key = { _, model -> model.modelId },
+                        ) { index, model ->
+                            SegmentedListItem(
+                                onClick = {
+                                    if (selectedModels.any { it.modelId == model.modelId }) {
+                                        onModelDeselected(
+                                            selectedModels.firstOrNull { it.modelId == model.modelId }
+                                                ?: model
                                         )
-                                    },
-                                    headlineContent = {
-                                        Text(
-                                            text = model.modelId,
-                                            style = MaterialTheme.typography.titleSmall,
-                                        )
-                                    },
-                                    supportingContent = {
-                                        Row(
-                                            modifier = Modifier.padding(top = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                        ) {
-                                            val modelMeta = remember(model) {
-                                                model.copy(
-                                                    inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
-                                                    outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
-                                                    abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId),
-                                                )
-                                            }
-                                            ModelModalityTag(
-                                                model = modelMeta,
-                                            )
-                                            ModelAbilityTag(
-                                                model = modelMeta,
+                                    } else {
+                                        onModelSelected(model)
+                                    }
+                                },
+                                shapes = ListItemDefaults.segmentedShapes(
+                                    index = index,
+                                    count = filteredModels.size
+                                ),
+                                colors = segmentedColors,
+                                leadingContent = {
+                                    AutoAIIcon(
+                                        model.modelId,
+                                        Modifier.size(32.dp)
+                                    )
+                                },
+                                supportingContent = {
+                                    Row(
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        val modelMeta = remember(model) {
+                                            model.copy(
+                                                inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
+                                                outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
+                                                abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId),
                                             )
                                         }
-                                    },
-                                    trailingContent = {
-                                        val isSelected = selectedModels.any { it.modelId == model.modelId }
-                                        TonalToggleButton(
-                                            checked = isSelected,
-                                            onCheckedChange = {
-                                                if (isSelected) {
-                                                    onModelDeselected(
-                                                        selectedModels.firstOrNull { it.modelId == model.modelId }
-                                                            ?: model
-                                                    )
-                                                } else {
-                                                    onModelSelected(model)
-                                                }
-                                            },
-                                            shapes = ToggleButtonShapes(
-                                                shape = CircleShape,
-                                                pressedShape = CircleShape,
-                                                checkedShape = CircleShape,
-                                            ),
-                                        ) {
+                                        ModelModalityTag(
+                                            model = modelMeta,
+                                        )
+                                        ModelAbilityTag(
+                                            model = modelMeta,
+                                        )
+                                    }
+                                },
+                                trailingContent = {
+                                    val isSelected = selectedModels.any { it.modelId == model.modelId }
+                                    TonalToggleButton(
+                                        checked = isSelected,
+                                        onCheckedChange = {
                                             if (isSelected) {
-                                                Icon(HugeIcons.Tick01, null)
+                                                onModelDeselected(
+                                                    selectedModels.firstOrNull { it.modelId == model.modelId }
+                                                        ?: model
+                                                )
                                             } else {
-                                                Icon(HugeIcons.Add01, null)
+                                                onModelSelected(model)
                                             }
+                                        },
+                                        shapes = ToggleButtonShapes(
+                                            shape = CircleShape,
+                                            pressedShape = CircleShape,
+                                            checkedShape = CircleShape,
+                                        ),
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(HugeIcons.Tick01, null)
+                                        } else {
+                                            Icon(HugeIcons.Add01, null)
                                         }
-                                    },
-                                    colors = modelItemColors,
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    text = model.modelId,
+                                    style = MaterialTheme.typography.titleSmall,
                                 )
                             }
                         }
-                    }
                     }
                     val isImeVisible = WindowInsets.isImeVisible
                     val searchWidthFraction by animateFloatAsState(
