@@ -1323,6 +1323,8 @@
   <string name="chat_page_selected_count">%1$d selected</string>
   <string name="chat_page_batch_delete_confirm">Delete %1$d conversations? This cannot be undone.</string>
   <string name="codex_sign_in">Sign in with ChatGPT</string>
+  <string name="codex_waiting_authorization">Waiting for authorization</string>
+  <string name="codex_waiting_authorization_hint">Tap to finish signing in your browser</string>
   <string name="codex_accounts_count">Accounts • %d</string>
   <string name="codex_no_accounts">No accounts signed in. Tap "Sign in with ChatGPT" to add one.</string>
   <string name="codex_token_available">Available</string>

@@ -12,10 +12,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +49,7 @@ import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
@@ -145,6 +149,43 @@ fun CodexProviderConfigure(
                 }
             }
         ) {
+            if (oauthStatus is CodexOAuthStatus.Waiting) {
+                item(
+                    onClick = oauthManager::startLogin,
+                    leadingContent = {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(10.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        }
+                    },
+                    headlineContent = {
+                        Text(stringResource(R.string.codex_waiting_authorization))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.codex_waiting_authorization_hint))
+                    },
+                    trailingContent = {
+                        FilledIconButton(
+                            onClick = { oauthManager.consumeResult() },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        ) {
+                            Icon(
+                                HugeIcons.Cancel01,
+                                contentDescription = stringResource(R.string.cancel),
+                            )
+                        }
+                    },
+                )
+            }
             if (accounts.isEmpty()) {
                 item(
                     headlineContent = {
