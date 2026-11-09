@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +55,7 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.EllipsisVertical
 import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
@@ -189,6 +192,7 @@ fun ProviderPoolSection(
         }
     ) {
         poolAccounts.forEach { account ->
+            var menuExpanded by remember { mutableStateOf(false) }
             item(
                 onClick = { editTarget = account },
                 headlineContent = {
@@ -215,17 +219,40 @@ fun ProviderPoolSection(
                     }
                 },
                 trailingContent = {
-                    Row {
-                        IconButton(
-                            onClick = {
-                                context.writeClipboardText(account.apiKey, sensitive = true)
-                                toaster.show("Copied", ToastType.Success)
-                            },
+                    IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                        Icon(HugeIcons.EllipsisVertical, contentDescription = "More")
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
                         ) {
-                            Icon(HugeIcons.Copy01, contentDescription = "Copy API key")
-                        }
-                        IconButton(onClick = { deleteTarget = account }) {
-                            Icon(HugeIcons.Delete01, contentDescription = "Delete")
+                            DropdownMenuItem(
+                                text = { Text("Copy API key") },
+                                leadingIcon = { Icon(HugeIcons.Copy01, null) },
+                                onClick = {
+                                    context.writeClipboardText(account.apiKey, sensitive = true)
+                                    toaster.show("Copied", ToastType.Success)
+                                    menuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Delete",
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        HugeIcons.Delete01,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                onClick = {
+                                    deleteTarget = account
+                                    menuExpanded = false
+                                },
+                            )
                         }
                     }
                 },
