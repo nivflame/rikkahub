@@ -358,12 +358,12 @@ private fun SettingProviderConfigPage(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
                 .floatingToolbarVerticalNestedScroll(
                     expanded = toolbarExpanded,
                     onExpand = { toolbarExpanded = true },
                     onCollapse = { toolbarExpanded = false },
                 )
+                .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -477,12 +477,12 @@ private fun SettingProviderHeadersPage(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
                 .floatingToolbarVerticalNestedScroll(
                     expanded = expanded,
                     onExpand = { expanded = true },
                     onCollapse = { expanded = false },
                 )
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -525,12 +525,12 @@ private fun SettingProviderCustomBodyPage(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
                 .floatingToolbarVerticalNestedScroll(
                     expanded = expanded,
                     onExpand = { expanded = true },
                     onCollapse = { expanded = false },
                 )
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
