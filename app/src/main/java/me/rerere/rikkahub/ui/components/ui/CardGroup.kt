@@ -122,34 +122,66 @@ private fun CardGroupListItem(
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
     )
 
-    ListItem(
-        headlineContent = item.headlineContent,
-        modifier = item.modifier
-            .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(
-                    topStart = topCorner,
-                    topEnd = topCorner,
-                    bottomStart = bottomCorner,
-                    bottomEnd = bottomCorner,
-                )
-            )
-            .then(
-                if (item.onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interactionSource,
-                        indication = LocalIndication.current,
-                        onClick = item.onClick,
+    if (item.verticalAlignment != null) {
+        ListItem(
+            onClick = item.onClick ?: {},
+            modifier = item.modifier
+                .fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(
+                        topStart = topCorner,
+                        topEnd = topCorner,
+                        bottomStart = bottomCorner,
+                        bottomEnd = bottomCorner,
                     )
-                } else Modifier
-            ),
-        overlineContent = item.overlineContent,
-        supportingContent = item.supportingContent,
-        leadingContent = item.leadingContent,
-        trailingContent = item.trailingContent,
-        colors = item.colors ?: CustomColors.listItemColors,
-        verticalAlignment = item.verticalAlignment ?: ListItemDefaults.verticalAlignment(),
-    )
+                )
+                .then(
+                    if (item.onClick == null) {
+                        Modifier.clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = {},
+                        )
+                    } else Modifier
+                ),
+            verticalAlignment = item.verticalAlignment,
+            leadingContent = item.leadingContent,
+            trailingContent = item.trailingContent,
+            overlineContent = item.overlineContent,
+            supportingContent = item.supportingContent,
+            colors = item.colors ?: CustomColors.listItemColors,
+        ) {
+            item.headlineContent()
+        }
+    } else {
+        ListItem(
+            headlineContent = item.headlineContent,
+            modifier = item.modifier
+                .fillMaxWidth()
+                .clip(
+                    RoundedCornerShape(
+                        topStart = topCorner,
+                        topEnd = topCorner,
+                        bottomStart = bottomCorner,
+                        bottomEnd = bottomCorner,
+                    )
+                )
+                .then(
+                    if (item.onClick != null) {
+                        Modifier.clickable(
+                            interactionSource = interactionSource,
+                            indication = LocalIndication.current,
+                            onClick = item.onClick,
+                        )
+                    } else Modifier
+                ),
+            overlineContent = item.overlineContent,
+            supportingContent = item.supportingContent,
+            leadingContent = item.leadingContent,
+            trailingContent = item.trailingContent,
+            colors = item.colors ?: CustomColors.listItemColors,
+        )
+    }
 }
 
 @Composable
