@@ -84,6 +84,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -91,7 +92,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -156,6 +160,7 @@ import kotlin.uuid.Uuid
 private fun BouncingTabButton(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
     label: @Composable () -> Unit,
 ) {
     val scale = remember { Animatable(1f) }
@@ -171,7 +176,7 @@ private fun BouncingTabButton(
             }
             onCheckedChange(value)
         },
-        modifier = Modifier.graphicsLayer { scaleX = scale.value },
+        modifier = modifier.graphicsLayer { scaleX = scale.value },
         shapes = ToggleButtonShapes(shape = CircleShape, pressedShape = CircleShape, checkedShape = CircleShape),
         colors = ToggleButtonDefaults.toggleButtonColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -181,6 +186,7 @@ private fun BouncingTabButton(
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -257,15 +263,21 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                val pillRequesters = List(pageCount) { remember { BringIntoViewRequester() } }
+                LaunchedEffect(pager.currentPage) {
+                    pillRequesters[pager.currentPage].bringIntoView()
+                }
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
+                    modifier = Modifier.bringIntoViewRequester(pillRequesters[0]),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_configuration))
                 }
                 BouncingTabButton(
                     checked = pager.currentPage == 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
+                    modifier = Modifier.bringIntoViewRequester(pillRequesters[1]),
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
@@ -273,12 +285,14 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                        modifier = Modifier.bringIntoViewRequester(pillRequesters[2]),
                     ) {
                         Text(stringResource(R.string.setting_provider_page_rotation))
                     }
                     BouncingTabButton(
                         checked = pager.currentPage == 3,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(3) } },
+                        modifier = Modifier.bringIntoViewRequester(pillRequesters[3]),
                     ) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
                     }
@@ -286,6 +300,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 BouncingTabButton(
                     checked = pager.currentPage == pageCount - 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(pageCount - 1) } },
+                    modifier = Modifier.bringIntoViewRequester(pillRequesters[pageCount - 1]),
                 ) {
                     Text(stringResource(R.string.assistant_page_custom_bodies))
                 }
