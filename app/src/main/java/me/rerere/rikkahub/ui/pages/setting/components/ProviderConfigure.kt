@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
@@ -358,16 +359,20 @@ fun ProviderPoolSection(
     deleteTarget?.let { account ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Delete Account") },
-            text = { Text("Delete account \"${account.name}\"? The API key cannot be recovered.") },
+            title = { Text("Delete this account?") },
+            text = { Text("This account will be removed from rotation. The API key cannot be recovered.") },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         onEdit(provider.updatePool(poolEnabled, poolAccounts - account))
                         deleteTarget = null
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
                 ) {
-                    Text(text = "Delete", color = MaterialTheme.colorScheme.error)
+                    Text(text = "Delete")
                 }
             },
             dismissButton = {
