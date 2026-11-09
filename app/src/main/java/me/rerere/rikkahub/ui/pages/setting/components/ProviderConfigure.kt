@@ -68,7 +68,7 @@ import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
-import me.rerere.hugeicons.stroke.EllipsisVertical
+import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
@@ -243,7 +243,7 @@ fun ProviderPoolSection(
                     IconButton(onClick = {
                         expandedMenuId = if (expandedMenuId == account.id.toString()) null else account.id.toString()
                     }) {
-                        Icon(HugeIcons.EllipsisVertical, contentDescription = "More")
+                        Icon(HugeIcons.MoreVertical, contentDescription = "More")
                         DropdownMenu(
                             expanded = expandedMenuId == account.id.toString(),
                             onDismissRequest = { expandedMenuId = null },
