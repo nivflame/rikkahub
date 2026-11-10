@@ -143,6 +143,7 @@ import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomHeaders
+import me.rerere.rikkahub.ui.pages.setting.components.CodexAccountsSection
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderPoolSection
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConnectionTester
@@ -193,7 +194,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
-    val pageCount = if (provider is ProviderSetting.Codex) 3 else 5
+    val pageCount = if (provider is ProviderSetting.Codex) 4 else 5
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
@@ -282,7 +283,15 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
-                if (provider !is ProviderSetting.Codex) {
+                if (provider is ProviderSetting.Codex) {
+                    BouncingTabButton(
+                        checked = pager.currentPage == 2,
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                        modifier = Modifier.bringIntoViewRequester(pillRequesters[2]),
+                    ) {
+                        Text("Accounts")
+                    }
+                } else {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
@@ -336,10 +345,17 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     }
 
                     2 -> {
-                        SettingProviderAccountsPage(
-                            provider = internalProvider,
-                            onEdit = { internalProvider = it }
-                        )
+                        if (provider is ProviderSetting.Codex) {
+                            SettingProviderCodexAccountsPage(
+                                provider = internalProvider,
+                                onEdit = { internalProvider = it }
+                            )
+                        } else {
+                            SettingProviderAccountsPage(
+                                provider = internalProvider,
+                                onEdit = { internalProvider = it }
+                            )
+                        }
                     }
 
                     3 -> {
@@ -478,6 +494,16 @@ private fun SettingProviderAccountsPage(
     onEdit: (ProviderSetting) -> Unit
 ) {
     ProviderPoolSection(provider, onEdit)
+}
+
+@Composable
+private fun SettingProviderCodexAccountsPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit
+) {
+    if (provider is ProviderSetting.Codex) {
+        CodexAccountsSection(provider, onEdit)
+    }
 }
 
 @Composable

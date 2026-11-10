@@ -1,20 +1,30 @@
 package me.rerere.rikkahub.ui.pages.setting.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
+import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -34,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -130,14 +141,65 @@ fun CodexProviderConfigure(
                 },
             )
         }
+    }
+}
 
-        CardGroup(
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+@Composable
+fun CodexAccountsSection(
+    provider: ProviderSetting.Codex,
+    onEdit: (ProviderSetting.Codex) -> Unit,
+) {
+    val repository = koinInject<CodexAccountRepository>()
+    val oauthManager = koinInject<CodexOAuthManager>()
+    val providerManager = koinInject<ProviderManager>()
+    val accounts by repository.accounts.collectAsStateWithLifecycle()
+    val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val toaster = LocalToaster.current
+    val context = LocalContext.current
+    var selectedAccountId by remember { mutableStateOf<String?>(null) }
+    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
+
+    LaunchedEffect(oauthStatus) {
+        when (val status = oauthStatus) {
+            is CodexOAuthStatus.Success -> {
+                runCatching {
+                    providerManager.getProviderByType(provider).listModels(provider)
+                }.onSuccess { models ->
+                    onEdit(provider.copy(models = mergeCodexModels(provider.models, models)))
+                }
+                toaster.show(
+                    context.getString(R.string.codex_oauth_success),
+                    type = ToastType.Success,
+                )
+                oauthManager.consumeResult()
+            }
+
+            is CodexOAuthStatus.Error -> {
+                toaster.show(status.message, type = ToastType.Error)
+                oauthManager.consumeResult()
+            }
+
+            else -> Unit
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .floatingToolbarVerticalNestedScroll(
+                    expanded = toolbarExpanded,
+                    onExpand = { toolbarExpanded = true },
+                    onCollapse = { toolbarExpanded = false },
+                )
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            CardGroup(
+                title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -149,15 +211,8 @@ fun CodexProviderConfigure(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    FilledTonalIconButton(onClick = oauthManager::startLogin) {
-                        Icon(
-                            HugeIcons.Add01,
-                            contentDescription = stringResource(R.string.codex_sign_in),
-                        )
-                    }
                 }
-            }
-        ) {
+            ) {
             if (oauthStatus is CodexOAuthStatus.Waiting) {
                 item(
                     onClick = oauthManager::startLogin,
@@ -269,6 +324,22 @@ fun CodexProviderConfigure(
                 },
                 onDismiss = { selectedAccountId = null },
             )
+        }
+        }
+
+        HorizontalFloatingToolbar(
+            expanded = toolbarExpanded,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -ScreenOffset),
+        ) {
+            Button(onClick = oauthManager::startLogin) {
+                Icon(HugeIcons.Add01, null)
+                AnimatedVisibility(toolbarExpanded) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.codex_sign_in))
+                }
+            }
         }
     }
 }
