@@ -103,9 +103,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toSize
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -280,7 +280,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     val position = pillPositions.getOrNull(index) ?: return@LaunchedEffect
                     val width = pillWidths.getOrNull(index) ?: return@LaunchedEffect
                     with(density) {
-                        val viewportCenter = pillScrollState.viewportSize.toSize().width / 2f
+                        val viewportCenter = pillScrollState.viewportSize.width / 2f
                         val centered = position - (viewportCenter - width / 2f)
                         val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
                         pillScrollState.animateScrollTo(clamped.roundToInt())
