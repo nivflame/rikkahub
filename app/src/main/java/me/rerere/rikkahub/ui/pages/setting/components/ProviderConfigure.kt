@@ -318,8 +318,10 @@ fun ProviderPoolSection(
             Button(onClick = { showAddDialog = true }) {
                 Icon(HugeIcons.Add01, null)
                 AnimatedVisibility(toolbarExpanded) {
-                    Spacer(Modifier.width(8.dp))
-                    Text("Add account")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add account")
+                    }
                 }
             }
         }

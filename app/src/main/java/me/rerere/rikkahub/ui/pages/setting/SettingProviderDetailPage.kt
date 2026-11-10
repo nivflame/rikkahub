@@ -458,8 +458,10 @@ private fun SettingProviderConfigPage(
             }) {
                 Icon(HugeIcons.FloppyDisk, null)
                 AnimatedVisibility(toolbarExpanded) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.setting_provider_page_save))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.setting_provider_page_save))
+                    }
                 }
             }
         }
@@ -589,8 +591,10 @@ private fun SettingProviderHeadersPage(
             ) {
                 Icon(HugeIcons.Add01, null)
                 AnimatedVisibility(expanded) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.assistant_page_add_header))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.assistant_page_add_header))
+                    }
                 }
             }
         }
@@ -641,8 +645,10 @@ private fun SettingProviderCustomBodyPage(
             ) {
                 Icon(HugeIcons.Add01, null)
                 AnimatedVisibility(expanded) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.assistant_page_add_body))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.assistant_page_add_body))
+                    }
                 }
             }
         }
