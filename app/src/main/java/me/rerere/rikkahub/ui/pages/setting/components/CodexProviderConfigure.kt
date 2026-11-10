@@ -49,7 +49,6 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Cancel01
-import me.rerere.hugeicons.stroke.UserCircle
 import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.codex.CodexAccount
@@ -208,19 +207,6 @@ fun CodexProviderConfigure(
             } else {
                 accounts.forEach { account ->
                     item(
-                        leadingContent = {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                Icon(
-                                    imageVector = HugeIcons.UserCircle,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(8.dp),
-                                )
-                            }
-                        },
                         headlineContent = {
                             val busiestWindow = listOfNotNull(
                                 account.usage?.primary,
