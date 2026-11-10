@@ -48,8 +48,24 @@ fun SettingProviderBalanceOption(
             headlineContent = {
                 Text(text = stringResource(R.string.setting_provider_page_balance_info))
             },
-            supportingContent = if (expand) {
-                {
+            trailingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (expand) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Switch(
+                        checked = balanceOption.enabled,
+                        onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
+                    )
+                }
+            },
+        )
+        if (expand) {
+            item(
+                headlineContent = {},
+                supportingContent = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = balanceOption.apiPath,
@@ -67,23 +83,8 @@ fun SettingProviderBalanceOption(
                             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono)
                         )
                     }
-                }
-            } else null,
-            trailingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (expand) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
-                        contentDescription = null,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Switch(
-                        checked = balanceOption.enabled,
-                        onCheckedChange = { onEdit(balanceOption.copy(enabled = it)) }
-                    )
-                }
-            },
-        )
-        if (expand) {
+                },
+            )
             item(
                 headlineContent = {},
                 trailingContent = {
