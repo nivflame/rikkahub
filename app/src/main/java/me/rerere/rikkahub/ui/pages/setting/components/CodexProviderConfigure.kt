@@ -263,6 +263,19 @@ fun CodexAccountsSection(
             } else {
                 accounts.forEach { account ->
                     item(
+                        leadingContent = if (account.usage == null) {
+                            {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    RabbitLoadingIndicator(
+                                        modifier = Modifier.padding(8.dp),
+                                    )
+                                }
+                            }
+                        } else null,
                         headlineContent = {
                             val busiestWindow = listOfNotNull(
                                 account.usage?.primary,
