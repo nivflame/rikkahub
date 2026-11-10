@@ -668,21 +668,20 @@ private fun ProviderConfigureOpenAI(
                 )
             },
         )
-        if (!provider.useResponseApi) {
-            item(
-                headlineContent = { FieldLabel(apiPathLabel) },
-                supportingContent = {
-                    OutlinedTextField(
-                        value = provider.chatCompletionsPath,
-                        onValueChange = { onEdit(provider.copy(chatCompletionsPath = it.trim())) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = apiPathLabel },
-                        enabled = !provider.builtIn,
-                    )
-                },
-            )
-        }
+        item(
+            headlineContent = { FieldLabel(apiPathLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = if (provider.useResponseApi) "/responses" else provider.chatCompletionsPath,
+                    onValueChange = { onEdit(provider.copy(chatCompletionsPath = it.trim())) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = apiPathLabel },
+                    enabled = !provider.builtIn,
+                    readOnly = provider.useResponseApi,
+                )
+            },
+        )
     }
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
