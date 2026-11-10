@@ -2,6 +2,7 @@ package me.rerere.rikkahub.ui.pages.setting.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -856,15 +857,21 @@ private fun ProviderConfigureClaude(
                 },
                 supportingContent = {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                     ) {
                         ClaudePromptCacheTtl.entries.forEachIndexed { index, ttl ->
+                            val segmentWeight by animateFloatAsState(
+                                targetValue = if (provider.promptCacheTtl == ttl) 1.5f else 1f,
+                                label = "ttlWeight",
+                            )
                             TonalToggleButton(
                                 checked = provider.promptCacheTtl == ttl,
                                 onCheckedChange = { onEdit(provider.copy(promptCacheTtl = ttl)) },
                                 modifier = Modifier
-                                    .weight(if (provider.promptCacheTtl == ttl) 1.5f else 1f)
+                                    .weight(segmentWeight)
                                     .height(48.dp),
                                 shapes = when (index) {
                                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
