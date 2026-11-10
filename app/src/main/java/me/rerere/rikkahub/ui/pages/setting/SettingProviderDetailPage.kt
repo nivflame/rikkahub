@@ -144,7 +144,6 @@ import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.rememberShareSheetState
 import me.rerere.rikkahub.ui.context.LocalNavController
-import me.rerere.rikkahub.ui.context.LocalHapticFeedback
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomHeaders
@@ -486,13 +485,13 @@ private fun SettingProviderConfigPage(
                     Icon(
                         HugeIcons.CheckmarkCircle02,
                         null,
-                        tint = MaterialTheme.colorScheme.onInverseSurface,
+                        tint = MaterialTheme.colorScheme.inverseOnSurface,
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
                         text = stringResource(R.string.setting_provider_page_save_success),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onInverseSurface,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
                     )
                 }
             }
