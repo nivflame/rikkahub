@@ -633,7 +633,7 @@ private fun ModelList(
                 item {
                     Column(
                         modifier = Modifier
-                            .fillParentMaxHeight(0.75f)
+                            .fillParentMaxHeight(0.85f)
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
