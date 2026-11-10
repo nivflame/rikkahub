@@ -209,6 +209,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val pillScrollState = rememberScrollState()
     val pillPositions = remember { mutableStateListOf<Float>() }
     val pillWidths = remember { mutableStateListOf<Int>() }
+    var pillRowWidth by remember { mutableStateOf(0) }
 
     val onEdit = { newProvider: ProviderSetting ->
         val newSettings = settings.copy(
@@ -270,21 +271,20 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onGloballyPositioned { pillRowWidth = it.size.width }
                     .horizontalScroll(pillScrollState)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 val density = LocalDensity.current
-                LaunchedEffect(pager.currentPage, pillPositions.size, pillScrollState.maxValue) {
+                LaunchedEffect(pager.currentPage, pillPositions.size, pillScrollState.maxValue, pillRowWidth) {
                     val index = pager.currentPage
                     val position = pillPositions.getOrNull(index) ?: return@LaunchedEffect
                     val width = pillWidths.getOrNull(index) ?: return@LaunchedEffect
-                    with(density) {
-                        val viewportCenter = pillScrollState.viewportSize.width / 2f
-                        val centered = position - (viewportCenter - width / 2f)
-                        val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
-                        pillScrollState.animateScrollTo(clamped.roundToInt())
-                    }
+                    val viewportCenter = pillRowWidth / 2f
+                    val centered = position - (viewportCenter - width / 2f)
+                    val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
+                    pillScrollState.animateScrollTo(clamped.roundToInt())
                 }
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
