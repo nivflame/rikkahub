@@ -87,40 +87,6 @@ fun CodexProviderConfigure(
     provider: ProviderSetting.Codex,
     onEdit: (ProviderSetting.Codex) -> Unit,
 ) {
-    val repository = koinInject<CodexAccountRepository>()
-    val oauthManager = koinInject<CodexOAuthManager>()
-    val providerManager = koinInject<ProviderManager>()
-    val accounts by repository.accounts.collectAsStateWithLifecycle()
-    val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
-    val context = LocalContext.current
-    var selectedAccountId by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(oauthStatus) {
-        when (val status = oauthStatus) {
-            is CodexOAuthStatus.Success -> {
-                runCatching {
-                    providerManager.getProviderByType(provider).listModels(provider)
-                }.onSuccess { models ->
-                    onEdit(provider.copy(models = mergeCodexModels(provider.models, models)))
-                }
-                toaster.show(
-                    context.getString(R.string.codex_oauth_success),
-                    type = ToastType.Success,
-                )
-                oauthManager.consumeResult()
-            }
-
-            is CodexOAuthStatus.Error -> {
-                toaster.show(status.message, type = ToastType.Error)
-                oauthManager.consumeResult()
-            }
-
-            else -> Unit
-        }
-    }
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -169,10 +135,6 @@ fun CodexAccountsSection(
                 }.onSuccess { models ->
                     onEdit(provider.copy(models = mergeCodexModels(provider.models, models)))
                 }
-                toaster.show(
-                    context.getString(R.string.codex_oauth_success),
-                    type = ToastType.Success,
-                )
                 oauthManager.consumeResult()
             }
 
