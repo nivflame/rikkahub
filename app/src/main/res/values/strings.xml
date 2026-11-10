@@ -1352,7 +1352,6 @@
   <string name="codex_remove_account_message">Are you sure you want to remove this account?</string>
   <string name="codex_remove">Remove</string>
   <string name="codex_refresh_failed">Failed to refresh account</string>
-  <string name="codex_oauth_success">Signed in successfully</string>
   <string name="codex_oauth_ports_unavailable">Unable to start OAuth callback server. Ports 1455 and 1457 are in use.</string>
 </resources>
 
