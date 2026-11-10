@@ -469,31 +469,31 @@ private fun SettingProviderConfigPage(
         AnimatedVisibility(
             visible = showSavedPill,
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -(ScreenOffset + 72.dp)),
+                .align(Alignment.TopCenter)
+                .offset(y = 16.dp),
             enter = fadeIn() + scaleIn(),
             exit = fadeOut() + scaleOut(),
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.inverseSurface,
+                color = MaterialTheme.colorScheme.secondaryContainer,
                 shadowElevation = 6.dp,
             ) {
                 Row(
-                    modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
                         HugeIcons.CheckmarkCircle02,
                         null,
-                        tint = MaterialTheme.colorScheme.inverseOnSurface,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
                         text = stringResource(R.string.setting_provider_page_save_success),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
