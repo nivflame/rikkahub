@@ -1045,48 +1045,74 @@ private fun ProviderConfigureGoogle(
     }
 
     if (provider.vertexAI && provider.useServiceAccount) {
-        OutlinedButton(
-            onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(R.string.setting_provider_page_import_service_account_json))
-        }
-
-        OutlinedTextField(
-            value = provider.serviceAccountEmail,
-            onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_service_account_email)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
         var privateKeyVisible by remember { mutableStateOf(false) }
-        OutlinedTextField(
-            value = provider.privateKey,
-            onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_private_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 6,
-            minLines = 3,
-            textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
-        visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            ApiKeyTrailingIcons(privateKeyVisible, { privateKeyVisible = !privateKeyVisible }, provider.privateKey)
-        },
-        )
+        val importLabel = stringResource(R.string.setting_provider_page_import_service_account_json)
+        val emailLabel = stringResource(R.string.setting_provider_page_service_account_email)
+        val privateKeyLabel = stringResource(R.string.setting_provider_page_private_key)
+        val locationLabel = stringResource(R.string.setting_provider_page_location)
+        val projectIdLabel = stringResource(R.string.setting_provider_page_project_id)
 
-        OutlinedTextField(
-            value = provider.location,
-            onValueChange = { onEdit(provider.copy(location = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_location)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        OutlinedTextField(
-            value = provider.projectId,
-            onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_project_id)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        CardGroup {
+            item(
+                onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
+                headlineContent = {
+                    Text(
+                        text = importLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+            )
+            item(
+                headlineContent = { FieldLabel(emailLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.serviceAccountEmail,
+                        onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                },
+            )
+            item(
+                headlineContent = { FieldLabel(privateKeyLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.privateKey,
+                        onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 6,
+                        minLines = 3,
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono),
+                        visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            ApiKeyTrailingIcons(privateKeyVisible, { privateKeyVisible = !privateKeyVisible }, provider.privateKey)
+                        },
+                    )
+                },
+            )
+            item(
+                headlineContent = { FieldLabel(locationLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.location,
+                        onValueChange = { onEdit(provider.copy(location = it.trim())) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                },
+            )
+            item(
+                headlineContent = { FieldLabel(projectIdLabel) },
+                supportingContent = {
+                    OutlinedTextField(
+                        value = provider.projectId,
+                        onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                },
+            )
+        }
     }
 }
 
