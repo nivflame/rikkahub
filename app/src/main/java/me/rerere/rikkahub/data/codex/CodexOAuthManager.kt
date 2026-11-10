@@ -198,6 +198,17 @@ class CodexOAuthManager(
     private fun callbackPage(success: Boolean): String {
         val status = if (success) "success" else "error"
         val deepLink = "rikkahub://codex/oauth?status=${URLEncoder.encode(status, Charsets.UTF_8.name())}"
+        val icon = if (success) {
+            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>"""
+        } else {
+            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>"""
+        }
+        val headline = if (success) "Authorization complete" else "Authorization failed"
+        val supporting = if (success) {
+            "The account has been connected successfully."
+        } else {
+            "The sign-in did not complete. Try again."
+        }
         return """
             <!doctype html>
             <html>
@@ -205,11 +216,82 @@ class CodexOAuthManager(
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <meta http-equiv="refresh" content="0; url=$deepLink">
-                <title>RikkaHub Codex OAuth</title>
+                <title>RikkaHub</title>
+                <style>
+                  :root {
+                    --surface: #FEF7FF;
+                    --on-surface: #1D1B20;
+                    --on-surface-variant: #49454F;
+                    --secondary-container: #E8DEF8;
+                    --on-secondary-container: #1D1926;
+                    --tonal-outline: #CAC4D0;
+                  }
+                  @media (prefers-color-scheme: dark) {
+                    :root {
+                      --surface: #141218;
+                      --on-surface: #E6E0E9;
+                      --on-surface-variant: #CAC4D0;
+                      --secondary-container: #4A4458;
+                      --on-secondary-container: #E8DEF8;
+                      --tonal-outline: #49454F;
+                    }
+                  }
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                    background: var(--surface);
+                    color: var(--on-surface);
+                    font-family: Roboto, "Segoe UI", system-ui, sans-serif;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 24px;
+                  }
+                  .card { text-align: center; max-width: 420px; }
+                  .brand {
+                    font-size: 14px;
+                    font-weight: 500;
+                    letter-spacing: 0.1em;
+                    color: var(--on-surface-variant);
+                    text-transform: uppercase;
+                    margin-bottom: 32px;
+                  }
+                  .icon-wrap {
+                    width: 96px;
+                    height: 96px;
+                    border-radius: 50%;
+                    background: var(--secondary-container);
+                    color: var(--on-secondary-container);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 24px;
+                  }
+                  h1 { font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+                  p { font-size: 14px; line-height: 20px; color: var(--on-surface-variant); }
+                  .hint { margin-top: 12px; font-size: 13px; }
+                  .button {
+                    display: inline-block;
+                    margin-top: 32px;
+                    padding: 10px 24px;
+                    border-radius: 999px;
+                    background: var(--secondary-container);
+                    color: var(--on-secondary-container);
+                    font-size: 14px;
+                    font-weight: 500;
+                    text-decoration: none;
+                  }
+                </style>
               </head>
               <body>
-                <p>${if (success) "Returning to RikkaHub..." else "Sign-in failed."}</p>
-                <p><a href="$deepLink">Return to RikkaHub</a></p>
+                <main class="card">
+                  <div class="brand">RikkaHub</div>
+                  <div class="icon-wrap">$icon</div>
+                  <h1>$headline</h1>
+                  <p>$supporting</p>
+                  <p class="hint">You can close this tab and return to RikkaHub.</p>
+                  <a class="button" href="$deepLink">Return to RikkaHub</a>
+                </main>
                 <script>
                   window.location.replace("$deepLink");
                   setTimeout(function () { window.location.href = "$deepLink"; }, 500);
