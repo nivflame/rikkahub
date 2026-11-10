@@ -49,6 +49,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -98,15 +99,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toSize
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -160,6 +162,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
 
 @Composable
@@ -203,6 +206,9 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var internalProvider by remember(provider) { mutableStateOf(provider) }
+    val pillScrollState = rememberScrollState()
+    val pillPositions = remember { mutableStateListOf<Float>() }
+    val pillWidths = remember { mutableStateListOf<Int>() }
 
     val onEdit = { newProvider: ProviderSetting ->
         val newSettings = settings.copy(
@@ -264,25 +270,41 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(pillScrollState)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val pillRequesters = List(pageCount) { remember { BringIntoViewRequester() } }
-                LaunchedEffect(pager.currentPage) {
-                    pillRequesters[pager.currentPage].bringIntoView()
+                val density = LocalDensity.current
+                LaunchedEffect(pager.currentPage, pillPositions.size, pillScrollState.maxValue) {
+                    val index = pager.currentPage
+                    val position = pillPositions.getOrNull(index) ?: return@LaunchedEffect
+                    val width = pillWidths.getOrNull(index) ?: return@LaunchedEffect
+                    with(density) {
+                        val viewportCenter = pillScrollState.viewportSize.toSize().width / 2f
+                        val centered = position - (viewportCenter - width / 2f)
+                        val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
+                        pillScrollState.animateScrollTo(clamped.roundToInt())
+                    }
                 }
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
-                    modifier = Modifier.bringIntoViewRequester(pillRequesters[0]),
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            pillPositions[0] = it.positionInParent().x.toFloat()
+                            pillWidths[0] = it.size.width
+                        },
                 ) {
                     Text(stringResource(R.string.setting_provider_page_configuration))
                 }
                 BouncingTabButton(
                     checked = pager.currentPage == 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(1) } },
-                    modifier = Modifier.bringIntoViewRequester(pillRequesters[1]),
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            pillPositions[1] = it.positionInParent().x.toFloat()
+                            pillWidths[1] = it.size.width
+                        },
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
@@ -290,7 +312,11 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                        modifier = Modifier.bringIntoViewRequester(pillRequesters[2]),
+                        modifier = Modifier
+                            .onGloballyPositioned {
+                                pillPositions[2] = it.positionInParent().x.toFloat()
+                                pillWidths[2] = it.size.width
+                            },
                     ) {
                         Text("Accounts")
                     }
@@ -298,14 +324,22 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                        modifier = Modifier.bringIntoViewRequester(pillRequesters[2]),
+                        modifier = Modifier
+                            .onGloballyPositioned {
+                                pillPositions[2] = it.positionInParent().x.toFloat()
+                                pillWidths[2] = it.size.width
+                            },
                     ) {
                         Text(stringResource(R.string.setting_provider_page_rotation))
                     }
                     BouncingTabButton(
                         checked = pager.currentPage == 3,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(3) } },
-                        modifier = Modifier.bringIntoViewRequester(pillRequesters[3]),
+                        modifier = Modifier
+                            .onGloballyPositioned {
+                                pillPositions[3] = it.positionInParent().x.toFloat()
+                                pillWidths[3] = it.size.width
+                            },
                     ) {
                         Text(stringResource(R.string.assistant_page_custom_headers))
                     }
@@ -313,7 +347,11 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 BouncingTabButton(
                     checked = pager.currentPage == pageCount - 1,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(pageCount - 1) } },
-                    modifier = Modifier.bringIntoViewRequester(pillRequesters[pageCount - 1]),
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            pillPositions[pageCount - 1] = it.positionInParent().x.toFloat()
+                            pillWidths[pageCount - 1] = it.size.width
+                        },
                 ) {
                     Text(stringResource(R.string.assistant_page_custom_bodies))
                 }
