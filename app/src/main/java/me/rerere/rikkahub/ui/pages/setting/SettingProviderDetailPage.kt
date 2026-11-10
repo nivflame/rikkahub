@@ -11,12 +11,17 @@ import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.FloppyDisk
 import me.rerere.hugeicons.stroke.InformationCircle
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -108,8 +113,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dokar.sonner.ToastType
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonPrimitive
 import me.rerere.ai.provider.BuiltInTools
@@ -139,7 +144,7 @@ import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.rememberShareSheetState
 import me.rerere.rikkahub.ui.context.LocalNavController
-import me.rerere.rikkahub.ui.context.LocalToaster
+import me.rerere.rikkahub.ui.context.LocalHapticFeedback
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomHeaders
@@ -197,7 +202,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val pageCount = if (provider is ProviderSetting.Codex) 4 else 5
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
     val context = LocalContext.current
     var internalProvider by remember(provider) { mutableStateOf(provider) }
 
@@ -326,10 +330,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                             onEdit = { internalProvider = it },
                             onSave = {
                                 onEdit(internalProvider)
-                                toaster.show(
-                                    context.getString(R.string.setting_provider_page_save_success),
-                                    type = ToastType.Success
-                                )
                             },
                             onDelete = {
                                 onDelete()
@@ -386,6 +386,14 @@ private fun SettingProviderConfigPage(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
+    var showSavedPill by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showSavedPill) {
+        if (showSavedPill) {
+            delay(2000)
+            showSavedPill = false
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -445,11 +453,47 @@ private fun SettingProviderConfigPage(
                     )
                 }
             }
-            Button(onClick = onSave) {
+            Button(onClick = {
+                onSave()
+                showSavedPill = true
+            }) {
                 Icon(HugeIcons.FloppyDisk, null)
                 AnimatedVisibility(toolbarExpanded) {
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.setting_provider_page_save))
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showSavedPill,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = -(ScreenOffset + 72.dp)),
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.inverseSurface,
+                shadowElevation = 6.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        HugeIcons.CheckmarkCircle02,
+                        null,
+                        tint = MaterialTheme.colorScheme.onInverseSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.setting_provider_page_save_success),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onInverseSurface,
+                    )
                 }
             }
         }
