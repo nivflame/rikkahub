@@ -139,7 +139,17 @@ fun CodexProviderConfigure(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.codex_accounts_count, accounts.size))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("Accounts")
+                        Text(
+                            text = "${accounts.size}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     FilledTonalIconButton(onClick = oauthManager::startLogin) {
                         Icon(
                             HugeIcons.Add01,
