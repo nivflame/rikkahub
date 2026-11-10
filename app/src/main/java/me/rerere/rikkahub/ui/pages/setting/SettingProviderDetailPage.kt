@@ -206,8 +206,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val context = LocalContext.current
     var internalProvider by remember(provider) { mutableStateOf(provider) }
     val pillScrollState = rememberScrollState()
-    val pillPositions = remember { mutableStateListOf<Float>() }
-    val pillWidths = remember { mutableStateListOf<Int>() }
+    val pillPositions = remember(pageCount) {
+        mutableStateListOf<Float>().apply { repeat(pageCount) { add(0f) } }
+    }
+    val pillWidths = remember(pageCount) {
+        mutableStateListOf<Int>().apply { repeat(pageCount) { add(0) } }
+    }
     var pillRowWidth by remember { mutableStateOf(0) }
 
     val onEdit = { newProvider: ProviderSetting ->
