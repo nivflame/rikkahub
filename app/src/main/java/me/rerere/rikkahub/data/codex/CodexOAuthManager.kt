@@ -199,9 +199,9 @@ class CodexOAuthManager(
         val status = if (success) "success" else "error"
         val deepLink = "rikkahub://codex/oauth?status=${URLEncoder.encode(status, Charsets.UTF_8.name())}"
         val icon = if (success) {
-            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>"""
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" class="draw" d="M20 6 9 17l-5-5"/></svg>"""
         } else {
-            """<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>"""
+            """<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path pathLength="1" class="draw" d="M6 6l12 12M18 6 6 18"/></svg>"""
         }
         val headline = if (success) "Authorization complete" else "Authorization failed"
         val supporting = if (success) {
@@ -248,14 +248,6 @@ class CodexOAuthManager(
                     padding: 24px;
                   }
                   .card { text-align: center; max-width: 420px; }
-                  .brand {
-                    font-size: 14px;
-                    font-weight: 500;
-                    letter-spacing: 0.1em;
-                    color: var(--on-surface-variant);
-                    text-transform: uppercase;
-                    margin-bottom: 32px;
-                  }
                   .icon-wrap {
                     width: 96px;
                     height: 96px;
@@ -267,30 +259,25 @@ class CodexOAuthManager(
                     justify-content: center;
                     margin-bottom: 24px;
                   }
+                  .draw {
+                    stroke-dasharray: 1;
+                    stroke-dashoffset: 1;
+                    animation: draw 300ms ease-out forwards;
+                  }
+                  @keyframes draw {
+                    to { stroke-dashoffset: 0; }
+                  }
                   h1 { font-size: 24px; font-weight: 400; margin-bottom: 8px; }
                   p { font-size: 14px; line-height: 20px; color: var(--on-surface-variant); }
                   .hint { margin-top: 12px; font-size: 13px; }
-                  .button {
-                    display: inline-block;
-                    margin-top: 32px;
-                    padding: 10px 24px;
-                    border-radius: 999px;
-                    background: var(--secondary-container);
-                    color: var(--on-secondary-container);
-                    font-size: 14px;
-                    font-weight: 500;
-                    text-decoration: none;
-                  }
                 </style>
               </head>
               <body>
                 <main class="card">
-                  <div class="brand">RikkaHub</div>
                   <div class="icon-wrap">$icon</div>
                   <h1>$headline</h1>
                   <p>$supporting</p>
                   <p class="hint">You can close this tab and return to RikkaHub.</p>
-                  <a class="button" href="$deepLink">Return to RikkaHub</a>
                 </main>
                 <script>
                   window.location.replace("$deepLink");
