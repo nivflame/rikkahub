@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -863,7 +864,9 @@ private fun ProviderConfigureClaude(
                             TonalToggleButton(
                                 checked = provider.promptCacheTtl == ttl,
                                 onCheckedChange = { onEdit(provider.copy(promptCacheTtl = ttl)) },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(if (provider.promptCacheTtl == ttl) 1.5f else 1f)
+                                    .height(48.dp),
                                 shapes = when (index) {
                                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                     ClaudePromptCacheTtl.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
