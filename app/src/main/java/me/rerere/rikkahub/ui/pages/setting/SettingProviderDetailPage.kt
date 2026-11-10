@@ -510,7 +510,7 @@ private fun SettingProviderConfigPage(
             visible = showSavedPill,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = -8.dp),
+                .offset(y = -54.dp),
             enter = fadeIn() + scaleIn(),
             exit = fadeOut() + scaleOut(),
         ) {
