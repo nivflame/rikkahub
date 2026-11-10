@@ -253,12 +253,18 @@ fun CodexAccountsSection(
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 busiestWindow?.let {
+                                    val remaining = (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt()
                                     Text(
                                         text = stringResource(
                                             R.string.codex_percent,
-                                            (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt(),
+                                            remaining,
                                         ),
                                         style = MaterialTheme.typography.titleMedium,
+                                        color = if (remaining == 0) {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
                                     )
                                 }
                             }
