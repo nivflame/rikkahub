@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -216,10 +217,12 @@ fun ProviderPoolSection(
                 )
             }
 
+            val accountsAlpha = if (poolEnabled) 1f else 0.38f
             if (poolAccounts.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .graphicsLayer { alpha = accountsAlpha }
                         .padding(vertical = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -253,6 +256,7 @@ fun ProviderPoolSection(
                 }
             } else {
                 CardGroup(
+                    modifier = Modifier.graphicsLayer { alpha = accountsAlpha },
                     title = {
                         Text(text = "Accounts")
                     }
