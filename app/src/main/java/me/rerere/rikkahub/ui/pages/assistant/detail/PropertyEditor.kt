@@ -78,11 +78,30 @@ fun CustomHeaders(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "No custom headers",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "No custom headers",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (showAddButton) {
+                        FilledTonalIconButton(
+                            onClick = {
+                                val updatedHeaders = headers.toMutableList()
+                                updatedHeaders.add(CustomHeader("", ""))
+                                onUpdate(updatedHeaders)
+                            }
+                        ) {
+                            Icon(
+                                HugeIcons.Add01,
+                                contentDescription = stringResource(R.string.assistant_page_add_header)
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = "Headers sent with every request to this provider",
                     style = MaterialTheme.typography.bodyMedium,
@@ -213,11 +232,30 @@ fun CustomBodies(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "No custom bodies",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "No custom bodies",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (showAddButton) {
+                        FilledTonalIconButton(
+                            onClick = {
+                                val updatedBodies = customBodies.toMutableList()
+                                updatedBodies.add(CustomBody("", JsonPrimitive("")))
+                                onUpdate(updatedBodies)
+                            }
+                        ) {
+                            Icon(
+                                HugeIcons.Add01,
+                                contentDescription = stringResource(R.string.assistant_page_add_body)
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = "JSON request bodies appended to every request",
                     style = MaterialTheme.typography.bodyMedium,
