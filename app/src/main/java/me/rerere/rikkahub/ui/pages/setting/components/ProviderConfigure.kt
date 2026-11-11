@@ -223,7 +223,7 @@ fun ProviderPoolSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer { alpha = accountsAlpha }
-                        .padding(vertical = 48.dp),
+                        .padding(top = 96.dp, bottom = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                 ) {
