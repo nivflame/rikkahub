@@ -5,12 +5,18 @@ import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.SourceCode
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.toShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -50,31 +56,44 @@ fun CustomHeaders(
     onUpdate: (List<CustomHeader>) -> Unit,
     showAddButton: Boolean = true,
 ) {
-    CardGroup(
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+    if (headers.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 96.dp, bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            Surface(
+                shape = MaterialShapes.Sunny.toShape(),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(80.dp),
             ) {
-                Text(stringResource(R.string.assistant_page_custom_headers))
-                if (showAddButton) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            val updatedHeaders = headers.toMutableList()
-                            updatedHeaders.add(CustomHeader("", ""))
-                            onUpdate(updatedHeaders)
-                        }
-                    ) {
-                        Icon(
-                            HugeIcons.Add01,
-                            contentDescription = stringResource(R.string.assistant_page_add_header)
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = HugeIcons.SourceCode,
+                    contentDescription = null,
+                    modifier = Modifier.padding(20.dp),
+                )
+            }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "No custom headers",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Headers sent with every request to this provider",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
-    ) {
+        return
+    }
+    CardGroup {
         headers.forEachIndexed { index, header ->
             item(
                 supportingContent = {
@@ -172,31 +191,45 @@ fun CustomBodies(
         remember(body) { mutableStateOf<String?>(null) }
     }
 
-    CardGroup(
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+    if (customBodies.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 96.dp, bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            Surface(
+                shape = MaterialShapes.Ghostish.toShape(),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(80.dp),
             ) {
-                Text(stringResource(R.string.assistant_page_custom_bodies))
-                if (showAddButton) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            val updatedBodies = customBodies.toMutableList()
-                            updatedBodies.add(CustomBody("", JsonPrimitive("")))
-                            onUpdate(updatedBodies)
-                        }
-                    ) {
-                        Icon(
-                            HugeIcons.Add01,
-                            contentDescription = stringResource(R.string.assistant_page_add_body)
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = HugeIcons.SourceCode,
+                    contentDescription = null,
+                    modifier = Modifier.padding(20.dp),
+                )
+            }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "No custom bodies",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "JSON request bodies appended to every request",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
-    ) {
+        return
+    }
+
+    CardGroup {
         customBodies.forEachIndexed { index, body ->
             item(
                 supportingContent = {
