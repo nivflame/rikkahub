@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.imePadding
@@ -22,6 +23,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -34,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -73,6 +77,7 @@ import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Refresh03
+import me.rerere.hugeicons.stroke.UserMultiple02
 import me.rerere.hugeicons.stroke.View
 import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
@@ -211,14 +216,50 @@ fun ProviderPoolSection(
                 )
             }
 
-            CardGroup(
-                title = {
-                    Text(text = "Accounts")
+            if (poolAccounts.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                ) {
+                    Surface(
+                        shape = MaterialShapes.Clover4Leaf.toShape(),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(80.dp),
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.UserMultiple02,
+                            contentDescription = null,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "No accounts",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Add an account to rotate between them",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
-            ) {
-        poolAccounts.forEachIndexed { index, account ->
-            item(
-                onClick = { editTarget = account },
+            } else {
+                CardGroup(
+                    title = {
+                        Text(text = "Accounts")
+                    }
+                ) {
+                    poolAccounts.forEachIndexed { index, account ->
+                        item(
+                            onClick = { editTarget = account },
                 headlineContent = {
                     Text(
                         text = account.name,
@@ -307,6 +348,7 @@ fun ProviderPoolSection(
                     }
                 },
             )
+        }
         }
         }
         }
