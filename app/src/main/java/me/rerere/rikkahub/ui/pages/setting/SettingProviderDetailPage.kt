@@ -1451,10 +1451,14 @@ private fun ModelTypeSelector(
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         ModelType.entries.forEachIndexed { index, type ->
+            val typeWeight by animateFloatAsState(
+                targetValue = if (selectedType == type) 1.3f else 1f,
+                label = "typeWeight",
+            )
             TonalToggleButton(
                 checked = selectedType == type,
                 onCheckedChange = { onTypeSelected(type) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(typeWeight),
                 colors = ToggleButtonDefaults.tonalToggleButtonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
