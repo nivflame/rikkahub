@@ -934,7 +934,7 @@ private fun ModelSettingsForm(
                             onValueChange = {
                                 onModelChange(model.copy(displayName = it.trim()))
                             },
-                            label = { Text(stringResource(if (isEdit) R.string.setting_provider_page_model_name else R.string.setting_provider_page_model_display_name)) },
+                            label = { Text(stringResource(R.string.setting_provider_page_model_display_name)) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = {
                                 if (!isEdit) {
