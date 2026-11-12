@@ -998,7 +998,7 @@
   <string name="setting_provider_page_test_connection">Test Connection</string>
   <string name="setting_provider_page_text">Text</string>
   <string name="setting_provider_page_title">Providers</string>
-  <string name="setting_provider_page_tool">Tool</string>
+  <string name="setting_provider_page_tool">Tool Calling</string>
   <string name="setting_provider_page_use_service_account">Use Service Account</string>
   <string name="setting_provider_page_vertex_ai">Vertex AI</string>
   <string name="setting_tts_page_add">Add</string>
