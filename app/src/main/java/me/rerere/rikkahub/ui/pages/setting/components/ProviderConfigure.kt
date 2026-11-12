@@ -53,7 +53,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -62,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.dokar.sonner.ToastType
 import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolAccount
+import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.ProviderSetting
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -124,6 +124,26 @@ fun ProviderConfigure(
             is ProviderSetting.Claude -> ProviderConfigureClaude(provider, onEdit)
             is ProviderSetting.Codex -> CodexProviderConfigure(provider, onEdit)
         }
+
+        if (provider is PoolableProvider) {
+            CardGroup {
+                item(
+                    onClick = { onEdit(provider.updatePool(!provider.poolEnabled, provider.poolAccounts)) },
+                    headlineContent = {
+                        Text(
+                            text = "Rotate Accounts",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = provider.poolEnabled,
+                            onCheckedChange = null,
+                        )
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -173,13 +193,6 @@ fun ProviderPoolSection(
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
-    val poolEnabled = when (provider) {
-        is ProviderSetting.OpenAI -> provider.poolEnabled
-        is ProviderSetting.Google -> provider.poolEnabled
-        is ProviderSetting.Claude -> provider.poolEnabled
-        else -> return
-    }
-
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -197,32 +210,10 @@ fun ProviderPoolSection(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CardGroup {
-                item(
-                    verticalAlignment = Alignment.CenterVertically,
-                    headlineContent = {
-                        Text(stringResource(R.string.setting_provider_page_enable_rotation))
-                    },
-                    supportingContent = {
-                        Text(stringResource(R.string.setting_provider_page_enable_rotation_desc))
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = poolEnabled,
-                            onCheckedChange = { enabled ->
-                                onEdit(provider.updatePool(enabled, poolAccounts))
-                            },
-                        )
-                    },
-                )
-            }
-
-            val accountsAlpha = if (poolEnabled) 1f else 0.38f
             if (poolAccounts.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .graphicsLayer { alpha = accountsAlpha }
                         .padding(top = 96.dp, bottom = 48.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -256,7 +247,6 @@ fun ProviderPoolSection(
                 }
             } else {
                 CardGroup(
-                    modifier = Modifier.graphicsLayer { alpha = accountsAlpha },
                     title = {
                         Text(text = "Accounts")
                     }
