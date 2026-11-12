@@ -91,7 +91,7 @@ fun SettingProviderBalanceOption(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
                         ) {
-                            TextButton(onClick = { onEdit(balanceOption.copy()) }) {
+                            TextButton(onClick = { onEdit(BalanceOption(enabled = balanceOption.enabled)) }) {
                                 Text(stringResource(R.string.setting_model_page_reset_to_default))
                             }
                         }
