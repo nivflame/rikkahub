@@ -517,7 +517,6 @@ private fun SettingProviderConfigPage(
                     Icon(
                         HugeIcons.Delete01,
                         null,
-                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }
