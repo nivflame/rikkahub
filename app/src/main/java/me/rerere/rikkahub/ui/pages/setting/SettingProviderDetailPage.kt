@@ -203,13 +203,13 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
-    val showAccounts = provider is ProviderSetting.Codex ||
-        (provider is PoolableProvider && provider.poolEnabled)
-    val pageCount = if (provider is ProviderSetting.Codex) 4 else if (showAccounts) 5 else 4
+    var internalProvider by remember(provider) { mutableStateOf(provider) }
+    val showAccounts = internalProvider is ProviderSetting.Codex ||
+        (internalProvider is PoolableProvider && internalProvider.poolEnabled)
+    val pageCount = if (internalProvider is ProviderSetting.Codex) 4 else if (showAccounts) 5 else 4
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var internalProvider by remember(provider) { mutableStateOf(provider) }
     val pillScrollState = rememberScrollState()
     val pillPositions = remember(pageCount) {
         mutableStateListOf<Float>().apply { repeat(pageCount) { add(0f) } }
@@ -292,7 +292,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
                     pillScrollState.animateScrollTo(clamped.roundToInt())
                 }
-                val providerPoolOn = provider is PoolableProvider && provider.poolEnabled
+                val providerPoolOn = internalProvider is PoolableProvider && internalProvider.poolEnabled
                 val headersIndex = if (providerPoolOn) 3 else 2
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
@@ -318,7 +318,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
-                if (provider is ProviderSetting.Codex) {
+                if (internalProvider is ProviderSetting.Codex) {
                     BouncingTabButton(
                         checked = pager.currentPage == 2,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
@@ -402,7 +402,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 
                     2 -> {
                         when {
-                            provider is ProviderSetting.Codex -> SettingProviderCodexAccountsPage(
+                            internalProvider is ProviderSetting.Codex -> SettingProviderCodexAccountsPage(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
