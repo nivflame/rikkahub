@@ -12,6 +12,7 @@ import me.rerere.hugeicons.stroke.FloppyDisk
 import me.rerere.hugeicons.stroke.InformationCircle
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.CheckmarkCircle02
+import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
 import androidx.compose.animation.AnimatedContent
@@ -1523,7 +1524,7 @@ private fun ModelModalitySelector(
                     ) {
                         if (modality in inputModalities) {
                             Icon(
-                                HugeIcons.CheckmarkCircle02,
+                                HugeIcons.Tick01,
                                 null,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -1576,7 +1577,7 @@ private fun ModelModalitySelector(
                     ) {
                         if (modality in outputModalities) {
                             Icon(
-                                HugeIcons.CheckmarkCircle02,
+                                HugeIcons.Tick01,
                                 null,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -1636,7 +1637,7 @@ fun ModalAbilitySelector(
                 ) {
                     if (ability in abilities) {
                         Icon(
-                            HugeIcons.CheckmarkCircle02,
+                            HugeIcons.Tick01,
                             null,
                             modifier = Modifier.size(16.dp),
                         )
