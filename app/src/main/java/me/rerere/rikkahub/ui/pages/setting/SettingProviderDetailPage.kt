@@ -1517,14 +1517,26 @@ private fun ModelModalitySelector(
                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
                 ) {
-                    Text(
-                        text = stringResource(
-                            when (modality) {
-                                Modality.TEXT -> R.string.setting_provider_page_text
-                                Modality.IMAGE -> R.string.setting_provider_page_image
-                            }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (modality in inputModalities) {
+                            Icon(
+                                HugeIcons.CheckmarkCircle02,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        Text(
+                            text = stringResource(
+                                when (modality) {
+                                    Modality.TEXT -> R.string.setting_provider_page_text
+                                    Modality.IMAGE -> R.string.setting_provider_page_image
+                                }
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -1558,14 +1570,26 @@ private fun ModelModalitySelector(
                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
                 ) {
-                    Text(
-                        text = stringResource(
-                            when (modality) {
-                                Modality.TEXT -> R.string.setting_provider_page_text
-                                Modality.IMAGE -> R.string.setting_provider_page_image
-                            }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (modality in outputModalities) {
+                            Icon(
+                                HugeIcons.CheckmarkCircle02,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        Text(
+                            text = stringResource(
+                                when (modality) {
+                                    Modality.TEXT -> R.string.setting_provider_page_text
+                                    Modality.IMAGE -> R.string.setting_provider_page_image
+                                }
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -1606,14 +1630,26 @@ fun ModalAbilitySelector(
                     else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                 },
             ) {
-                Text(
-                    text = stringResource(
-                        when (ability) {
-                            ModelAbility.TOOL -> R.string.setting_provider_page_tool
-                            ModelAbility.REASONING -> R.string.setting_provider_page_reasoning
-                        }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (ability in abilities) {
+                        Icon(
+                            HugeIcons.CheckmarkCircle02,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = stringResource(
+                            when (ability) {
+                                ModelAbility.TOOL -> R.string.setting_provider_page_tool
+                                ModelAbility.REASONING -> R.string.setting_provider_page_reasoning
+                            }
+                        )
                     )
-                )
+                }
             }
         }
     }
