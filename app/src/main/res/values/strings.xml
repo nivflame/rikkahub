@@ -940,7 +940,7 @@
   <string name="setting_provider_page_api_path">API Path</string>
   <string name="setting_provider_page_avaliable_models">Available Models</string>
   <string name="setting_provider_page_balance_api_path">URL</string>
-  <string name="setting_provider_page_balance_info">"Get account balance "</string>
+  <string name="setting_provider_page_balance_info">Get Account Balance</string>
   <string name="setting_provider_page_balance_json_key">Result JSON Key</string>
   <string name="setting_provider_page_basic_settings">Basic Settings</string>
   <string name="setting_provider_page_chat_model">Chat</string>
