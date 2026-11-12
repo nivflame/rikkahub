@@ -204,9 +204,10 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val navController = LocalNavController.current
     val provider = settings.providers.find { it.id == id } ?: return
     var internalProvider by remember(provider) { mutableStateOf(provider) }
-    val showAccounts = internalProvider is ProviderSetting.Codex ||
-        (internalProvider is PoolableProvider && internalProvider.poolEnabled)
-    val pageCount = if (internalProvider is ProviderSetting.Codex) 4 else if (showAccounts) 5 else 4
+    val currentProvider = internalProvider
+    val showAccounts = currentProvider is ProviderSetting.Codex ||
+        (currentProvider is PoolableProvider && currentProvider.poolEnabled)
+    val pageCount = if (currentProvider is ProviderSetting.Codex) 4 else if (showAccounts) 5 else 4
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -292,7 +293,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
                     pillScrollState.animateScrollTo(clamped.roundToInt())
                 }
-                val providerPoolOn = internalProvider is PoolableProvider && internalProvider.poolEnabled
+                val currentProvider = internalProvider
+                val providerPoolOn = currentProvider is PoolableProvider && currentProvider.poolEnabled
                 val headersIndex = if (providerPoolOn) 3 else 2
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
