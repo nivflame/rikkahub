@@ -162,21 +162,7 @@ fun CodexAccountsSection(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CardGroup(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text("Accounts")
-                        Text(
-                            text = "${accounts.size}",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            ) {
+            CardGroup {
             if (oauthStatus is CodexOAuthStatus.Waiting) {
                 item(
                     onClick = oauthManager::startLogin,
@@ -213,18 +199,7 @@ fun CodexAccountsSection(
                     },
                 )
             }
-            if (accounts.isEmpty()) {
-                item(
-                    headlineContent = {
-                        Text(
-                            text = stringResource(R.string.codex_no_accounts),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-            } else {
-                accounts.forEach { account ->
+            accounts.forEach { account ->
                     item(
                         leadingContent = if (account.usage == null) {
                             {
@@ -307,7 +282,6 @@ fun CodexAccountsSection(
                 },
                 onDismiss = { selectedAccountId = null },
             )
-        }
         }
 
         HorizontalFloatingToolbar(
