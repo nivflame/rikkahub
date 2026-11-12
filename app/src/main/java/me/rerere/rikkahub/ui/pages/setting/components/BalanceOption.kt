@@ -87,14 +87,14 @@ fun SettingProviderBalanceOption(
                             modifier = Modifier.fillMaxWidth(),
                             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = JetbrainsMono)
                         )
-                    }
-                },
-            )
-            item(
-                headlineContent = {},
-                trailingContent = {
-                    TextButton(onClick = { onEdit(balanceOption.copy()) }) {
-                        Text(stringResource(R.string.setting_model_page_reset_to_default))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            TextButton(onClick = { onEdit(balanceOption.copy()) }) {
+                                Text(stringResource(R.string.setting_model_page_reset_to_default))
+                            }
+                        }
                     }
                 },
             )
