@@ -487,7 +487,6 @@ private fun SettingProviderConfigPage(
                 balanceOption = provider.balanceOption,
                 onEdit = { onEdit(provider.copyProvider(balanceOption = it)) }
             )
-            ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
         }
 
         // 硅基流动图标

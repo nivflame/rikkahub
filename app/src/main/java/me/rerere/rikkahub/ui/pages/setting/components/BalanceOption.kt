@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.rerere.ai.provider.BalanceOption
+import me.rerere.rikkahub.ui.components.ai.ProviderBalanceText
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.common.http.isJsonExprValid
@@ -44,9 +45,13 @@ fun SettingProviderBalanceOption(
     var expand by remember { mutableStateOf(false) }
     CardGroup(modifier = modifier) {
         item(
+            verticalAlignment = Alignment.CenterVertically,
             onClick = { expand = !expand },
             headlineContent = {
                 Text(text = stringResource(R.string.setting_provider_page_balance_info))
+            },
+            supportingContent = {
+                ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
             },
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
