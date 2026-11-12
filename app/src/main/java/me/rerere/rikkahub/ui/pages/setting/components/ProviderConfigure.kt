@@ -193,6 +193,13 @@ fun ProviderPoolSection(
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
+    val poolEnabled = when (provider) {
+        is ProviderSetting.OpenAI -> provider.poolEnabled
+        is ProviderSetting.Google -> provider.poolEnabled
+        is ProviderSetting.Claude -> provider.poolEnabled
+        else -> return
+    }
+
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
