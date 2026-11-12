@@ -1692,17 +1692,6 @@ private fun ModelCard(
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    sheetState.hide()
-                                    dialogState.dismiss()
-                                }
-                            },
-                            modifier = Modifier.align(Alignment.CenterStart)
-                        ) {
-                            Icon(HugeIcons.Cancel01, null)
-                        }
                         Text(
                             text = stringResource(R.string.setting_provider_page_edit_model),
                             style = MaterialTheme.typography.titleLarge,
