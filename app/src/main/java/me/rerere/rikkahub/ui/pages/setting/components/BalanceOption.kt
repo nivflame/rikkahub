@@ -32,7 +32,7 @@ import me.rerere.common.http.isJsonExprValid
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
 
-private val ApiPathRegex = Regex("""^/[^ \t\n\r]*$""")
+private val ApiPathRegex = Regex("""^(/|https?://|\{\{baseUrl\}\})[^ \t\n\r]*$""")
 
 @Composable
 fun SettingProviderBalanceOption(

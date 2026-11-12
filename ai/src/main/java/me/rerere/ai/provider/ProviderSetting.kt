@@ -10,7 +10,7 @@ import kotlin.uuid.Uuid
 @Serializable
 data class BalanceOption(
     val enabled: Boolean = false, // 是否开启余额获取功能
-    val apiPath: String = "/credits", // 余额获取API路径
+    val apiPath: String = "{{baseUrl}}/credits", // 余额获取API路径, {{baseUrl}} 为占位符
     val resultPath: String = "data.total_usage", // 余额获取JSON路径
 )
 

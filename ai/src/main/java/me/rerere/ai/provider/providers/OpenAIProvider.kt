@@ -94,10 +94,11 @@ class OpenAIProvider(
 
     override suspend fun getBalance(providerSetting: ProviderSetting.OpenAI): String = withContext(Dispatchers.IO) {
         val key = keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())
-        val url = if (providerSetting.balanceOption.apiPath.startsWith("http")) {
-            providerSetting.balanceOption.apiPath
+        val resolvedPath = providerSetting.balanceOption.apiPath.replace("{{baseUrl}}", providerSetting.baseUrl)
+        val url = if (resolvedPath.startsWith("http")) {
+            resolvedPath
         } else {
-            "${providerSetting.baseUrl}${providerSetting.balanceOption.apiPath}"
+            "${providerSetting.baseUrl}$resolvedPath"
         }
         val request = Request.Builder()
             .url(url)
