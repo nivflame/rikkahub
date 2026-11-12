@@ -14,7 +14,7 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -523,7 +523,7 @@ private fun SettingProviderConfigPage(
                 onSave()
                 showSavedPill = true
             }) {
-                Crossfade(targetState = showSavedPill) { saved ->
+                AnimatedContent(targetState = showSavedPill) { saved ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (saved) {
                             Icon(HugeIcons.CheckmarkCircle02, null)
