@@ -548,6 +548,7 @@ private fun SettingProviderConfigPage(
                 }
             }
         }
+    }
 
     // Delete confirmation dialog
     if (showDeleteDialog) {
