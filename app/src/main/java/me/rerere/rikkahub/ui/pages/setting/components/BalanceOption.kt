@@ -43,6 +43,7 @@ fun SettingProviderBalanceOption(
     onEdit: (BalanceOption) -> Unit,
 ) {
     var expand by remember { mutableStateOf(false) }
+    val urlIsDefault = balanceOption.apiPath == BalanceOption().apiPath
     CardGroup(modifier = modifier) {
         item(
             verticalAlignment = Alignment.CenterVertically,
@@ -91,7 +92,10 @@ fun SettingProviderBalanceOption(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End,
                         ) {
-                            TextButton(onClick = { onEdit(BalanceOption(enabled = balanceOption.enabled)) }) {
+                            TextButton(
+                                enabled = !urlIsDefault,
+                                onClick = { onEdit(BalanceOption(enabled = balanceOption.enabled)) }
+                            ) {
                                 Text(stringResource(R.string.setting_model_page_reset_to_default))
                             }
                         }
