@@ -14,6 +14,7 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.CheckmarkCircle02
 import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Tick01
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,8 +23,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
@@ -524,49 +523,31 @@ private fun SettingProviderConfigPage(
                 onSave()
                 showSavedPill = true
             }) {
-                Icon(HugeIcons.FloppyDisk, null)
-                AnimatedVisibility(toolbarExpanded) {
+                Crossfade(targetState = showSavedPill) { saved ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.setting_provider_page_save))
+                        if (saved) {
+                            Icon(HugeIcons.CheckmarkCircle02, null)
+                        } else {
+                            Icon(HugeIcons.FloppyDisk, null)
+                        }
+                        AnimatedVisibility(toolbarExpanded) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(
+                                        if (saved) {
+                                            R.string.setting_provider_page_save_success
+                                        } else {
+                                            R.string.setting_provider_page_save
+                                        }
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
-
-        AnimatedVisibility(
-            visible = showSavedPill,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = -54.dp),
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut(),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shadowElevation = 6.dp,
-            ) {
-                Row(
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        HugeIcons.CheckmarkCircle02,
-                        null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_save_success),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-            }
-        }
-    }
 
     // Delete confirmation dialog
     if (showDeleteDialog) {
