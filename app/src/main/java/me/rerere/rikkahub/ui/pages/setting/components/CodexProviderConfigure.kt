@@ -91,35 +91,6 @@ fun CodexProviderConfigure(
     provider: ProviderSetting.Codex,
     onEdit: (ProviderSetting.Codex) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        CardGroup {
-            item(
-                onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-                headlineContent = {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_enable),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = provider.enabled,
-                        onCheckedChange = null,
-                    )
-                },
-            )
-        }
-    }
-}
-
-@Composable
-fun CodexAccountsSection(
-    provider: ProviderSetting.Codex,
-    onEdit: (ProviderSetting.Codex) -> Unit,
-) {
     val repository = koinInject<CodexAccountRepository>()
     val oauthManager = koinInject<CodexOAuthManager>()
     val providerManager = koinInject<ProviderManager>()
@@ -127,9 +98,6 @@ fun CodexAccountsSection(
     val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
-    val context = LocalContext.current
-    var selectedAccountId by remember { mutableStateOf<String?>(null) }
-    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     LaunchedEffect(oauthStatus) {
         when (val status = oauthStatus) {
@@ -150,6 +118,191 @@ fun CodexAccountsSection(
             else -> Unit
         }
     }
+
+    LaunchedEffect(Unit) {
+        if (accounts.isNotEmpty()) {
+            runCatching { repository.refreshAll() }
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CardGroup {
+            item(
+                onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.setting_provider_page_enable),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = provider.enabled,
+                        onCheckedChange = null,
+                    )
+                },
+            )
+            item(
+                onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
+                headlineContent = {
+                    Text(
+                        text = "Rotate Accounts",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = provider.poolEnabled,
+                        onCheckedChange = null,
+                    )
+                },
+            )
+        }
+
+        CardGroup(
+            title = { Text("Accounts") }
+        ) {
+            item(
+                onClick = oauthManager::startLogin,
+                headlineContent = {
+                    Text(
+                        text = stringResource(R.string.codex_sign_in),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+            )
+            accounts.forEach { account ->
+                item(
+                    leadingContent = if (account.usage == null) {
+                        {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                RabbitLoadingIndicator(
+                                    modifier = Modifier.padding(8.dp),
+                                )
+                            }
+                        }
+                    } else null,
+                    headlineContent = {
+                        Text(
+                            text = account.email.ifBlank { account.name },
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    supportingContent = account.planType?.let { plan ->
+                        {
+                            Text(
+                                text = "ChatGPT " + codexPlanDisplayName(plan),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    trailingContent = {
+                        FilledIconButton(
+                            onClick = {
+                                scope.launch {
+                                    repository.delete(account.id)
+                                    if (accounts.none { it.id != account.id } && provider.enabled) {
+                                        onEdit(provider.copy(enabled = false))
+                                    }
+                                }
+                            },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        ) {
+                            Icon(
+                                HugeIcons.Cancel01,
+                                contentDescription = stringResource(R.string.codex_sign_out),
+                            )
+                        }
+                    },
+                )
+            }
+        }
+
+        if (accounts.isNotEmpty()) {
+            CardGroup(
+                title = { Text("Usage") }
+            ) {
+                accounts.forEach { account ->
+                    val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
+                    listOf(
+                        300L to R.string.codex_five_hour_limit,
+                        10_080L to R.string.codex_weekly_limit,
+                        43_200L to R.string.codex_monthly_limit,
+                    ).forEach { (windowMinutes, labelRes) ->
+                        val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
+                            ?: return@forEach
+                        val remaining = (100.0 - window.usedPercent)
+                            .coerceIn(0.0, 100.0).roundToInt()
+                        item(
+                            headlineContent = {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(
+                                            text = stringResource(labelRes),
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.codex_percent, remaining),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = if (remaining == 0) {
+                                                MaterialTheme.colorScheme.error
+                                            } else {
+                                                Color.Unspecified
+                                            },
+                                        )
+                                    }
+                                    formatCodexResetText(window.resetsAt)?.let {
+                                        Text(
+                                            text = it,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    LinearWavyProgressIndicator(
+                                        progress = { (window.usedPercent / 100.0).toFloat() },
+                                        trackStopIndicator = null,
+                                        amplitude = { 1f },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CodexAccountsSection(
+    provider: ProviderSetting.Codex,
+    onEdit: (ProviderSetting.Codex) -> Unit,
+) {
+    val repository = koinInject<CodexAccountRepository>()
+    val oauthManager = koinInject<CodexOAuthManager>()
+    val accounts by repository.accounts.collectAsStateWithLifecycle()
+    val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var selectedAccountId by remember { mutableStateOf<String?>(null) }
+    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(

@@ -332,6 +332,7 @@ sealed class ProviderSetting {
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
         override var customBodies: List<CustomBody> = emptyList(),
+        var poolEnabled: Boolean = false,
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
         override val customHeaders: List<CustomHeader> get() = emptyList()

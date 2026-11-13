@@ -203,9 +203,17 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     val provider = settings.providers.find { it.id == id } ?: return
     var internalProvider by remember(provider) { mutableStateOf(provider) }
     val currentProvider = internalProvider
-    val showAccounts = currentProvider is ProviderSetting.Codex ||
-        (currentProvider is PoolableProvider && currentProvider.poolEnabled)
-    val pageCount = if (currentProvider is ProviderSetting.Codex) 4 else if (showAccounts) 5 else 4
+    val showAccounts = if (currentProvider is ProviderSetting.Codex) {
+        currentProvider.poolEnabled
+    } else {
+        currentProvider is PoolableProvider && currentProvider.poolEnabled
+    }
+    val pageCount = when {
+        currentProvider is ProviderSetting.Codex && showAccounts -> 4
+        currentProvider is ProviderSetting.Codex -> 3
+        showAccounts -> 5
+        else -> 4
+    }
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -319,17 +327,23 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
                 if (internalProvider is ProviderSetting.Codex) {
-                    BouncingTabButton(
-                        checked = pager.currentPage == 2,
-                        onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                        modifier = Modifier
-                            .onGloballyPositioned {
-                                pillPositions[2] = it.positionInParent().x.toFloat()
-                                pillWidths[2] = it.size.width
-                            }
-                            .padding(end = 8.dp),
+                    AnimatedVisibility(
+                        visible = internalProvider.poolEnabled,
+                        enter = expandHorizontally() + fadeIn(),
+                        exit = shrinkHorizontally() + fadeOut(),
                     ) {
-                        Text("Accounts")
+                        BouncingTabButton(
+                            checked = pager.currentPage == 2,
+                            onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                            modifier = Modifier
+                                .onGloballyPositioned {
+                                    pillPositions[2] = it.positionInParent().x.toFloat()
+                                    pillWidths[2] = it.size.width
+                                }
+                                .padding(end = 8.dp),
+                        ) {
+                            Text("Accounts")
+                        }
                     }
                 } else {
                     AnimatedVisibility(
@@ -402,7 +416,11 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 
                     2 -> {
                         when {
-                            internalProvider is ProviderSetting.Codex -> SettingProviderCodexAccountsPage(
+                            internalProvider is ProviderSetting.Codex && showAccounts -> SettingProviderCodexAccountsPage(
+                                provider = internalProvider,
+                                onEdit = { internalProvider = it }
+                            )
+                            internalProvider is ProviderSetting.Codex -> SettingProviderCustomBodyPage(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
@@ -418,13 +436,16 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     }
 
                     3 -> {
-                        if (showAccounts) {
-                            SettingProviderHeadersPage(
+                        when {
+                            internalProvider is ProviderSetting.Codex -> SettingProviderCustomBodyPage(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
-                        } else {
-                            SettingProviderCustomBodyPage(
+                            showAccounts -> SettingProviderHeadersPage(
+                                provider = internalProvider,
+                                onEdit = { internalProvider = it }
+                            )
+                            else -> SettingProviderCustomBodyPage(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
