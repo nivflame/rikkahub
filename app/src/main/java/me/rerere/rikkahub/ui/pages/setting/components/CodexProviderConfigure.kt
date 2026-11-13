@@ -306,57 +306,11 @@ fun CodexProviderConfigure(
             }
         }
 
-        if (accounts.isNotEmpty()) {
+        if (!provider.poolEnabled && accounts.isNotEmpty()) {
             CardGroup(
                 title = { Text("Usage") }
             ) {
-                if (provider.poolEnabled) {
-                    listOf(
-                        300L to R.string.codex_five_hour_limit,
-                        10_080L to R.string.codex_weekly_limit,
-                        43_200L to R.string.codex_monthly_limit,
-                    ).forEach { (windowMinutes, labelRes) ->
-                        val totalRemaining = accounts.sumOf { account ->
-                            val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                            val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                                ?: return@sumOf 0
-                            (100.0 - window.usedPercent).coerceIn(0.0, 100.0).roundToInt()
-                        }
-                        item(
-                            headlineContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = stringResource(labelRes),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.codex_percent, totalRemaining),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (totalRemaining == 0) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            Color.Unspecified
-                                        },
-                                    )
-                                }
-                            },
-                            supportingContent = {
-                                val progress by animateFloatAsState(
-                                    targetValue = totalRemaining / 100f,
-                                    label = "usageProgress",
-                                )
-                                LinearWavyProgressIndicator(
-                                    progress = { progress.coerceIn(0f, 1f) },
-                                    amplitude = { 1f },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            },
-                        )
-                    }
-                } else {
+                val account = accounts.first()
                     val account = accounts.first()
                     val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
                     listOf(
