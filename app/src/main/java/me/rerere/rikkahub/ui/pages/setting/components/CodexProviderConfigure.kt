@@ -65,6 +65,7 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.UserMultiple02
+import me.rerere.hugeicons.stroke.LoginSquare01
 import me.rerere.hugeicons.stroke.Logout01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
@@ -209,6 +210,12 @@ fun CodexProviderConfigure(
                 } else if (accounts.isEmpty()) {
                     item(
                         onClick = oauthManager::startLogin,
+                        leadingContent = {
+                            Icon(
+                                HugeIcons.LoginSquare01,
+                                contentDescription = null,
+                            )
+                        },
                         headlineContent = {
                             Text(
                                 text = stringResource(R.string.codex_sign_in),
