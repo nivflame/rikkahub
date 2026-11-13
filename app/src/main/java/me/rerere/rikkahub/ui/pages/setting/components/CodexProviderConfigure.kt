@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -164,58 +165,16 @@ fun CodexProviderConfigure(
         }
 
         CardGroup(
-            title = { Text("Accounts") }
+            title = { Text("Account") },
+            modifier = if (provider.poolEnabled) {
+                Modifier.graphicsLayer { alpha = 0.38f }
+            } else Modifier,
         ) {
-            if (oauthStatus is CodexOAuthStatus.Waiting) {
-                item(
-                    onClick = oauthManager::startLogin,
-                    leadingContent = {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            RabbitLoadingIndicator(
-                                modifier = Modifier.padding(8.dp),
-                            )
-                        }
-                    },
-                    headlineContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization))
-                    },
-                    supportingContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization_hint))
-                    },
-                    trailingContent = {
-                        FilledIconButton(
-                            onClick = { oauthManager.consumeResult() },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        ) {
-                            Icon(
-                                HugeIcons.Cancel01,
-                                contentDescription = stringResource(R.string.cancel),
-                            )
-                        }
-                    },
-                )
-            } else {
-                item(
-                    onClick = oauthManager::startLogin,
-                    headlineContent = {
-                        Text(
-                            text = stringResource(R.string.codex_sign_in),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    },
-                )
-            }
-            accounts.forEach { account ->
-                item(
-                    leadingContent = if (account.usage == null) {
-                        {
+            if (!provider.poolEnabled) {
+                if (oauthStatus is CodexOAuthStatus.Waiting) {
+                    item(
+                        onClick = oauthManager::startLogin,
+                        leadingContent = {
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -225,109 +184,176 @@ fun CodexProviderConfigure(
                                     modifier = Modifier.padding(8.dp),
                                 )
                             }
-                        }
-                    } else null,
-                    headlineContent = {
-                        Text(
-                            text = account.email.ifBlank { account.name },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    },
-                    supportingContent = account.planType?.let { plan ->
-                        {
+                        },
+                        headlineContent = {
+                            Text(stringResource(R.string.codex_waiting_authorization))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.codex_waiting_authorization_hint))
+                        },
+                        trailingContent = {
+                            FilledIconButton(
+                                onClick = { oauthManager.consumeResult() },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
+                            ) {
+                                Icon(
+                                    HugeIcons.Cancel01,
+                                    contentDescription = stringResource(R.string.cancel),
+                                )
+                            }
+                        },
+                    )
+                } else {
+                    item(
+                        onClick = oauthManager::startLogin,
+                        headlineContent = {
                             Text(
-                                text = "ChatGPT " + codexPlanDisplayName(plan),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = stringResource(R.string.codex_sign_in),
+                                style = MaterialTheme.typography.titleMedium,
                             )
-                        }
-                    },
-                    trailingContent = {
-                        FilledIconButton(
-                            onClick = {
-                                scope.launch {
-                                    repository.delete(account.id)
-                                    if (accounts.none { it.id != account.id } && provider.enabled) {
-                                        onEdit(provider.copy(enabled = false))
-                                    }
+                        },
+                    )
+                }
+                accounts.forEach { account ->
+                    item(
+                        leadingContent = if (account.usage == null) {
+                            {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    RabbitLoadingIndicator(
+                                        modifier = Modifier.padding(8.dp),
+                                    )
                                 }
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        ) {
-                            Icon(
-                                HugeIcons.Logout01,
-                                contentDescription = stringResource(R.string.codex_sign_out),
+                            }
+                        } else null,
+                        headlineContent = {
+                            Text(
+                                text = account.email.ifBlank { account.name },
+                                style = MaterialTheme.typography.titleMedium,
                             )
-                        }
-                    },
-                )
+                        },
+                        supportingContent = account.planType?.let { plan ->
+                            {
+                                Text(
+                                    text = "ChatGPT " + codexPlanDisplayName(plan),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        },
+                        trailingContent = {
+                            FilledIconButton(
+                                onClick = {
+                                    scope.launch {
+                                        repository.delete(account.id)
+                                        if (accounts.none { it.id != account.id } && provider.enabled) {
+                                            onEdit(provider.copy(enabled = false))
+                                        }
+                                    }
+                                },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
+                            ) {
+                                Icon(
+                                    HugeIcons.Logout01,
+                                    contentDescription = stringResource(R.string.codex_sign_out),
+                                )
+                            }
+                        },
+                    )
+                }
+            } else {
+                accounts.take(1).forEach { account ->
+                    item(
+                        leadingContent = if (account.usage == null) {
+                            {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    RabbitLoadingIndicator(
+                                        modifier = Modifier.padding(8.dp),
+                                    )
+                                }
+                            }
+                        } else null,
+                        headlineContent = {
+                            Text(
+                                text = account.email.ifBlank { account.name },
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        },
+                        supportingContent = account.planType?.let { plan ->
+                            {
+                                Text(
+                                    text = "ChatGPT " + codexPlanDisplayName(plan),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        },
+                    )
+                }
             }
         }
 
-        if (accounts.isNotEmpty()) {
+        if (provider.poolEnabled && accounts.isNotEmpty()) {
             CardGroup(
                 title = { Text("Usage") }
             ) {
-                accounts.forEach { account ->
-                    val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                    listOf(
-                        300L to R.string.codex_five_hour_limit,
-                        10_080L to R.string.codex_weekly_limit,
-                        43_200L to R.string.codex_monthly_limit,
-                    ).forEach { (windowMinutes, labelRes) ->
+                listOf(
+                    300L to R.string.codex_five_hour_limit,
+                    10_080L to R.string.codex_weekly_limit,
+                    43_200L to R.string.codex_monthly_limit,
+                ).forEach { (windowMinutes, labelRes) ->
+                    val totalRemaining = accounts.sumOf { account ->
+                        val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
                         val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                            ?: return@forEach
-                        val remaining = (100.0 - window.usedPercent)
-                            .coerceIn(0.0, 100.0).roundToInt()
-                        item(
-                            headlineContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = stringResource(labelRes),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.codex_percent, remaining),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (remaining == 0) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            Color.Unspecified
-                                        },
-                                    )
-                                }
-                            },
-                            supportingContent = {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    formatCodexResetText(window.resetsAt)?.let {
-                                        Text(
-                                            text = it,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    val progress by animateFloatAsState(
-                                        targetValue = remaining / 100f,
-                                        label = "usageProgress",
-                                    )
-                                    LinearWavyProgressIndicator(
-                                        progress = { progress },
-                                        amplitude = { 1f },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            },
-                        )
+                            ?: return@sumOf 0
+                        (100.0 - window.usedPercent).coerceIn(0.0, 100.0).roundToInt()
                     }
+                    item(
+                        headlineContent = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = stringResource(labelRes),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.codex_percent, totalRemaining),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = if (totalRemaining == 0) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        Color.Unspecified
+                                    },
+                                )
+                            }
+                        },
+                        supportingContent = {
+                            val progress by animateFloatAsState(
+                                targetValue = totalRemaining / 100f,
+                                label = "usageProgress",
+                            )
+                            LinearWavyProgressIndicator(
+                                progress = { progress.coerceIn(0f, 1f) },
+                                amplitude = { 1f },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                    )
                 }
             }
         }
