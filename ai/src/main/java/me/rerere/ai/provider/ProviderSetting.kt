@@ -324,7 +324,7 @@ sealed class ProviderSetting {
     @SerialName("codex")
     data class Codex(
         override var id: Uuid = Uuid.random(),
-        override var enabled: Boolean = false,
+        override var enabled: Boolean = true,
         override var name: String = "Codex",
         override var models: List<Model> = emptyList(),
         override val balanceOption: BalanceOption = BalanceOption(),
