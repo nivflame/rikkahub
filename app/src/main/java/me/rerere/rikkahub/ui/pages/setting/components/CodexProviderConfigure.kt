@@ -31,12 +31,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -61,6 +63,7 @@ import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
+import me.rerere.hugeicons.stroke.UserMultiple02
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.R
@@ -162,8 +165,45 @@ fun CodexAccountsSection(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CardGroup {
-            if (oauthStatus is CodexOAuthStatus.Waiting) {
+            if (accounts.isEmpty() && oauthStatus !is CodexOAuthStatus.Waiting) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 96.dp, bottom = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                ) {
+                    Surface(
+                        shape = MaterialShapes.Clover4Leaf.toShape(),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(80.dp),
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.UserMultiple02,
+                            contentDescription = null,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "No accounts",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Sign in with ChatGPT to add one",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+            if (accounts.isNotEmpty() || oauthStatus is CodexOAuthStatus.Waiting) {
+                CardGroup {
+                    if (oauthStatus is CodexOAuthStatus.Waiting) {
                 item(
                     onClick = oauthManager::startLogin,
                     leadingContent = {
@@ -259,6 +299,7 @@ fun CodexAccountsSection(
                         },
                     )
                 }
+            }
             }
         }
 
