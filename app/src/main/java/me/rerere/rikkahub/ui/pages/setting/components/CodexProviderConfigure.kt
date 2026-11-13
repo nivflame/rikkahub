@@ -284,37 +284,43 @@ fun CodexProviderConfigure(
                             .coerceIn(0.0, 100.0).roundToInt()
                         item(
                             headlineContent = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.codex_percent, remaining),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = if (remaining == 0) {
+                                            MaterialTheme.colorScheme.error
+                                        } else {
+                                            Color.Unspecified
+                                        },
+                                    )
+                                }
+                            },
+                            supportingContent = {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Text(
-                                            text = stringResource(labelRes),
-                                            style = MaterialTheme.typography.titleMedium,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.codex_percent, remaining),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = if (remaining == 0) {
-                                                MaterialTheme.colorScheme.error
-                                            } else {
-                                                Color.Unspecified
-                                            },
-                                        )
-                                    }
                                     formatCodexResetText(window.resetsAt)?.let {
                                         Text(
                                             text = it,
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
+                                    val progress by animateFloatAsState(
+                                        targetValue = remaining / 100f,
+                                        label = "usageProgress",
+                                    )
                                     LinearWavyProgressIndicator(
-                                        progress = { (window.usedPercent / 100.0).toFloat() },
+                                        progress = { progress },
                                         amplitude = { 1f },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
