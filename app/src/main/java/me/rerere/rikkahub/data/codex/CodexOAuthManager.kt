@@ -87,7 +87,16 @@ class CodexOAuthManager(
     }
 
     fun consumeResult() {
+        stopCallbackServer()
         _status.value = CodexOAuthStatus.Idle
+    }
+
+    @Synchronized
+    private fun stopCallbackServer() {
+        server?.stop(500, 1000)
+        server = null
+        callbackPort = null
+        sessions.clear()
     }
 
     @Synchronized
