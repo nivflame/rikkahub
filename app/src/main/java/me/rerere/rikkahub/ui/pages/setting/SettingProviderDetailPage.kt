@@ -326,9 +326,10 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
-                if (internalProvider is ProviderSetting.Codex) {
+                val codexProvider = internalProvider as? ProviderSetting.Codex
+                if (codexProvider != null) {
                     AnimatedVisibility(
-                        visible = internalProvider.poolEnabled,
+                        visible = codexProvider.poolEnabled,
                         enter = expandHorizontally() + fadeIn(),
                         exit = shrinkHorizontally() + fadeOut(),
                     ) {

@@ -277,7 +277,6 @@ fun CodexProviderConfigure(
                                     }
                                     LinearWavyProgressIndicator(
                                         progress = { (window.usedPercent / 100.0).toFloat() },
-                                        trackStopIndicator = null,
                                         amplitude = { 1f },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
