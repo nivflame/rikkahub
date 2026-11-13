@@ -64,6 +64,7 @@ import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.UserMultiple02
+import me.rerere.hugeicons.stroke.Logout01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.R
@@ -257,7 +258,7 @@ fun CodexProviderConfigure(
                             ),
                         ) {
                             Icon(
-                                HugeIcons.Cancel01,
+                                HugeIcons.Logout01,
                                 contentDescription = stringResource(R.string.codex_sign_out),
                             )
                         }
