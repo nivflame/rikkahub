@@ -165,15 +165,52 @@ fun CodexProviderConfigure(
         CardGroup(
             title = { Text("Accounts") }
         ) {
-            item(
-                onClick = oauthManager::startLogin,
-                headlineContent = {
-                    Text(
-                        text = stringResource(R.string.codex_sign_in),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-            )
+            if (oauthStatus is CodexOAuthStatus.Waiting) {
+                item(
+                    onClick = oauthManager::startLogin,
+                    leadingContent = {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            RabbitLoadingIndicator(
+                                modifier = Modifier.padding(8.dp),
+                            )
+                        }
+                    },
+                    headlineContent = {
+                        Text(stringResource(R.string.codex_waiting_authorization))
+                    },
+                    supportingContent = {
+                        Text(stringResource(R.string.codex_waiting_authorization_hint))
+                    },
+                    trailingContent = {
+                        FilledIconButton(
+                            onClick = { oauthManager.consumeResult() },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        ) {
+                            Icon(
+                                HugeIcons.Cancel01,
+                                contentDescription = stringResource(R.string.cancel),
+                            )
+                        }
+                    },
+                )
+            } else {
+                item(
+                    onClick = oauthManager::startLogin,
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.codex_sign_in),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                )
+            }
             accounts.forEach { account ->
                 item(
                     leadingContent = if (account.usage == null) {
