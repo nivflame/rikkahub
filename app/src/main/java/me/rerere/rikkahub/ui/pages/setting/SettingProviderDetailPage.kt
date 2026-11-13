@@ -621,7 +621,7 @@ private fun SettingProviderHeadersPage(
 ) {
     var expanded by rememberSaveable { mutableStateOf(true) }
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
@@ -629,17 +629,18 @@ private fun SettingProviderHeadersPage(
                     expanded = expanded,
                     onExpand = { expanded = true },
                     onCollapse = { expanded = false },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 96.dp),
+                ),
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CustomHeaders(
-                headers = provider.customHeaders,
-                onUpdate = { onEdit(provider.updateHeaders(it)) },
-                showAddButton = false,
-            )
+            item {
+                CustomHeaders(
+                    headers = provider.customHeaders,
+                    onUpdate = { onEdit(provider.updateHeaders(it)) },
+                    showAddButton = false,
+                    emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
+                )
+            }
         }
         HorizontalFloatingToolbar(
             expanded = expanded,
@@ -671,7 +672,7 @@ private fun SettingProviderCustomBodyPage(
 ) {
     var expanded by rememberSaveable { mutableStateOf(true) }
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
@@ -679,17 +680,18 @@ private fun SettingProviderCustomBodyPage(
                     expanded = expanded,
                     onExpand = { expanded = true },
                     onCollapse = { expanded = false },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 96.dp),
+                ),
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CustomBodies(
-                customBodies = provider.customBodies,
-                onUpdate = { onEdit(provider.updateBodies(it)) },
-                showAddButton = false,
-            )
+            item {
+                CustomBodies(
+                    customBodies = provider.customBodies,
+                    onUpdate = { onEdit(provider.updateBodies(it)) },
+                    showAddButton = false,
+                    emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
+                )
+            }
         }
         HorizontalFloatingToolbar(
             expanded = expanded,

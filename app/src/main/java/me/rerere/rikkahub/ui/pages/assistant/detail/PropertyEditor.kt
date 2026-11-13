@@ -49,6 +49,7 @@ fun CustomHeaders(
     headers: List<CustomHeader>,
     onUpdate: (List<CustomHeader>) -> Unit,
     showAddButton: Boolean = true,
+    emptyStateModifier: Modifier = Modifier,
 ) {
     if (headers.isEmpty()) {
         ExpressiveEmptyState(
@@ -56,6 +57,7 @@ fun CustomHeaders(
             icon = HugeIcons.SourceCode,
             title = "No custom headers",
             hint = "Headers sent with every request to this provider",
+            modifier = emptyStateModifier,
             onAdd = if (showAddButton) {
                 {
                     val updatedHeaders = headers.toMutableList()
@@ -150,6 +152,7 @@ fun CustomBodies(
     customBodies: List<CustomBody>,
     onUpdate: (List<CustomBody>) -> Unit,
     showAddButton: Boolean = true,
+    emptyStateModifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val keyStates = customBodies.map { body ->
@@ -170,6 +173,7 @@ fun CustomBodies(
             icon = HugeIcons.SourceCode,
             title = "No custom bodies",
             hint = "JSON request bodies appended to every request",
+            modifier = emptyStateModifier,
             onAdd = if (showAddButton) {
                 {
                     val updatedBodies = customBodies.toMutableList()
