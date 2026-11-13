@@ -86,12 +86,12 @@ class CodexAccountRepository internal constructor(
         account
     }
 
-    suspend fun acquireAccount(): CodexAccount = mutex.withLock {
+    suspend fun acquireAccount(rotate: Boolean): CodexAccount = mutex.withLock {
         if (state.accounts.isEmpty()) error("No Codex account is signed in")
         repeat(state.accounts.size) {
             val index = selectCodexAccountIndex(
                 accounts = state.accounts,
-                startIndex = state.nextAccountIndex,
+                startIndex = if (rotate) state.nextAccountIndex else 0,
             ) ?: error("No available Codex account")
             val candidate = state.accounts[index]
             if (!candidate.isAvailable()) return@repeat
