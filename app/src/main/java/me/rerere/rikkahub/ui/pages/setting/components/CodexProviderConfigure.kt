@@ -259,9 +259,6 @@ fun CodexProviderConfigure(
                                 onClick = {
                                     scope.launch {
                                         repository.delete(account.id)
-                                        if (accounts.none { it.id != account.id } && provider.enabled) {
-                                            onEdit(provider.copy(enabled = false))
-                                        }
                                     }
                                 },
                                 colors = IconButtonDefaults.filledIconButtonColors(
@@ -380,10 +377,7 @@ fun CodexProviderConfigure(
 }
 
 @Composable
-fun CodexAccountsSection(
-    provider: ProviderSetting.Codex,
-    onEdit: (ProviderSetting.Codex) -> Unit,
-) {
+fun CodexAccountsSection() {
     val repository = koinInject<CodexAccountRepository>()
     val oauthManager = koinInject<CodexOAuthManager>()
     val accounts by repository.accounts.collectAsStateWithLifecycle()
@@ -557,9 +551,6 @@ fun CodexAccountsSection(
                 onSignOut = {
                     scope.launch {
                         repository.delete(account.id)
-                        if (accounts.none { it.id != account.id } && provider.enabled) {
-                            onEdit(provider.copy(enabled = false))
-                        }
                     }
                 },
                 onDismiss = { selectedAccountId = null },
