@@ -138,6 +138,7 @@ import me.rerere.rikkahub.ui.components.ai.ModelModalityTag
 import me.rerere.rikkahub.ui.components.ai.ModelSelector
 import me.rerere.rikkahub.ui.components.ai.ModelTypeTag
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ShareSheet
@@ -768,41 +769,13 @@ private fun ModelList(
             // 模型列表
             if (providerSetting.models.isEmpty()) {
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillParentMaxHeight(0.85f)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-                    ) {
-                        Surface(
-                            shape = MaterialShapes.Cookie12Sided.toShape(),
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(80.dp)
-                        ) {
-                            Icon(
-                                imageVector = HugeIcons.Package01,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(20.dp)
-                            )
-                        }
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.setting_provider_page_no_models),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.setting_provider_page_add_models_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+                    ExpressiveEmptyState(
+                        shape = MaterialShapes.Cookie12Sided.toShape(),
+                        icon = HugeIcons.Package01,
+                        title = stringResource(R.string.setting_provider_page_no_models),
+                        hint = stringResource(R.string.setting_provider_page_add_models_hint),
+                        modifier = Modifier.fillParentMaxHeight(0.85f),
+                    )
                 }
             } else {
                 items(providerSetting.models, key = { it.id }) { item ->

@@ -79,6 +79,7 @@ import me.rerere.rikkahub.data.codex.CodexUsageWindow
 import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
@@ -401,40 +402,12 @@ fun CodexAccountsSection() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (accounts.isEmpty() && oauthStatus !is CodexOAuthStatus.Waiting) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 96.dp, bottom = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-                ) {
-                    Surface(
-                        shape = MaterialShapes.Clover4Leaf.toShape(),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(80.dp),
-                    ) {
-                        Icon(
-                            imageVector = HugeIcons.UserMultiple02,
-                            contentDescription = null,
-                            modifier = Modifier.padding(20.dp),
-                        )
-                    }
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "No accounts",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = "Sign in with ChatGPT to add one",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
+                ExpressiveEmptyState(
+                    shape = MaterialShapes.Clover4Leaf.toShape(),
+                    icon = HugeIcons.UserMultiple02,
+                    title = "No accounts",
+                    hint = "Sign in with ChatGPT to add one",
+                )
             }
             if (accounts.isNotEmpty() || oauthStatus is CodexOAuthStatus.Waiting) {
                 CardGroup {
