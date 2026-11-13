@@ -306,7 +306,7 @@ fun CodexProviderConfigure(
             }
         }
 
-        if (!provider.poolEnabled && accounts.isNotEmpty()) {
+        if (!provider.poolEnabled && accounts.firstOrNull()?.usage != null) {
             CardGroup(
                 title = { Text("Usage") }
             ) {
