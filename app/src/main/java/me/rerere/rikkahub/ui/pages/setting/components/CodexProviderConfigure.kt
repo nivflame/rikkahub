@@ -311,9 +311,8 @@ fun CodexProviderConfigure(
                 title = { Text("Usage") }
             ) {
                 val account = accounts.first()
-                    val account = accounts.first()
-                    val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                    listOf(
+                val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
+                listOf(
                         300L to R.string.codex_five_hour_limit,
                         10_080L to R.string.codex_weekly_limit,
                         43_200L to R.string.codex_monthly_limit,
@@ -368,7 +367,6 @@ fun CodexProviderConfigure(
                             },
                         )
                     }
-                }
             }
         }
     }
