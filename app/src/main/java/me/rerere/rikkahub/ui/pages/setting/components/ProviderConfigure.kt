@@ -642,25 +642,27 @@ private fun ProviderConfigureOpenAI(
                 )
             },
         )
-        if (!provider.poolEnabled) {
-            item(
-                headlineContent = { FieldLabel(apiKeyLabel) },
-                supportingContent = {
-                    OutlinedTextField(
-                        value = provider.apiKey,
-                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = apiKeyLabel },
-                        maxLines = 3,
-                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-                        },
-                    )
-                },
-            )
-        }
+        item(
+            modifier = if (provider.poolEnabled) {
+                Modifier.graphicsLayer { alpha = 0.38f }
+            } else Modifier,
+            headlineContent = { FieldLabel(apiKeyLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.apiKey,
+                    onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                    readOnly = provider.poolEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = apiKeyLabel },
+                    maxLines = 3,
+                    visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+                    },
+                )
+            },
+        )
         item(
             headlineContent = { FieldLabel(baseUrlLabel) },
             supportingContent = {
@@ -802,25 +804,27 @@ private fun ProviderConfigureClaude(
                 )
             },
         )
-        if (!provider.poolEnabled) {
-            item(
-                headlineContent = { FieldLabel(apiKeyLabel) },
-                supportingContent = {
-                    OutlinedTextField(
-                        value = provider.apiKey,
-                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = apiKeyLabel },
-                        maxLines = 3,
-                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-                        },
-                    )
-                },
-            )
-        }
+        item(
+            modifier = if (provider.poolEnabled) {
+                Modifier.graphicsLayer { alpha = 0.38f }
+            } else Modifier,
+            headlineContent = { FieldLabel(apiKeyLabel) },
+            supportingContent = {
+                OutlinedTextField(
+                    value = provider.apiKey,
+                    onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                    readOnly = provider.poolEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = apiKeyLabel },
+                    maxLines = 3,
+                    visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
+                    },
+                )
+            },
+        )
         item(
             headlineContent = { FieldLabel(baseUrlLabel) },
             supportingContent = {
@@ -987,13 +991,17 @@ private fun ProviderConfigureGoogle(
                 )
             },
         )
-        if (!provider.poolEnabled && !(provider.vertexAI && provider.useServiceAccount)) {
+        if (!(provider.vertexAI && provider.useServiceAccount)) {
             item(
+                modifier = if (provider.poolEnabled) {
+                    Modifier.graphicsLayer { alpha = 0.38f }
+                } else Modifier,
                 headlineContent = { FieldLabel(apiKeyLabel) },
                 supportingContent = {
                     OutlinedTextField(
                         value = provider.apiKey,
                         onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+                        readOnly = provider.poolEnabled,
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { contentDescription = apiKeyLabel },
