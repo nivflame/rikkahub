@@ -71,6 +71,7 @@ import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.CardGroupScope
 import me.rerere.rikkahub.ui.components.ui.dimmed
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import org.koin.compose.koinInject
@@ -467,6 +468,7 @@ private fun CodexAccountSheet(
     }
 }
 
+@Composable
 private fun CardGroupScope.codexWaitingItem(
     onRetry: () -> Unit,
     onCancel: () -> Unit,
@@ -507,6 +509,7 @@ private fun CardGroupScope.codexWaitingItem(
     )
 }
 
+@Composable
 private fun CardGroupScope.codexAccountItem(
     account: CodexAccount,
     onSignOut: (() -> Unit)? = null,
@@ -559,6 +562,7 @@ private fun CardGroupScope.codexAccountItem(
     )
 }
 
+@Composable
 private fun CardGroupScope.codexUsageItems(account: CodexAccount) {
     val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
     listOf(
