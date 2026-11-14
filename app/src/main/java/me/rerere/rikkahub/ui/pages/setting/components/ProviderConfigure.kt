@@ -152,24 +152,20 @@ fun ProviderConfigure(
 private fun ProviderSetting.updatePool(
     enabled: Boolean,
     accounts: List<PoolAccount>,
-    apiKey: String? = null,
 ): ProviderSetting = when (this) {
     is ProviderSetting.OpenAI -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     is ProviderSetting.Google -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     is ProviderSetting.Claude -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     else -> this

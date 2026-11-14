@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
@@ -52,7 +51,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -60,13 +58,11 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -110,7 +106,6 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
@@ -129,13 +124,10 @@ import me.rerere.ai.provider.ModelType
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.PoolableProvider
-import me.rerere.ai.provider.TextGenerationParams
 import me.rerere.ai.registry.ModelRegistry
-import me.rerere.ai.ui.UIMessage
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ai.ModelAbilityTag
 import me.rerere.rikkahub.ui.components.ai.ModelModalityTag
-import me.rerere.rikkahub.ui.components.ai.ModelSelector
 import me.rerere.rikkahub.ui.components.ai.ModelTypeTag
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
@@ -143,8 +135,6 @@ import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ShareSheet
 import me.rerere.rikkahub.ui.components.ui.SiliconFlowPowerByIcon
-import me.rerere.rikkahub.ui.components.ui.Tag
-import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.rememberShareSheetState
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.hooks.useEditState
@@ -156,8 +146,6 @@ import me.rerere.rikkahub.ui.pages.setting.components.ProviderPoolSection
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConnectionTester
 import me.rerere.rikkahub.ui.pages.setting.components.SettingProviderBalanceOption
 import me.rerere.rikkahub.ui.theme.CustomColors
-import me.rerere.rikkahub.ui.theme.extendColors
-import me.rerere.rikkahub.utils.UiState
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -739,13 +727,10 @@ private fun ModelList(
     val providerManager = koinInject<ProviderManager>()
     val modelList by produceState(emptyList(), providerSetting) {
         runCatching {
-            println("loading models...")
             value = providerManager.getProviderByType(providerSetting)
                 .listModels(providerSetting)
                 .sortedBy { it.modelId }
                 .toList()
-        }.onFailure {
-            it.printStackTrace()
         }
     }
     var expanded by rememberSaveable { mutableStateOf(true) }

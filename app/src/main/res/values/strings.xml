@@ -926,9 +926,6 @@
   <string name="setting_page_web_server_start">Start</string>
   <string name="setting_page_web_server_stop">Stop</string>
   <string name="setting_provider_page_abilities">Abilities</string>
-  <string name="setting_provider_page_rotation">Rotation</string>
-  <string name="setting_provider_page_enable_rotation">Enable rotation</string>
-  <string name="setting_provider_page_enable_rotation_desc">Rotate between pool accounts for each request</string>
   <string name="setting_provider_page_add">Confirm</string>
   <string name="setting_provider_page_add_model">Add Model</string>
   <string name="setting_provider_page_add_models_hint">Click the button below to add models</string>
@@ -990,7 +987,6 @@
   <string name="setting_provider_page_scan_error">Error: %s</string>
   <string name="setting_provider_page_scan_qr_code">Scan QR Code</string>
   <string name="setting_provider_page_search_providers">Search providers</string>
-  <string name="setting_provider_page_recommend">Recommended providers</string>
   <string name="setting_provider_page_select_all">Select All</string>
   <string name="setting_provider_page_select_from_gallery">Select from Gallery</string>
   <string name="setting_provider_page_service_account_email">Service Account Email</string>
@@ -1325,15 +1321,9 @@
   <string name="codex_sign_in">Sign in with ChatGPT</string>
   <string name="codex_waiting_authorization">Waiting for authorization</string>
   <string name="codex_waiting_authorization_hint">Tap to finish signing in your browser</string>
-  <string name="codex_token_available">Available</string>
-  <string name="codex_token_expired">Expired</string>
-  <string name="codex_token_unavailable">Invalid</string>
-  <string name="codex_token_not_checked">Not checked</string>
   <string name="codex_five_hour_limit">5-hour limit</string>
   <string name="codex_weekly_limit">Weekly limit</string>
   <string name="codex_monthly_limit">Monthly limit</string>
-  <string name="codex_minute_limit">%d-minute limit</string>
-  <string name="codex_percent_remaining">%d%% remaining</string>
   <string name="codex_percent">%d%%</string>
   <string name="codex_resets_on_date_at">Resets on %1$s at %2$s</string>
   <string name="codex_resets_weekday_at">Resets this %1$s at %2$s</string>
@@ -1342,14 +1332,12 @@
   <string name="codex_resets_in_minutes">Resets in %d minutes</string>
   <string name="codex_enable_account">Enable this account</string>
   <string name="codex_usage_title">Usage</string>
-  <string name="codex_resets_at">Resets at %s</string>
   <string name="codex_refresh">Refresh</string>
   <string name="codex_reauthenticate">Re-auth</string>
   <string name="codex_sign_out">Sign out</string>
   <string name="codex_remove_account_title">Remove account</string>
   <string name="codex_remove_account_message">Are you sure you want to remove this account?</string>
   <string name="codex_remove">Remove</string>
-  <string name="codex_refresh_failed">Failed to refresh account</string>
   <string name="codex_oauth_ports_unavailable">Unable to start OAuth callback server. Ports 1455 and 1457 are in use.</string>
 </resources>
 

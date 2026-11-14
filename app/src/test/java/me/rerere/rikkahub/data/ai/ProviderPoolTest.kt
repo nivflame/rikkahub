@@ -88,66 +88,6 @@ class ProviderPoolTest {
         assertEquals("key-two", selector.select(claude).apiKey)
     }
 
-    @Test
-    fun `enabling seeds account from existing api key`() {
-        val plan = planPoolToggle("existing-key", emptyList(), enable = true)
-
-        val apply = plan as PoolTogglePlan.Apply
-        assertEquals(null, apply.newApiKey)
-        assertTrue(apply.enabled)
-        assertEquals(1, apply.accounts.size)
-        assertEquals("Account 1", apply.accounts[0].name)
-        assertEquals("existing-key", apply.accounts[0].apiKey)
-    }
-
-    @Test
-    fun `enabling keeps accounts when pool already has them`() {
-        val accounts = listOf(account("one"), account("two"))
-
-        val plan = planPoolToggle("existing-key", accounts, enable = true)
-
-        val apply = plan as PoolTogglePlan.Apply
-        assertEquals(null, apply.newApiKey)
-        assertTrue(apply.enabled)
-        assertEquals(accounts, apply.accounts)
-    }
-
-    @Test
-    fun `enabling with blank key starts empty pool`() {
-        val plan = planPoolToggle("", emptyList(), enable = true)
-
-        val apply = plan as PoolTogglePlan.Apply
-        assertEquals(null, apply.newApiKey)
-        assertTrue(apply.enabled)
-        assertTrue(apply.accounts.isEmpty())
-    }
-
-    @Test
-    fun `disabling with two or more accounts requires confirmation`() {
-        val plan = planPoolToggle("original", listOf(account("one"), account("two")), enable = false)
-
-        assertEquals(PoolTogglePlan.ConfirmDisable, plan)
-    }
-
-    @Test
-    fun `disabling with single account migrates its key`() {
-        val plan = planPoolToggle("original", listOf(account("one")), enable = false)
-
-        val apply = plan as PoolTogglePlan.Apply
-        assertEquals("key-one", apply.newApiKey)
-        assertEquals(false, apply.enabled)
-        assertTrue(apply.accounts.isEmpty())
-    }
-
-    @Test
-    fun `disabling empty pool is a plain toggle`() {
-        val plan = planPoolToggle("original", emptyList(), enable = false)
-
-        val apply = plan as PoolTogglePlan.Apply
-        assertEquals(null, apply.newApiKey)
-        assertEquals(false, apply.enabled)
-        assertTrue(apply.accounts.isEmpty())
-    }
 
     @Test
     fun `rate limited account is skipped`() {
