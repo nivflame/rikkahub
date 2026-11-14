@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
 
 @Serializable
@@ -371,15 +370,5 @@ sealed class ProviderSetting {
             description = description,
             shortDescription = shortDescription,
         )
-    }
-
-    companion object {
-        val Types: List<KClass<out ProviderSetting>> by lazy {
-            listOf(
-                OpenAI::class,
-                Google::class,
-                Claude::class,
-            )
-        }
     }
 }

@@ -406,12 +406,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
 
                     2 -> {
                         when {
-                            internalProvider is ProviderSetting.Codex && showAccounts -> SettingProviderCodexAccountsPage()
+                            internalProvider is ProviderSetting.Codex && showAccounts -> CodexAccountsSection()
                             internalProvider is ProviderSetting.Codex -> SettingProviderCustomBodyPage(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
-                            showAccounts -> SettingProviderAccountsPage(
+                            showAccounts -> ProviderPoolSection(
                                 provider = internalProvider,
                                 onEdit = { internalProvider = it }
                             )
@@ -587,19 +587,6 @@ private fun SettingProviderConfigPage(
             }
         )
     }
-}
-
-@Composable
-private fun SettingProviderAccountsPage(
-    provider: ProviderSetting,
-    onEdit: (ProviderSetting) -> Unit
-) {
-    ProviderPoolSection(provider, onEdit)
-}
-
-@Composable
-private fun SettingProviderCodexAccountsPage() {
-    CodexAccountsSection()
 }
 
 @Composable

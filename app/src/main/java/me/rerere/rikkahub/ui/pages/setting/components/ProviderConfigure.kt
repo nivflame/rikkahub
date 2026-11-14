@@ -34,9 +34,6 @@ import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -53,7 +50,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -68,6 +64,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.dimmed
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.data.ai.formatPoolCooldown
 import me.rerere.rikkahub.data.ai.nextAccountName
@@ -91,35 +88,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.reflect.KClass
 
 @Composable
 fun ProviderConfigure(
     provider: ProviderSetting,
     modifier: Modifier = Modifier,
     onEdit: (provider: ProviderSetting) -> Unit,
-    showTypeSelector: Boolean = false,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
-        if (showTypeSelector && !provider.builtIn) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                ProviderSetting.Types.forEachIndexed { index, type ->
-                    SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = ProviderSetting.Types.size
-                        ),
-                        label = { Text(type.simpleName ?: "") },
-                        selected = provider::class == type,
-                        onClick = { onEdit(provider.convertTo(type)) }
-                    )
-                }
-            }
-        }
-
         when (provider) {
             is ProviderSetting.OpenAI -> ProviderConfigureOpenAI(provider, onEdit)
             is ProviderSetting.Google -> ProviderConfigureGoogle(provider, onEdit)
@@ -477,52 +456,6 @@ private fun PoolAccountDialog(
     )
 }
 
-fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSetting {
-    if (this::class == type) return this
-
-    val apiKey = when (this) {
-        is ProviderSetting.OpenAI -> this.apiKey
-        is ProviderSetting.Google -> this.apiKey
-        is ProviderSetting.Claude -> this.apiKey
-        is ProviderSetting.Codex -> ""
-    }
-    val sourceBaseUrl = when (this) {
-        is ProviderSetting.OpenAI -> this.baseUrl
-        is ProviderSetting.Google -> this.baseUrl
-        is ProviderSetting.Claude -> this.baseUrl
-        is ProviderSetting.Codex -> ""
-    }
-    val targetDefaultBaseUrl = when (type) {
-        ProviderSetting.OpenAI::class -> ProviderSetting.OpenAI().baseUrl
-        ProviderSetting.Google::class -> ProviderSetting.Google().baseUrl
-        ProviderSetting.Claude::class -> ProviderSetting.Claude().baseUrl
-        else -> error("Unsupported provider type: $type")
-    }
-    val convertedBaseUrl = sourceBaseUrl.convertToTargetBaseUrl(targetDefaultBaseUrl)
-
-    return when (type) {
-        ProviderSetting.OpenAI::class -> ProviderSetting.OpenAI(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
-        )
-        ProviderSetting.Google::class -> ProviderSetting.Google(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
-        )
-        ProviderSetting.Claude::class -> ProviderSetting.Claude(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
-        )
-        else -> error("Unsupported provider type: $type")
-    }
-}
-
 internal fun ProviderSetting.defaultBaseUrlForReset(): String {
     return when (this) {
         is ProviderSetting.OpenAI -> ProviderSetting.OpenAI().baseUrl
@@ -543,46 +476,7 @@ internal fun ProviderSetting.isUsingDefaultBaseUrl(): Boolean {
     return baseUrl == defaultBaseUrlForReset()
 }
 
-private fun String.convertToTargetBaseUrl(targetDefaultBaseUrl: String): String {
-    val sourceUrl = this.toHttpUrlOrNull() ?: return this
-    val sourceHost = sourceUrl.host.lowercase()
-    if (sourceHost in OFFICIAL_PROVIDER_HOSTS) return targetDefaultBaseUrl
-    val targetUrl = targetDefaultBaseUrl.toHttpUrlOrNull() ?: return this
-    val convertedPath = sourceUrl.encodedPath.convertToTargetPath(targetUrl.encodedPath)
-    return sourceUrl.newBuilder().encodedPath(convertedPath).build().toString()
-}
-
-private fun String.convertToTargetPath(targetPath: String): String {
-    val source = this.normalizePath()
-    val target = targetPath.normalizePath()
-    val replaced = when {
-        source.lowercase().endsWith(V1_BETA_SUFFIX) -> source.dropLast(V1_BETA_SUFFIX.length) + target
-        source.lowercase().endsWith(V1_SUFFIX) -> source.dropLast(V1_SUFFIX.length) + target
-        source.isBlank() -> target
-        else -> source + target
-    }
-    return replaced.normalizePath()
-}
-
-private fun String.normalizePath(): String {
-    val value = this.trim()
-    if (value.isEmpty() || value == "/") return ""
-    val path = if (value.startsWith("/")) value else "/$value"
-    return path.trimEnd('/')
-}
-
 private fun String.isValidBaseUrl(): Boolean = this.toHttpUrlOrNull() != null
-
-private const val OPENAI_OFFICIAL_HOST = "api.openai.com"
-private const val GOOGLE_OFFICIAL_HOST = "generativelanguage.googleapis.com"
-private const val CLAUDE_OFFICIAL_HOST = "api.anthropic.com"
-private const val V1_SUFFIX = "/v1"
-private const val V1_BETA_SUFFIX = "/v1beta"
-private val OFFICIAL_PROVIDER_HOSTS = setOf(
-    OPENAI_OFFICIAL_HOST,
-    GOOGLE_OFFICIAL_HOST,
-    CLAUDE_OFFICIAL_HOST
-)
 
 @Composable
 private fun FieldLabel(text: String) {
@@ -640,9 +534,7 @@ private fun ProviderConfigureOpenAI(
             },
         )
         item(
-            modifier = if (provider.poolEnabled) {
-                Modifier.graphicsLayer { alpha = 0.38f }
-            } else Modifier,
+            modifier = Modifier.dimmed(provider.poolEnabled),
             headlineContent = { FieldLabel(apiKeyLabel) },
             supportingContent = {
                 OutlinedTextField(
@@ -802,9 +694,7 @@ private fun ProviderConfigureClaude(
             },
         )
         item(
-            modifier = if (provider.poolEnabled) {
-                Modifier.graphicsLayer { alpha = 0.38f }
-            } else Modifier,
+            modifier = Modifier.dimmed(provider.poolEnabled),
             headlineContent = { FieldLabel(apiKeyLabel) },
             supportingContent = {
                 OutlinedTextField(
@@ -990,9 +880,7 @@ private fun ProviderConfigureGoogle(
         )
         if (!(provider.vertexAI && provider.useServiceAccount)) {
             item(
-                modifier = if (provider.poolEnabled) {
-                    Modifier.graphicsLayer { alpha = 0.38f }
-                } else Modifier,
+                modifier = Modifier.dimmed(provider.poolEnabled),
                 headlineContent = { FieldLabel(apiKeyLabel) },
                 supportingContent = {
                     OutlinedTextField(

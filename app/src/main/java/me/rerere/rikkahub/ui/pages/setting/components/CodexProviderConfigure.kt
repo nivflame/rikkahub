@@ -48,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,6 +71,7 @@ import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.dimmed
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import org.koin.compose.koinInject
 import java.time.Instant
@@ -161,45 +161,13 @@ fun CodexProviderConfigure(
 
         CardGroup(
             title = { Text("Account") },
-            modifier = if (provider.poolEnabled) {
-                Modifier.graphicsLayer { alpha = 0.38f }
-            } else Modifier,
+            modifier = Modifier.dimmed(provider.poolEnabled),
         ) {
             if (!provider.poolEnabled) {
                 if (oauthStatus is CodexOAuthStatus.Waiting) {
-                    item(
-                        onClick = oauthManager::startLogin,
-                        leadingContent = {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                RabbitLoadingIndicator(
-                                    modifier = Modifier.padding(8.dp),
-                                )
-                            }
-                        },
-                        headlineContent = {
-                            Text(stringResource(R.string.codex_waiting_authorization))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.codex_waiting_authorization_hint))
-                        },
-                        trailingContent = {
-                            FilledIconButton(
-                                onClick = { oauthManager.consumeResult() },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                            ) {
-                                Icon(
-                                    HugeIcons.Cancel01,
-                                    contentDescription = stringResource(R.string.cancel),
-                                )
-                            }
-                        },
+                    codexWaitingItem(
+                        onRetry = oauthManager::startLogin,
+                        onCancel = { oauthManager.consumeResult() },
                     )
                 } else if (accounts.isEmpty()) {
                     item(
@@ -219,87 +187,18 @@ fun CodexProviderConfigure(
                     )
                 }
                 accounts.take(1).forEach { account ->
-                    item(
-                        leadingContent = if (account.usage == null) {
-                            {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    RabbitLoadingIndicator(
-                                        modifier = Modifier.padding(8.dp),
-                                    )
-                                }
-                            }
-                        } else null,
-                        headlineContent = {
-                            Text(
-                                text = account.email.ifBlank { account.name },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        },
-                        supportingContent = account.planType?.let { plan ->
-                            {
-                                Text(
-                                    text = "ChatGPT " + codexPlanDisplayName(plan),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            FilledIconButton(
-                                onClick = {
-                                    scope.launch {
-                                        repository.delete(account.id)
-                                    }
-                                },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                            ) {
-                                Icon(
-                                    HugeIcons.Logout01,
-                                    contentDescription = stringResource(R.string.codex_sign_out),
-                                )
+                    codexAccountItem(
+                        account = account,
+                        onSignOut = {
+                            scope.launch {
+                                repository.delete(account.id)
                             }
                         },
                     )
                 }
             } else {
                 accounts.take(1).forEach { account ->
-                    item(
-                        leadingContent = if (account.usage == null) {
-                            {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    RabbitLoadingIndicator(
-                                        modifier = Modifier.padding(8.dp),
-                                    )
-                                }
-                            }
-                        } else null,
-                        headlineContent = {
-                            Text(
-                                text = account.email.ifBlank { account.name },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        },
-                        supportingContent = account.planType?.let { plan ->
-                            {
-                                Text(
-                                    text = "ChatGPT " + codexPlanDisplayName(plan),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
+                    codexAccountItem(account)
                 }
             }
         }
@@ -308,63 +207,7 @@ fun CodexProviderConfigure(
             CardGroup(
                 title = { Text("Usage") }
             ) {
-                val account = accounts.first()
-                val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                listOf(
-                        300L to R.string.codex_five_hour_limit,
-                        10_080L to R.string.codex_weekly_limit,
-                        43_200L to R.string.codex_monthly_limit,
-                    ).forEach { (windowMinutes, labelRes) ->
-                        val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                            ?: return@forEach
-                        val remaining = (100.0 - window.usedPercent)
-                            .coerceIn(0.0, 100.0).roundToInt()
-                        item(
-                            headlineContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = stringResource(labelRes),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.codex_percent, remaining),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (remaining == 0) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            Color.Unspecified
-                                        },
-                                    )
-                                }
-                            },
-                            supportingContent = {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    formatCodexResetText(window.resetsAt)?.let {
-                                        Text(
-                                            text = it,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    val progress by animateFloatAsState(
-                                        targetValue = remaining / 100f,
-                                        label = "usageProgress",
-                                    )
-                                    LinearWavyProgressIndicator(
-                                        progress = { progress },
-                                        amplitude = { 1f },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            },
-                        )
-                    }
+                codexUsageItems(accounts.first())
             }
         }
     }
@@ -405,39 +248,9 @@ fun CodexAccountsSection() {
             if (accounts.isNotEmpty() || oauthStatus is CodexOAuthStatus.Waiting) {
                 CardGroup {
                     if (oauthStatus is CodexOAuthStatus.Waiting) {
-                item(
-                    onClick = oauthManager::startLogin,
-                    leadingContent = {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            RabbitLoadingIndicator(
-                                modifier = Modifier.padding(8.dp),
-                            )
-                        }
-                    },
-                    headlineContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization))
-                    },
-                    supportingContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization_hint))
-                    },
-                    trailingContent = {
-                        FilledIconButton(
-                            onClick = { oauthManager.consumeResult() },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        ) {
-                            Icon(
-                                HugeIcons.Cancel01,
-                                contentDescription = stringResource(R.string.cancel),
-                            )
-                        }
-                    },
+                codexWaitingItem(
+                    onRetry = oauthManager::startLogin,
+                    onCancel = { oauthManager.consumeResult() },
                 )
             }
             accounts.forEach { account ->
@@ -647,64 +460,161 @@ private fun CodexAccountSheet(
                     CardGroup(
                         title = { Text(stringResource(R.string.codex_usage_title)) },
                     ) {
-                        listOf(
-                            300L to R.string.codex_five_hour_limit,
-                            10_080L to R.string.codex_weekly_limit,
-                            43_200L to R.string.codex_monthly_limit,
-                        ).forEach { (windowMinutes, labelRes) ->
-                            val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                                ?: return@forEach
-                            val remaining = (100.0 - window.usedPercent)
-                                .coerceIn(0.0, 100.0).roundToInt()
-                            item(
-                                headlineContent = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Text(
-                                            text = stringResource(labelRes),
-                                            style = MaterialTheme.typography.titleMedium,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.codex_percent, remaining),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = if (remaining == 0) {
-                                                MaterialTheme.colorScheme.error
-                                            } else {
-                                                Color.Unspecified
-                                            },
-                                        )
-                                    }
-                                },
-                                supportingContent = {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        formatCodexResetText(window.resetsAt)?.let {
-                                            Text(
-                                                text = it,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        val progress by animateFloatAsState(
-                                            targetValue = remaining / 100f,
-                                            label = "usageProgress",
-                                        )
-                                        LinearWavyProgressIndicator(
-                                            progress = { progress },
-                                            amplitude = { 1f },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                },
-                            )
-                        }
+                        codexUsageItems(account)
                     }
                 }
         }
+    }
+}
+
+private fun CardGroupScope.codexWaitingItem(
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    item(
+        onClick = onRetry,
+        leadingContent = {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(40.dp),
+            ) {
+                RabbitLoadingIndicator(
+                    modifier = Modifier.padding(8.dp),
+                )
+            }
+        },
+        headlineContent = {
+            Text(stringResource(R.string.codex_waiting_authorization))
+        },
+        supportingContent = {
+            Text(stringResource(R.string.codex_waiting_authorization_hint))
+        },
+        trailingContent = {
+            FilledIconButton(
+                onClick = onCancel,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+            ) {
+                Icon(
+                    HugeIcons.Cancel01,
+                    contentDescription = stringResource(R.string.cancel),
+                )
+            }
+        },
+    )
+}
+
+private fun CardGroupScope.codexAccountItem(
+    account: CodexAccount,
+    onSignOut: (() -> Unit)? = null,
+) {
+    item(
+        leadingContent = if (account.usage == null) {
+            {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    RabbitLoadingIndicator(
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            }
+        } else null,
+        headlineContent = {
+            Text(
+                text = account.email.ifBlank { account.name },
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        supportingContent = account.planType?.let { plan ->
+            {
+                Text(
+                    text = "ChatGPT " + codexPlanDisplayName(plan),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        trailingContent = onSignOut?.let { signOut ->
+            {
+                FilledIconButton(
+                    onClick = signOut,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                ) {
+                    Icon(
+                        HugeIcons.Logout01,
+                        contentDescription = stringResource(R.string.codex_sign_out),
+                    )
+                }
+            }
+        },
+    )
+}
+
+private fun CardGroupScope.codexUsageItems(account: CodexAccount) {
+    val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
+    listOf(
+        300L to R.string.codex_five_hour_limit,
+        10_080L to R.string.codex_weekly_limit,
+        43_200L to R.string.codex_monthly_limit,
+    ).forEach { (windowMinutes, labelRes) ->
+        val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
+            ?: return@forEach
+        val remaining = (100.0 - window.usedPercent)
+            .coerceIn(0.0, 100.0).roundToInt()
+        item(
+            headlineContent = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(labelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.codex_percent, remaining),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (remaining == 0) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            Color.Unspecified
+                        },
+                    )
+                }
+            },
+            supportingContent = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    formatCodexResetText(window.resetsAt)?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val progress by animateFloatAsState(
+                        targetValue = remaining / 100f,
+                        label = "usageProgress",
+                    )
+                    LinearWavyProgressIndicator(
+                        progress = { progress },
+                        amplitude = { 1f },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+        )
     }
 }
 
