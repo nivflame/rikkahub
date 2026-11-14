@@ -660,5 +660,3 @@ internal fun mergeCodexModels(existing: List<Model>, refreshed: List<Model>): Li
     val existingModelIds = existing.mapTo(mutableSetOf(), Model::modelId)
     return merged + refreshed.filterNot { it.modelId in existingModelIds }
 }
-
-    .withZone(ZoneId.systemDefault())
