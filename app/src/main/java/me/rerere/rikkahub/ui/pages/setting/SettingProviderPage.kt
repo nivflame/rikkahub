@@ -3,7 +3,6 @@ package me.rerere.rikkahub.ui.pages.setting
 import android.net.Uri
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Camera01
-import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.DragDropHorizontal
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.FileImport
@@ -34,7 +33,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
