@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.imePadding
@@ -37,7 +37,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -152,24 +151,20 @@ fun ProviderConfigure(
 private fun ProviderSetting.updatePool(
     enabled: Boolean,
     accounts: List<PoolAccount>,
-    apiKey: String? = null,
 ): ProviderSetting = when (this) {
     is ProviderSetting.OpenAI -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     is ProviderSetting.Google -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     is ProviderSetting.Claude -> copy(
         poolEnabled = enabled,
         poolAccounts = accounts,
-        apiKey = apiKey ?: this.apiKey,
     )
 
     else -> this
