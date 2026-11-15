@@ -55,7 +55,7 @@ fun CustomHeaders(
             shape = MaterialShapes.Sunny.toShape(),
             icon = HugeIcons.SourceCode,
             title = "No custom headers",
-            hint = "Headers sent with every request to this provider",
+            hint = "Headers sent with every request",
             modifier = emptyStateModifier,
             onAdd = if (showAddButton) {
                 {
