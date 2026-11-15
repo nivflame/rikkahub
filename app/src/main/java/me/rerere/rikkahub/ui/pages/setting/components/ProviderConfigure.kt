@@ -170,13 +170,8 @@ fun ProviderPoolSection(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit,
 ) {
-    if (provider is ProviderSetting.Codex) return
-    val poolAccounts = when (provider) {
-        is ProviderSetting.OpenAI -> provider.poolAccounts
-        is ProviderSetting.Google -> provider.poolAccounts
-        is ProviderSetting.Claude -> provider.poolAccounts
-        else -> return
-    }
+    val poolable = provider as? PoolableProvider ?: return
+    val poolAccounts = poolable.poolAccounts
     val context = LocalContext.current
     val toaster = LocalToaster.current
 
@@ -185,12 +180,7 @@ fun ProviderPoolSection(
     var deleteTarget by remember { mutableStateOf<PoolAccount?>(null) }
     var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
-    val poolEnabled = when (provider) {
-        is ProviderSetting.OpenAI -> provider.poolEnabled
-        is ProviderSetting.Google -> provider.poolEnabled
-        is ProviderSetting.Claude -> provider.poolEnabled
-        else -> return
-    }
+    val poolEnabled = poolable.poolEnabled
 
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
