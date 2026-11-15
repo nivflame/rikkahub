@@ -49,13 +49,15 @@ fun ProviderBalanceText(
 
     val providerManager = koinInject<ProviderManager>()
 
+    val requestKey =
+        "${providerSetting.id}|${providerSetting.baseUrl}|${providerSetting.apiKey}|${providerSetting.balanceOption}"
+
     val value = produceState(
         initialValue = BalanceResult(isSuccess = true, text = "~"),
-        key1 = providerSetting.id,
-        key2 = providerSetting.balanceOption
+        requestKey
     ) {
         // Check cache first
-        val cachedBalance = cache.getIfPresent("${providerSetting.id},${providerSetting.balanceOption.hashCode()}")
+        val cachedBalance = cache.getIfPresent(requestKey)
         if (cachedBalance != null) {
             value = BalanceResult(isSuccess = true, text = cachedBalance)
         } else {
@@ -63,7 +65,7 @@ fun ProviderBalanceText(
             runCatching {
                 val balance = providerManager.getProviderByType(providerSetting).getBalance(providerSetting)
                 // Cache the result
-                cache.put("${providerSetting.id},${providerSetting.balanceOption.hashCode()}", balance)
+                cache.put(requestKey, balance)
                 value = BalanceResult(isSuccess = true, text = balance)
             }.onFailure {
                 // Handle error, don't cache error messages
