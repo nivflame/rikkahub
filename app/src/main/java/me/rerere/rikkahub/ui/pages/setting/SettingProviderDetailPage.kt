@@ -720,13 +720,33 @@ private fun ModelList(
     onUpdateProvider: (ProviderSetting) -> Unit
 ) {
     val providerManager = koinInject<ProviderManager>()
-    val modelList by produceState(emptyList(), providerSetting) {
+    val fetchKey = when (providerSetting) {
+        is ProviderSetting.OpenAI -> listOf(
+            "openai",
+            providerSetting.baseUrl,
+            providerSetting.apiKey,
+            providerSetting.useResponseApi
+        )
+
+        is ProviderSetting.Google -> listOf(
+            "google",
+            providerSetting.baseUrl,
+            providerSetting.apiKey
+        )
+
+        is ProviderSetting.Claude -> listOf(
+            "claude",
+            providerSetting.baseUrl,
+            providerSetting.apiKey
+        )
+
+        is ProviderSetting.Codex -> listOf("codex")
+    }
+    val modelList by produceState(emptyList(), fetchKey) {
         runCatching {
-            println("loading models...")
             value = providerManager.getProviderByType(providerSetting)
                 .listModels(providerSetting)
                 .sortedBy { it.modelId }
-                .toList()
         }.onFailure {
             it.printStackTrace()
         }
