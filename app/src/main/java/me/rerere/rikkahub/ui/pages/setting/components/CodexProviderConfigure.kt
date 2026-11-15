@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -95,14 +96,15 @@ fun CodexProviderConfigure(
     val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val toaster = LocalToaster.current
+    val currentProvider by rememberUpdatedState(provider)
 
     LaunchedEffect(oauthStatus) {
         when (val status = oauthStatus) {
             is CodexOAuthStatus.Success -> {
                 runCatching {
-                    providerManager.getProviderByType(provider).listModels(provider)
+                    providerManager.getProviderByType(currentProvider).listModels(currentProvider)
                 }.onSuccess { models ->
-                    onEdit(provider.copy(models = mergeCodexModels(provider.models, models)))
+                    onEdit(currentProvider.copy(models = mergeCodexModels(currentProvider.models, models)))
                 }
                 oauthManager.consumeResult()
             }
