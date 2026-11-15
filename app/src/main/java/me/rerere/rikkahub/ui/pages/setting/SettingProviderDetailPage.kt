@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -598,9 +599,10 @@ private fun SettingProviderCodexAccountsPage() {
 }
 
 @Composable
-private fun SettingProviderHeadersPage(
-    provider: ProviderSetting,
-    onEdit: (ProviderSetting) -> Unit
+private fun ProviderPropertyPage(
+    addLabelRes: Int,
+    onAdd: () -> Unit,
+    content: @Composable LazyItemScope.() -> Unit,
 ) {
     var expanded by rememberSaveable { mutableStateOf(true) }
     Box(modifier = Modifier.fillMaxSize()) {
@@ -617,12 +619,7 @@ private fun SettingProviderHeadersPage(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                CustomHeaders(
-                    headers = provider.customHeaders,
-                    onUpdate = { onEdit(provider.updateHeaders(it)) },
-                    showAddButton = false,
-                    emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
-                )
+                content()
             }
         }
         HorizontalFloatingToolbar(
@@ -631,16 +628,12 @@ private fun SettingProviderHeadersPage(
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
-            Button(
-                onClick = {
-                    onEdit(provider.updateHeaders(provider.customHeaders + CustomHeader("", "")))
-                }
-            ) {
+            Button(onClick = onAdd) {
                 Icon(HugeIcons.Add01, null)
                 AnimatedVisibility(expanded) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.assistant_page_add_header))
+                        Text(stringResource(addLabelRes))
                     }
                 }
             }
@@ -649,57 +642,46 @@ private fun SettingProviderHeadersPage(
 }
 
 @Composable
+private fun SettingProviderHeadersPage(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit
+) {
+    ProviderPropertyPage(
+        addLabelRes = R.string.assistant_page_add_header,
+        onAdd = {
+            onEdit(provider.updateHeaders(provider.customHeaders + CustomHeader("", "")))
+        },
+    ) {
+        CustomHeaders(
+            headers = provider.customHeaders,
+            onUpdate = { onEdit(provider.updateHeaders(it)) },
+            showAddButton = false,
+            emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
+        )
+    }
+}
+
+@Composable
 private fun SettingProviderCustomBodyPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(true) }
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding()
-                .floatingToolbarVerticalNestedScroll(
-                    expanded = expanded,
-                    onExpand = { expanded = true },
-                    onCollapse = { expanded = false },
-                ),
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                CustomBodies(
-                    customBodies = provider.customBodies,
-                    onUpdate = { onEdit(provider.updateBodies(it)) },
-                    showAddButton = false,
-                    emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
+    ProviderPropertyPage(
+        addLabelRes = R.string.assistant_page_add_body,
+        onAdd = {
+            onEdit(
+                provider.updateBodies(
+                    provider.customBodies + CustomBody("", JsonPrimitive(""))
                 )
-            }
-        }
-        HorizontalFloatingToolbar(
-            expanded = expanded,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -ScreenOffset),
-        ) {
-            Button(
-                onClick = {
-                    onEdit(
-                        provider.updateBodies(
-                            provider.customBodies + CustomBody("", JsonPrimitive(""))
-                        )
-                    )
-                }
-            ) {
-                Icon(HugeIcons.Add01, null)
-                AnimatedVisibility(expanded) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.assistant_page_add_body))
-                    }
-                }
-            }
-        }
+            )
+        },
+    ) {
+        CustomBodies(
+            customBodies = provider.customBodies,
+            onUpdate = { onEdit(provider.updateBodies(it)) },
+            showAddButton = false,
+            emptyStateModifier = Modifier.fillParentMaxHeight(0.85f),
+        )
     }
 }
 
