@@ -20,6 +20,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -67,6 +68,12 @@ interface CardGroupScope {
         verticalAlignment: Alignment.Vertical? = null,
         headlineContent: @Composable () -> Unit,
     )
+
+    fun toggleItem(
+        label: String,
+        checked: Boolean,
+        onClick: () -> Unit,
+    )
 }
 
 private class CardGroupScopeImpl : CardGroupScope {
@@ -95,6 +102,14 @@ private class CardGroupScopeImpl : CardGroupScope {
                 colors = colors,
                 verticalAlignment = verticalAlignment,
             )
+        )
+    }
+
+    override fun toggleItem(label: String, checked: Boolean, onClick: () -> Unit) {
+        item(
+            onClick = onClick,
+            headlineContent = { Text(text = label, style = MaterialTheme.typography.titleMedium) },
+            trailingContent = { Switch(checked = checked, onCheckedChange = null) },
         )
     }
 }

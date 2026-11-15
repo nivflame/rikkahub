@@ -133,20 +133,10 @@ fun ProviderConfigure(
 
         if (provider is PoolableProvider) {
             CardGroup {
-                item(
+                toggleItem(
+                    label = "Rotate Accounts",
+                    checked = provider.poolEnabled,
                     onClick = { onEdit(provider.updatePool(!provider.poolEnabled, provider.poolAccounts)) },
-                    headlineContent = {
-                        Text(
-                            text = "Rotate Accounts",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = provider.poolEnabled,
-                            onCheckedChange = null,
-                        )
-                    },
                 )
             }
         }
@@ -606,21 +596,13 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
+    val enableLabel = stringResource(R.string.setting_provider_page_enable)
+
     CardGroup {
-        item(
+        toggleItem(
+            label = enableLabel,
+            checked = provider.enabled,
             onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
-                )
-            },
         )
     }
 
@@ -706,8 +688,12 @@ private fun ProviderConfigureOpenAI(
     }
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
+    val responseAPILabel = stringResource(R.string.setting_provider_page_response_api)
+    val includeHistoryReasoningLabel = stringResource(R.string.setting_provider_page_include_history_reasoning)
     CardGroup {
-        item(
+        toggleItem(
+            label = responseAPILabel,
+            checked = provider.useResponseApi,
             onClick = {
                 val newValue = !provider.useResponseApi
                 onEdit(provider.copy(useResponseApi = newValue))
@@ -715,48 +701,16 @@ private fun ProviderConfigureOpenAI(
                     toaster.show(message = responseAPIWarning, type = ToastType.Warning)
                 }
             },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_response_api),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.useResponseApi,
-                    onCheckedChange = null,
-                )
-            },
         )
-        item(
+        toggleItem(
+            label = includeHistoryReasoningLabel,
+            checked = provider.includeHistoryReasoning,
             onClick = { onEdit(provider.copy(includeHistoryReasoning = !provider.includeHistoryReasoning)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_include_history_reasoning),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.includeHistoryReasoning,
-                    onCheckedChange = null,
-                )
-            },
         )
-        item(
+        toggleItem(
+            label = "Auto Retry",
+            checked = provider.autoRetry,
             onClick = { onEdit(provider.copy(autoRetry = !provider.autoRetry)) },
-            headlineContent = {
-                Text(
-                    text = "Auto Retry",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.autoRetry,
-                    onCheckedChange = null,
-                )
-            },
         )
     }
 }
@@ -768,21 +722,13 @@ private fun ProviderConfigureClaude(
 ) {
     provider.description()
 
+    val enableLabel = stringResource(R.string.setting_provider_page_enable)
+
     CardGroup {
-        item(
+        toggleItem(
+            label = enableLabel,
+            checked = provider.enabled,
             onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
-                )
-            },
         )
     }
 
@@ -853,21 +799,12 @@ private fun ProviderConfigureClaude(
         )
     }
 
+    val promptCachingLabel = stringResource(R.string.setting_provider_page_claude_prompt_caching)
     CardGroup {
-        item(
+        toggleItem(
+            label = promptCachingLabel,
+            checked = provider.promptCaching,
             onClick = { onEdit(provider.copy(promptCaching = !provider.promptCaching)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_claude_prompt_caching),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.promptCaching,
-                    onCheckedChange = null,
-                )
-            },
         )
         if (provider.promptCaching) {
             item(
@@ -962,21 +899,13 @@ private fun ProviderConfigureGoogle(
 
     provider.description()
 
+    val enableLabel = stringResource(R.string.setting_provider_page_enable)
+
     CardGroup {
-        item(
+        toggleItem(
+            label = enableLabel,
+            checked = provider.enabled,
             onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_enable),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.enabled,
-                    onCheckedChange = null,
-                )
-            },
         )
     }
 
@@ -1055,37 +984,19 @@ private fun ProviderConfigureGoogle(
         }
     }
 
+    val vertexAILabel = stringResource(R.string.setting_provider_page_vertex_ai)
+    val useServiceAccountLabel = stringResource(R.string.setting_provider_page_use_service_account)
     CardGroup {
-        item(
+        toggleItem(
+            label = vertexAILabel,
+            checked = provider.vertexAI,
             onClick = { onEdit(provider.copy(vertexAI = !provider.vertexAI)) },
-            headlineContent = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_vertex_ai),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = provider.vertexAI,
-                    onCheckedChange = null,
-                )
-            },
         )
         if (provider.vertexAI) {
-            item(
+            toggleItem(
+                label = useServiceAccountLabel,
+                checked = provider.useServiceAccount,
                 onClick = { onEdit(provider.copy(useServiceAccount = !provider.useServiceAccount)) },
-                headlineContent = {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_use_service_account),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = provider.useServiceAccount,
-                        onCheckedChange = null,
-                    )
-                },
             )
         }
     }
