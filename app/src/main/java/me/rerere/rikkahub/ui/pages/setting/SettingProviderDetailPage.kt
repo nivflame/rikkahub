@@ -132,6 +132,7 @@ import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.ShareSheet
 import me.rerere.rikkahub.ui.components.ui.SiliconFlowPowerByIcon
+import me.rerere.rikkahub.ui.components.ui.SwipeDeleteBackground
 import me.rerere.rikkahub.ui.components.ui.rememberShareSheetState
 import me.rerere.rikkahub.ui.context.LocalNavController
 import me.rerere.rikkahub.ui.hooks.useEditState
@@ -1615,7 +1616,6 @@ private fun ModelCard(
         onEdit(it)
     }
     val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val scope = rememberCoroutineScope()
 
 
     if (dialogState.isEditing) {
@@ -1689,36 +1689,12 @@ private fun ModelCard(
     SwipeToDismissBox(
         state = swipeToDismissBoxState,
         backgroundContent = {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            swipeToDismissBoxState.reset()
-                        }
-                    }
-                ) {
-                    Icon(HugeIcons.Cancel01, null)
-                }
-                FilledIconButton(
-                    onClick = {
-                        scope.launch {
-                            onDelete()
-                            swipeToDismissBoxState.reset()
-                        }
-                    }
-                ) {
-                    Icon(
-                        HugeIcons.Delete01,
-                        contentDescription = stringResource(R.string.chat_page_delete)
-                    )
-                }
-            }
+            SwipeDeleteBackground(
+                state = swipeToDismissBoxState,
+                onDelete = onDelete,
+                deleteContentDescription = stringResource(R.string.chat_page_delete),
+                cancelContentDescription = stringResource(R.string.cancel),
+            )
         },
         enableDismissFromStartToEnd = false,
         gesturesEnabled = true,
