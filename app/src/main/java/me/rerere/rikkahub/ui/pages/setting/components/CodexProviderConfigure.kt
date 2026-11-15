@@ -32,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.material3.TextButton
@@ -129,35 +128,15 @@ fun CodexProviderConfigure(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         CardGroup {
-            item(
+            toggleItem(
+                label = stringResource(R.string.setting_provider_page_enable),
+                checked = provider.enabled,
                 onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-                headlineContent = {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_enable),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = provider.enabled,
-                        onCheckedChange = null,
-                    )
-                },
             )
-            item(
+            toggleItem(
+                label = "Rotate Accounts",
+                checked = provider.poolEnabled,
                 onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
-                headlineContent = {
-                    Text(
-                        text = "Rotate Accounts",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = provider.poolEnabled,
-                        onCheckedChange = null,
-                    )
-                },
             )
         }
 
@@ -601,20 +580,10 @@ private fun CodexAccountSheet(
                 style = MaterialTheme.typography.headlineSmallEmphasized,
             )
             CardGroup {
-                item(
+                toggleItem(
+                    label = stringResource(R.string.codex_enable_account),
+                    checked = account.enabled,
                     onClick = onToggleEnabled,
-                    headlineContent = {
-                        Text(
-                            text = stringResource(R.string.codex_enable_account),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = account.enabled,
-                            onCheckedChange = null,
-                        )
-                    },
                 )
             }
             Row(
