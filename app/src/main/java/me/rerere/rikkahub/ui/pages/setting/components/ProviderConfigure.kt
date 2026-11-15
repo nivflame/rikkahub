@@ -68,6 +68,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.CardGroupScope
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.data.ai.formatPoolCooldown
 import me.rerere.rikkahub.data.ai.nextAccountName
@@ -624,26 +625,13 @@ private fun ProviderConfigureOpenAI(
                 )
             },
         )
-        item(
-            modifier = if (provider.poolEnabled) {
-                Modifier.graphicsLayer { alpha = 0.38f }
-            } else Modifier,
-            headlineContent = { FieldLabel(apiKeyLabel) },
-            supportingContent = {
-                OutlinedTextField(
-                    value = provider.apiKey,
-                    onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-                    readOnly = provider.poolEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = apiKeyLabel },
-                    maxLines = 3,
-                    visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-                    },
-                )
-            },
+        apiKeyItem(
+            label = apiKeyLabel,
+            value = provider.apiKey,
+            readOnly = provider.poolEnabled,
+            keyVisible = keyVisible,
+            onKeyVisibilityChange = { keyVisible = it },
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         )
         item(
             headlineContent = { FieldLabel(baseUrlLabel) },
@@ -750,26 +738,13 @@ private fun ProviderConfigureClaude(
                 )
             },
         )
-        item(
-            modifier = if (provider.poolEnabled) {
-                Modifier.graphicsLayer { alpha = 0.38f }
-            } else Modifier,
-            headlineContent = { FieldLabel(apiKeyLabel) },
-            supportingContent = {
-                OutlinedTextField(
-                    value = provider.apiKey,
-                    onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-                    readOnly = provider.poolEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = apiKeyLabel },
-                    maxLines = 3,
-                    visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-                    },
-                )
-            },
+        apiKeyItem(
+            label = apiKeyLabel,
+            value = provider.apiKey,
+            readOnly = provider.poolEnabled,
+            keyVisible = keyVisible,
+            onKeyVisibilityChange = { keyVisible = it },
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         )
         item(
             headlineContent = { FieldLabel(baseUrlLabel) },
@@ -927,26 +902,13 @@ private fun ProviderConfigureGoogle(
             },
         )
         if (!(provider.vertexAI && provider.useServiceAccount)) {
-            item(
-                modifier = if (provider.poolEnabled) {
-                    Modifier.graphicsLayer { alpha = 0.38f }
-                } else Modifier,
-                headlineContent = { FieldLabel(apiKeyLabel) },
-                supportingContent = {
-                    OutlinedTextField(
-                        value = provider.apiKey,
-                        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-                        readOnly = provider.poolEnabled,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = apiKeyLabel },
-                        maxLines = 3,
-                        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            ApiKeyTrailingIcons(keyVisible, { keyVisible = !keyVisible }, provider.apiKey)
-                        },
-                    )
-                },
+            apiKeyItem(
+                label = apiKeyLabel,
+                value = provider.apiKey,
+                readOnly = provider.poolEnabled,
+                keyVisible = keyVisible,
+                onKeyVisibilityChange = { keyVisible = it },
+                onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
             )
         }
         if (!provider.vertexAI) {
@@ -1070,6 +1032,37 @@ private fun ProviderConfigureGoogle(
             )
         }
     }
+}
+
+private fun CardGroupScope.apiKeyItem(
+    label: String,
+    value: String,
+    readOnly: Boolean,
+    keyVisible: Boolean,
+    onKeyVisibilityChange: (Boolean) -> Unit,
+    onValueChange: (String) -> Unit,
+) {
+    item(
+        modifier = if (readOnly) {
+            Modifier.graphicsLayer { alpha = 0.38f }
+        } else Modifier,
+        headlineContent = { FieldLabel(label) },
+        supportingContent = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = readOnly,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = label },
+                maxLines = 3,
+                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    ApiKeyTrailingIcons(keyVisible, { onKeyVisibilityChange(!keyVisible) }, value)
+                },
+            )
+        },
+    )
 }
 
 @Composable
