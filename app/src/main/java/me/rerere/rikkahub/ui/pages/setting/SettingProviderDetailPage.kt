@@ -312,44 +312,25 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
                 val codexProvider = internalProvider as? ProviderSetting.Codex
-                if (codexProvider != null) {
-                    AnimatedVisibility(
-                        visible = codexProvider.poolEnabled,
-                        enter = expandHorizontally() + fadeIn(),
-                        exit = shrinkHorizontally() + fadeOut(),
+                AnimatedVisibility(
+                    visible = showAccounts,
+                    enter = expandHorizontally() + fadeIn(),
+                    exit = shrinkHorizontally() + fadeOut(),
+                ) {
+                    BouncingTabButton(
+                        checked = pager.currentPage == 2,
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                        modifier = Modifier
+                            .onGloballyPositioned {
+                                pillPositions[2] = it.positionInParent().x.toFloat()
+                                pillWidths[2] = it.size.width
+                            }
+                            .padding(end = 8.dp),
                     ) {
-                        BouncingTabButton(
-                            checked = pager.currentPage == 2,
-                            onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                            modifier = Modifier
-                                .onGloballyPositioned {
-                                    pillPositions[2] = it.positionInParent().x.toFloat()
-                                    pillWidths[2] = it.size.width
-                                }
-                                .padding(end = 8.dp),
-                        ) {
-                            Text("Accounts")
-                        }
+                        Text("Accounts")
                     }
-                } else {
-                    AnimatedVisibility(
-                        visible = providerPoolOn,
-                        enter = expandHorizontally() + fadeIn(),
-                        exit = shrinkHorizontally() + fadeOut(),
-                    ) {
-                        BouncingTabButton(
-                            checked = pager.currentPage == 2,
-                            onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
-                            modifier = Modifier
-                                .onGloballyPositioned {
-                                    pillPositions[2] = it.positionInParent().x.toFloat()
-                                    pillWidths[2] = it.size.width
-                                }
-                                .padding(end = 8.dp),
-                        ) {
-                            Text("Accounts")
-                        }
-                    }
+                }
+                if (codexProvider == null) {
                     BouncingTabButton(
                         checked = pager.currentPage == headersIndex,
                         onCheckedChange = { scope.launch { pager.animateScrollToPage(headersIndex) } },
