@@ -38,29 +38,6 @@ internal fun parseCodexIdentity(idToken: String, json: Json): CodexIdentity {
     )
 }
 
-fun codexPlanDisplayName(raw: String): String = when (raw.lowercase()) {
-    "free" -> "Free"
-    "go" -> "Go"
-    "plus" -> "Plus"
-    "pro" -> "Pro (More)"
-    "prolite" -> "Pro"
-    "promax" -> "Pro (Max)"
-    "team" -> "Team"
-    "self_serve_business_prolite" -> "Self Serve Business ProLite"
-    "self_serve_business_usage_based" -> "Self Serve Business Usage Based"
-    "business" -> "Business"
-    "ent26" -> "Enterprise"
-    "enterprise_cbp_automation" -> "Enterprise (Automation)"
-    "enterprise_cbp_usage_based" -> "Enterprise CBP Usage Based"
-    "enterprise", "hc" -> "Enterprise"
-    "education", "edu" -> "Edu"
-    "edu_plus" -> "Edu Plus"
-    "edu_pro" -> "Edu Pro"
-    "sci" -> "Sci"
-    "sci_plus" -> "Sci Plus"
-    else -> raw
-}
-
 internal fun parseCodexUsage(jsonObject: JsonObject): CodexUsageSnapshot {
     val rateLimit = jsonObject["rate_limit"] as? JsonObject
     return CodexUsageSnapshot(

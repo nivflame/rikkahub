@@ -70,7 +70,6 @@ import me.rerere.rikkahub.data.codex.CodexAccountRepository
 import me.rerere.rikkahub.data.codex.CodexOAuthManager
 import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.CodexUsageWindow
-import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.CardGroupScope
@@ -574,6 +573,29 @@ private fun CardGroupScope.codexAuthorizationPendingItem(
             }
         },
     )
+}
+
+private fun codexPlanDisplayName(raw: String): String = when (raw.lowercase()) {
+    "free" -> "Free"
+    "go" -> "Go"
+    "plus" -> "Plus"
+    "pro" -> "Pro (More)"
+    "prolite" -> "Pro"
+    "promax" -> "Pro (Max)"
+    "team" -> "Team"
+    "self_serve_business_prolite" -> "Self Serve Business ProLite"
+    "self_serve_business_usage_based" -> "Self Serve Business Usage Based"
+    "business" -> "Business"
+    "ent26" -> "Enterprise"
+    "enterprise_cbp_automation" -> "Enterprise (Automation)"
+    "enterprise_cbp_usage_based" -> "Enterprise CBP Usage Based"
+    "enterprise", "hc" -> "Enterprise"
+    "education", "edu" -> "Edu"
+    "edu_plus" -> "Edu Plus"
+    "edu_pro" -> "Edu Pro"
+    "sci" -> "Sci"
+    "sci_plus" -> "Sci Plus"
+    else -> raw
 }
 
 @Composable
