@@ -48,6 +48,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -85,7 +87,10 @@ import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -926,26 +931,32 @@ private fun ProviderConfigureGoogle(
 ) {
     val context = LocalContext.current
     val toaster = LocalToaster.current
+    val scope = rememberCoroutineScope()
+    val currentProvider by rememberUpdatedState(provider)
     val serviceAccountJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        try {
-            val content = context.contentResolver.openInputStream(uri)
-                ?.bufferedReader()
-                ?.readText()
-                ?: return@rememberLauncherForActivityResult
-            val json = Json.parseToJsonElement(content).jsonObject
-            onEdit(
-                provider.copy(
-                    projectId = json["project_id"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: provider.projectId,
-                    serviceAccountEmail = json["client_email"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: provider.serviceAccountEmail,
-                    privateKey = json["private_key"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: provider.privateKey,
+        scope.launch {
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)
+                        ?.bufferedReader()
+                        ?.use { it.readText() }
+                        ?: return@launch
+                }
+                val json = Json.parseToJsonElement(content).jsonObject
+                onEdit(
+                    currentProvider.copy(
+                        projectId = json["project_id"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: currentProvider.projectId,
+                        serviceAccountEmail = json["client_email"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: currentProvider.serviceAccountEmail,
+                        privateKey = json["private_key"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: currentProvider.privateKey,
+                    )
                 )
-            )
-            toaster.show("Service account imported", type = ToastType.Success)
-        } catch (e: Exception) {
-            toaster.show("Failed to import: ${e.message}", type = ToastType.Error)
+                toaster.show("Service account imported", type = ToastType.Success)
+            } catch (e: Exception) {
+                toaster.show("Failed to import: ${e.message}", type = ToastType.Error)
+            }
         }
     }
 
