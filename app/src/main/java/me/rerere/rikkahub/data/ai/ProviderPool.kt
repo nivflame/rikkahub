@@ -81,14 +81,6 @@ suspend fun <T> ProviderPoolSelector.withFailover(
     throw lastError!!
 }
 
-internal fun nextAccountName(accounts: List<PoolAccount>, excludeId: Uuid? = null): String {
-    val max = accounts.asSequence()
-        .filter { it.id != excludeId }
-        .mapNotNull { it.name.toIntOrNull() }
-        .maxOrNull() ?: 0
-    return (max + 1).toString().padStart(2, '0')
-}
-
 /**
  * Failover contract: each retry re-runs the flow body so the selection counter advances,
  * the fresh settingsFlow read excludes the account just marked by the completed predicate,
@@ -115,19 +107,6 @@ internal fun parsePoolRateLimitedModel(message: String?): String? {
     if (message == null) return null
     return poolRateLimitedModelRegex.find(message.lowercase())?.groupValues?.get(1)?.trimEnd('.')
         ?.takeIf { it.isNotBlank() }
-}
-
-fun formatPoolCooldown(remainingMillis: Long): String {
-    if (remainingMillis <= 0) return "0s"
-    val totalSeconds = (remainingMillis + 999) / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return when {
-        hours > 0 -> "${hours}h ${minutes}m"
-        minutes > 0 -> "${minutes}m"
-        else -> "${seconds}s"
-    }
 }
 
 internal fun parsePoolRetryAfterMillis(message: String?): Long {

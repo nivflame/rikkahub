@@ -70,8 +70,6 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.CardGroupScope
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
-import me.rerere.rikkahub.data.ai.formatPoolCooldown
-import me.rerere.rikkahub.data.ai.nextAccountName
 import me.rerere.rikkahub.utils.writeClipboardText
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
@@ -96,6 +94,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.reflect.KClass
+import kotlin.uuid.Uuid
 
 @Composable
 fun ProviderConfigure(
@@ -1077,5 +1076,26 @@ private fun ApiKeyTrailingIcons(
                 Icon(HugeIcons.Copy01, contentDescription = null)
             }
         }
+    }
+}
+
+internal fun nextAccountName(accounts: List<PoolAccount>, excludeId: Uuid? = null): String {
+    val max = accounts.asSequence()
+        .filter { it.id != excludeId }
+        .mapNotNull { it.name.toIntOrNull() }
+        .maxOrNull() ?: 0
+    return (max + 1).toString().padStart(2, '0')
+}
+
+internal fun formatPoolCooldown(remainingMillis: Long): String {
+    if (remainingMillis <= 0) return "0s"
+    val totalSeconds = (remainingMillis + 999) / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 0 -> "${minutes}m"
+        else -> "${seconds}s"
     }
 }
