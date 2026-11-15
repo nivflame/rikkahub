@@ -428,6 +428,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     }
 }
 
+private fun Model.withRegistryMetadata(): Model = copy(
+    inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(modelId),
+    outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(modelId),
+    abilities = ModelRegistry.MODEL_ABILITIES.getData(modelId),
+)
+
 @Composable
 private fun SettingProviderConfigPage(
     provider: ProviderSetting,
@@ -983,16 +989,7 @@ private fun AddModelButton(
             models = models,
             selectedModels = selectedModels,
             onModelSelected = { model ->
-                val inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId)
-                val outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId)
-                val abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId)
-                onAddModel(
-                    model.copy(
-                        inputModalities = inputModalities,
-                        outputModalities = outputModalities,
-                        abilities = abilities
-                    )
-                )
+                onAddModel(model.withRegistryMetadata())
             },
             onModelDeselected = { model ->
                 onRemoveModel(model)
@@ -1003,11 +1000,7 @@ private fun AddModelButton(
                         models = parentProvider.models + it.filter { model ->
                             parentProvider.models.none { existing -> existing.modelId == model.modelId }
                         }.map { model ->
-                            model.copy(
-                                inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
-                                outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
-                                abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId)
-                            )
+                            model.withRegistryMetadata()
                         }
                     )
                 )
@@ -1270,11 +1263,7 @@ private fun ModelPicker(
                                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         val modelMeta = remember(model) {
-                                            model.copy(
-                                                inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(model.modelId),
-                                                outputModalities = ModelRegistry.MODEL_OUTPUT_MODALITIES.getData(model.modelId),
-                                                abilities = ModelRegistry.MODEL_ABILITIES.getData(model.modelId),
-                                            )
+                                            model.withRegistryMetadata()
                                         }
                                         ModelModalityTag(
                                             model = modelMeta,
