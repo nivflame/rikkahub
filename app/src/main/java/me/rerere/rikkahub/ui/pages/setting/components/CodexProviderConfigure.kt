@@ -70,6 +70,7 @@ import me.rerere.rikkahub.data.codex.CodexAccountRepository
 import me.rerere.rikkahub.data.codex.CodexOAuthManager
 import me.rerere.rikkahub.data.codex.CodexOAuthStatus
 import me.rerere.rikkahub.data.codex.CodexUsageWindow
+import me.rerere.rikkahub.data.codex.mergeCodexModels
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.CardGroupScope
@@ -624,19 +625,4 @@ private fun formatCodexResetText(resetsAt: Long?): String? {
             time,
         )
     }
-}
-
-internal fun mergeCodexModels(existing: List<Model>, refreshed: List<Model>): List<Model> {
-    val refreshedByModelId = refreshed.associateBy(Model::modelId)
-    val merged = existing.map { model ->
-        refreshedByModelId[model.modelId]?.let { refreshedModel ->
-            model.copy(
-                inputModalities = refreshedModel.inputModalities,
-                outputModalities = refreshedModel.outputModalities,
-                abilities = refreshedModel.abilities,
-            )
-        } ?: model
-    }
-    val existingModelIds = existing.mapTo(mutableSetOf(), Model::modelId)
-    return merged + refreshed.filterNot { it.modelId in existingModelIds }
 }

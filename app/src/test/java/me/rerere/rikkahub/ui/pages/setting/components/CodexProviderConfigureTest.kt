@@ -8,6 +8,7 @@ import me.rerere.ai.provider.Modality
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.ModelType
+import me.rerere.rikkahub.data.codex.mergeCodexModels
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.uuid.Uuid
