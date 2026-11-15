@@ -105,40 +105,14 @@ fun CustomHeaders(
                     }
                 },
                 trailingContent = {
-                    Column {
-                        IconButton(
-                            enabled = index > 0,
-                            onClick = {
-                                val updatedHeaders = headers.toMutableList()
-                                val previous = updatedHeaders.removeAt(index - 1)
-                                updatedHeaders.add(index, previous)
-                                onUpdate(updatedHeaders)
-                            },
-                        ) {
-                            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
-                        }
-                        IconButton(
-                            enabled = index < headers.lastIndex,
-                            onClick = {
-                                val updatedHeaders = headers.toMutableList()
-                                val next = updatedHeaders.removeAt(index + 1)
-                                updatedHeaders.add(index, next)
-                                onUpdate(updatedHeaders)
-                            },
-                        ) {
-                            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
-                        }
-                        IconButton(onClick = {
-                            val updatedHeaders = headers.toMutableList()
-                            updatedHeaders.removeAt(index)
-                            onUpdate(updatedHeaders)
-                        }) {
-                            Icon(
-                                HugeIcons.Delete01,
-                                contentDescription = stringResource(R.string.assistant_page_delete_header)
-                            )
-                        }
-                    }
+                    ReorderDeleteActions(
+                        canMoveUp = index > 0,
+                        canMoveDown = index < headers.lastIndex,
+                        onMoveUp = { onUpdate(headers.moved(index, -1)) },
+                        onMoveDown = { onUpdate(headers.moved(index, 1)) },
+                        onDelete = { onUpdate(headers.filterIndexed { i, _ -> i != index }) },
+                        deleteContentDescription = stringResource(R.string.assistant_page_delete_header),
+                    )
                 },
                 headlineContent = {},
             )
@@ -243,42 +217,48 @@ fun CustomBodies(
                     }
                 },
                 trailingContent = {
-                    Column {
-                        IconButton(
-                            enabled = index > 0,
-                            onClick = {
-                                val updatedBodies = customBodies.toMutableList()
-                                val previous = updatedBodies.removeAt(index - 1)
-                                updatedBodies.add(index, previous)
-                                onUpdate(updatedBodies)
-                            },
-                        ) {
-                            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
-                        }
-                        IconButton(
-                            enabled = index < customBodies.lastIndex,
-                            onClick = {
-                                val updatedBodies = customBodies.toMutableList()
-                                val next = updatedBodies.removeAt(index + 1)
-                                updatedBodies.add(index, next)
-                                onUpdate(updatedBodies)
-                            },
-                        ) {
-                            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
-                        }
-                        IconButton(onClick = {
-                            val updatedBodies = customBodies.toMutableList()
-                            updatedBodies.removeAt(index)
-                            onUpdate(updatedBodies)
-                        }) {
-                            Icon(
-                                HugeIcons.Delete01,
-                                contentDescription = stringResource(R.string.assistant_page_delete_body)
-                            )
-                        }
-                    }
+                    ReorderDeleteActions(
+                        canMoveUp = index > 0,
+                        canMoveDown = index < customBodies.lastIndex,
+                        onMoveUp = { onUpdate(customBodies.moved(index, -1)) },
+                        onMoveDown = { onUpdate(customBodies.moved(index, 1)) },
+                        onDelete = { onUpdate(customBodies.filterIndexed { i, _ -> i != index }) },
+                        deleteContentDescription = stringResource(R.string.assistant_page_delete_body),
+                    )
                 },
                 headlineContent = {},
+            )
+        }
+    }
+}
+
+private fun <T> List<T>.moved(index: Int, offset: Int): List<T> {
+    val updated = toMutableList()
+    val other = updated.removeAt(index + offset)
+    updated.add(index, other)
+    return updated
+}
+
+@Composable
+private fun ReorderDeleteActions(
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onDelete: () -> Unit,
+    deleteContentDescription: String,
+) {
+    Column {
+        IconButton(enabled = canMoveUp, onClick = onMoveUp) {
+            Icon(HugeIcons.ArrowUp01, contentDescription = "Move up")
+        }
+        IconButton(enabled = canMoveDown, onClick = onMoveDown) {
+            Icon(HugeIcons.ArrowDown01, contentDescription = "Move down")
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                HugeIcons.Delete01,
+                contentDescription = deleteContentDescription,
             )
         }
     }
