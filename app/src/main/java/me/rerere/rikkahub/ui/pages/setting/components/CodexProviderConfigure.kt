@@ -69,9 +69,11 @@ import me.rerere.rikkahub.data.codex.CodexAccount
 import me.rerere.rikkahub.data.codex.CodexAccountRepository
 import me.rerere.rikkahub.data.codex.CodexOAuthManager
 import me.rerere.rikkahub.data.codex.CodexOAuthStatus
+import me.rerere.rikkahub.data.codex.CodexUsageWindow
 import me.rerere.rikkahub.data.codex.codexPlanDisplayName
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
+import me.rerere.rikkahub.ui.components.ui.CardGroupScope
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import org.koin.compose.koinInject
 import java.time.Instant
@@ -291,61 +293,7 @@ fun CodexProviderConfigure(
             ) {
                 val account = accounts.first()
                 val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                listOf(
-                        300L to R.string.codex_five_hour_limit,
-                        10_080L to R.string.codex_weekly_limit,
-                        43_200L to R.string.codex_monthly_limit,
-                    ).forEach { (windowMinutes, labelRes) ->
-                        val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                            ?: return@forEach
-                        val remaining = (100.0 - window.usedPercent)
-                            .coerceIn(0.0, 100.0).roundToInt()
-                        item(
-                            headlineContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = stringResource(labelRes),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.codex_percent, remaining),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (remaining == 0) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            Color.Unspecified
-                                        },
-                                    )
-                                }
-                            },
-                            supportingContent = {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    formatCodexResetText(window.resetsAt)?.let {
-                                        Text(
-                                            text = it,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    val progress by animateFloatAsState(
-                                        targetValue = remaining / 100f,
-                                        label = "usageProgress",
-                                    )
-                                    LinearWavyProgressIndicator(
-                                        progress = { progress },
-                                        amplitude = { 1f },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                            },
-                        )
-                    }
+                codexUsageItems(windows)
             }
         }
     }
@@ -618,64 +566,66 @@ private fun CodexAccountSheet(
                     CardGroup(
                         title = { Text(stringResource(R.string.codex_usage_title)) },
                     ) {
-                        listOf(
-                            300L to R.string.codex_five_hour_limit,
-                            10_080L to R.string.codex_weekly_limit,
-                            43_200L to R.string.codex_monthly_limit,
-                        ).forEach { (windowMinutes, labelRes) ->
-                            val window = windows.firstOrNull { it.windowMinutes == windowMinutes }
-                                ?: return@forEach
-                            val remaining = (100.0 - window.usedPercent)
-                                .coerceIn(0.0, 100.0).roundToInt()
-                            item(
-                                headlineContent = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Text(
-                                            text = stringResource(labelRes),
-                                            style = MaterialTheme.typography.titleMedium,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.codex_percent, remaining),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = if (remaining == 0) {
-                                                MaterialTheme.colorScheme.error
-                                            } else {
-                                                Color.Unspecified
-                                            },
-                                        )
-                                    }
-                                },
-                                supportingContent = {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        formatCodexResetText(window.resetsAt)?.let {
-                                            Text(
-                                                text = it,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        val progress by animateFloatAsState(
-                                            targetValue = remaining / 100f,
-                                            label = "usageProgress",
-                                        )
-                                        LinearWavyProgressIndicator(
-                                            progress = { progress },
-                                            amplitude = { 1f },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                },
-                            )
-                        }
+                        codexUsageItems(windows)
                     }
                 }
         }
+    }
+}
+
+private fun CardGroupScope.codexUsageItems(windows: List<CodexUsageWindow>) {
+    listOf(
+        300L to R.string.codex_five_hour_limit,
+        10_080L to R.string.codex_weekly_limit,
+        43_200L to R.string.codex_monthly_limit,
+    ).forEach { (windowMinutes, labelRes) ->
+        val window = windows.firstOrNull { it.windowMinutes == windowMinutes } ?: return@forEach
+        val remaining = (100.0 - window.usedPercent).coerceIn(0.0, 100.0).roundToInt()
+        item(
+            headlineContent = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(labelRes),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.codex_percent, remaining),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (remaining == 0) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            Color.Unspecified
+                        },
+                    )
+                }
+            },
+            supportingContent = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    formatCodexResetText(window.resetsAt)?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val progress by animateFloatAsState(
+                        targetValue = remaining / 100f,
+                        label = "usageProgress",
+                    )
+                    LinearWavyProgressIndicator(
+                        progress = { progress },
+                        amplitude = { 1f },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+        )
     }
 }
 
