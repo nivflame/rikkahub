@@ -924,7 +924,7 @@ private fun ModelSettingsForm(
                         )
 
                         if (model.type == ModelType.CHAT) {
-                            ModalAbilitySelector(
+                            ModelAbilitySelector(
                                 abilities = model.abilities,
                                 onUpdateAbilities = {
                                     onModelChange(model.copy(abilities = it))
@@ -1546,7 +1546,7 @@ private fun ModelModalitySelector(
 }
 
 @Composable
-fun ModalAbilitySelector(
+private fun ModelAbilitySelector(
     abilities: List<ModelAbility>,
     onUpdateAbilities: (List<ModelAbility>) -> Unit
 ) {
