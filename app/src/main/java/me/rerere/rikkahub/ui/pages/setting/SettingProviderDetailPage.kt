@@ -1133,16 +1133,21 @@ private fun ModelPicker(
             sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
         ) {
             var filterText by remember { mutableStateOf("") }
-            val filterKeywords = filterText.split(" ").filter { it.isNotBlank() }
-            val filteredModels = models.fastFilter {
-                if (filterKeywords.isEmpty()) {
-                    true
-                } else {
-                    filterKeywords.all { keyword ->
-                        it.modelId.contains(keyword, ignoreCase = true) ||
-                            it.displayName.contains(keyword, ignoreCase = true)
+            val filteredModels = remember(models, filterText) {
+                val filterKeywords = filterText.split(" ").filter { it.isNotBlank() }
+                models.fastFilter { model ->
+                    if (filterKeywords.isEmpty()) {
+                        true
+                    } else {
+                        filterKeywords.all { keyword ->
+                            model.modelId.contains(keyword, ignoreCase = true) ||
+                                model.displayName.contains(keyword, ignoreCase = true)
+                        }
                     }
                 }
+            }
+            val selectedIds = remember(selectedModels) {
+                selectedModels.mapTo(mutableSetOf()) { it.modelId }
             }
             Column(
                 modifier = Modifier
@@ -1161,9 +1166,7 @@ private fun ModelPicker(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val totalModels = filteredModels.size
-                    val selectedModelsCount = filteredModels.count { model ->
-                        selectedModels.any { it.modelId == model.modelId }
-                    }
+                    val selectedModelsCount = filteredModels.count { it.modelId in selectedIds }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1183,9 +1186,7 @@ private fun ModelPicker(
                         )
                     }
 
-                    val unselectedCount = filteredModels.count { model ->
-                        selectedModels.none { it.modelId == model.modelId }
-                    }
+                    val unselectedCount = filteredModels.size - selectedModelsCount
 
                     TonalToggleButton(
                         checked = unselectedCount == 0,
@@ -1236,7 +1237,7 @@ private fun ModelPicker(
                         ) { index, model ->
                             SegmentedListItem(
                                 onClick = {
-                                    if (selectedModels.any { it.modelId == model.modelId }) {
+                                    if (model.modelId in selectedIds) {
                                         onModelDeselected(
                                             selectedModels.firstOrNull { it.modelId == model.modelId }
                                                 ?: model
@@ -1274,7 +1275,7 @@ private fun ModelPicker(
                                     }
                                 },
                                 trailingContent = {
-                                    val isSelected = selectedModels.any { it.modelId == model.modelId }
+                                    val isSelected = model.modelId in selectedIds
                                     TonalToggleButton(
                                         checked = isSelected,
                                         onCheckedChange = {
