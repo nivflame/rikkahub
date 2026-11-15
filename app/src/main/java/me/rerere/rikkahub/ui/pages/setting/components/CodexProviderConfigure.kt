@@ -202,87 +202,18 @@ fun CodexProviderConfigure(
                     )
                 }
                 accounts.take(1).forEach { account ->
-                    item(
-                        leadingContent = if (account.usage == null) {
-                            {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    RabbitLoadingIndicator(
-                                        modifier = Modifier.padding(8.dp),
-                                    )
-                                }
-                            }
-                        } else null,
-                        headlineContent = {
-                            Text(
-                                text = account.email.ifBlank { account.name },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        },
-                        supportingContent = account.planType?.let { plan ->
-                            {
-                                Text(
-                                    text = "ChatGPT " + codexPlanDisplayName(plan),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            FilledIconButton(
-                                onClick = {
-                                    scope.launch {
-                                        repository.delete(account.id)
-                                    }
-                                },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                            ) {
-                                Icon(
-                                    HugeIcons.Logout01,
-                                    contentDescription = stringResource(R.string.codex_sign_out),
-                                )
+                    codexAccountItem(
+                        account = account,
+                        onSignOut = {
+                            scope.launch {
+                                repository.delete(account.id)
                             }
                         },
                     )
                 }
             } else {
                 accounts.take(1).forEach { account ->
-                    item(
-                        leadingContent = if (account.usage == null) {
-                            {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    RabbitLoadingIndicator(
-                                        modifier = Modifier.padding(8.dp),
-                                    )
-                                }
-                            }
-                        } else null,
-                        headlineContent = {
-                            Text(
-                                text = account.email.ifBlank { account.name },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        },
-                        supportingContent = account.planType?.let { plan ->
-                            {
-                                Text(
-                                    text = "ChatGPT " + codexPlanDisplayName(plan),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                    )
+                    codexAccountItem(account)
                 }
             }
         }
@@ -370,65 +301,12 @@ fun CodexAccountsSection() {
                 )
             }
             accounts.forEach { account ->
-                    item(
-                        leadingContent = if (account.usage == null) {
-                            {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    RabbitLoadingIndicator(
-                                        modifier = Modifier.padding(8.dp),
-                                    )
-                                }
-                            }
-                        } else null,
-                        headlineContent = {
-                            val busiestWindow = listOfNotNull(
-                                account.usage?.primary,
-                                account.usage?.secondary,
-                            ).maxByOrNull { it.usedPercent }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = account.email.ifBlank { account.name },
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                busiestWindow?.let {
-                                    val remaining = (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt()
-                                    Text(
-                                        text = stringResource(
-                                            R.string.codex_percent,
-                                            remaining,
-                                        ),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (remaining == 0) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                    )
-                                }
-                            }
-                        },
-                        supportingContent = account.planType?.let { plan ->
-                            {
-                                Text(
-                                    text = "ChatGPT " + codexPlanDisplayName(plan),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
-                        onClick = {
-                            selectedAccountId = account.id
-                        },
-                    )
-                }
+                codexAccountItem(
+                    account = account,
+                    showUsagePercent = true,
+                    onClick = { selectedAccountId = account.id },
+                )
+            }
             }
             }
         }
@@ -627,6 +505,93 @@ private fun CardGroupScope.codexUsageItems(windows: List<CodexUsageWindow>) {
             },
         )
     }
+}
+
+private fun CardGroupScope.codexAccountItem(
+    account: CodexAccount,
+    onSignOut: (() -> Unit)? = null,
+    showUsagePercent: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    item(
+        onClick = onClick,
+        leadingContent = if (account.usage == null) {
+            {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    RabbitLoadingIndicator(
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            }
+        } else null,
+        headlineContent = {
+            if (showUsagePercent) {
+                val busiestWindow = listOfNotNull(
+                    account.usage?.primary,
+                    account.usage?.secondary,
+                ).maxByOrNull { it.usedPercent }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = account.email.ifBlank { account.name },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    busiestWindow?.let {
+                        val remaining = (100.0 - it.usedPercent).coerceIn(0.0, 100.0).roundToInt()
+                        Text(
+                            text = stringResource(
+                                R.string.codex_percent,
+                                remaining,
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (remaining == 0) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = account.email.ifBlank { account.name },
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        },
+        supportingContent = account.planType?.let { plan ->
+            {
+                Text(
+                    text = "ChatGPT " + codexPlanDisplayName(plan),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        trailingContent = if (onSignOut != null) {
+            {
+                FilledIconButton(
+                    onClick = onSignOut,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                ) {
+                    Icon(
+                        HugeIcons.Logout01,
+                        contentDescription = stringResource(R.string.codex_sign_out),
+                    )
+                }
+            }
+        } else null,
+    )
 }
 
 @Composable
