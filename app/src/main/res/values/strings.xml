@@ -1321,15 +1321,10 @@
   <string name="codex_sign_in">Sign in with ChatGPT</string>
   <string name="codex_waiting_authorization">Waiting for authorization</string>
   <string name="codex_waiting_authorization_hint">Tap to finish signing in your browser</string>
-  <string name="codex_token_available">Available</string>
-  <string name="codex_token_expired">Expired</string>
-  <string name="codex_token_unavailable">Invalid</string>
-  <string name="codex_token_not_checked">Not checked</string>
   <string name="codex_five_hour_limit">5-hour limit</string>
   <string name="codex_weekly_limit">Weekly limit</string>
   <string name="codex_monthly_limit">Monthly limit</string>
   <string name="codex_minute_limit">%d-minute limit</string>
-  <string name="codex_percent_remaining">%d%% remaining</string>
   <string name="codex_percent">%d%%</string>
   <string name="codex_resets_on_date_at">Resets on %1$s at %2$s</string>
   <string name="codex_resets_weekday_at">Resets this %1$s at %2$s</string>
