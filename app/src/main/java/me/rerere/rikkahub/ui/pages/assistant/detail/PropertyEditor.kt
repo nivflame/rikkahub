@@ -158,6 +158,16 @@ fun CustomBodies(
         return
     }
 
+    val highlighter = LocalHighlighter.current
+    val darkMode = LocalDarkMode.current
+    val jsonTransformation = remember(highlighter, darkMode) {
+        HighlightCodeVisualTransformation(
+            language = "json",
+            highlighter = highlighter,
+            darkMode = darkMode,
+        )
+    }
+
     CardGroup {
         customBodies.forEachIndexed { index, body ->
             item(
@@ -207,11 +217,7 @@ fun CustomBodies(
                             },
                             minLines = 1,
                             maxLines = 1,
-                            visualTransformation = HighlightCodeVisualTransformation(
-                                language = "json",
-                                highlighter = LocalHighlighter.current,
-                                darkMode = LocalDarkMode.current
-                            ),
+                            visualTransformation = jsonTransformation,
                             textStyle = LocalTextStyle.current.merge(fontFamily = JetbrainsMono),
                         )
                     }
