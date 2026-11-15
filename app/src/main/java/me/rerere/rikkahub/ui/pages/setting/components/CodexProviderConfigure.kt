@@ -129,9 +129,10 @@ fun CodexProviderConfigure(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        val enableLabel = stringResource(R.string.setting_provider_page_enable)
         CardGroup {
             toggleItem(
-                label = stringResource(R.string.setting_provider_page_enable),
+                label = enableLabel,
                 checked = provider.enabled,
                 onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
             )
@@ -345,9 +346,10 @@ private fun CodexAccountSheet(
                 text = account.email.ifBlank { account.name },
                 style = MaterialTheme.typography.headlineSmallEmphasized,
             )
+            val enableAccountLabel = stringResource(R.string.codex_enable_account)
             CardGroup {
                 toggleItem(
-                    label = stringResource(R.string.codex_enable_account),
+                    label = enableAccountLabel,
                     checked = account.enabled,
                     onClick = onToggleEnabled,
                 )

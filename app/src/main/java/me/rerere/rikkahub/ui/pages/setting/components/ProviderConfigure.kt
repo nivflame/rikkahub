@@ -854,8 +854,8 @@ private fun ProviderConfigureGoogle(
                     context.contentResolver.openInputStream(uri)
                         ?.bufferedReader()
                         ?.use { it.readText() }
-                        ?: return@launch
                 }
+                if (content == null) return@launch
                 val json = Json.parseToJsonElement(content).jsonObject
                 onEdit(
                     currentProvider.copy(
