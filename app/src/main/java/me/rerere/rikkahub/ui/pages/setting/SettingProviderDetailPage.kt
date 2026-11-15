@@ -305,18 +305,21 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
                 val codexProvider = internalProvider as? ProviderSetting.Codex
+                val accountsIndex = pages.indexOf(ProviderPage.ACCOUNTS)
                 AnimatedVisibility(
                     visible = showAccounts,
                     enter = expandHorizontally() + fadeIn(),
                     exit = shrinkHorizontally() + fadeOut(),
                 ) {
                     BouncingTabButton(
-                        checked = pager.currentPage == pages.indexOf(ProviderPage.ACCOUNTS),
-                        onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.ACCOUNTS)) } },
+                        checked = pager.currentPage == accountsIndex,
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(accountsIndex) } },
                         modifier = Modifier
                             .onGloballyPositioned {
-                                pillPositions[pages.indexOf(ProviderPage.ACCOUNTS)] = it.positionInParent().x.toFloat()
-                                pillWidths[pages.indexOf(ProviderPage.ACCOUNTS)] = it.size.width
+                                if (accountsIndex >= 0) {
+                                    pillPositions[accountsIndex] = it.positionInParent().x.toFloat()
+                                    pillWidths[accountsIndex] = it.size.width
+                                }
                             }
                             .padding(end = 8.dp),
                     ) {
