@@ -194,12 +194,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     } else {
         currentProvider is PoolableProvider && currentProvider.poolEnabled
     }
-    val pageCount = when {
-        currentProvider is ProviderSetting.Codex && showAccounts -> 4
-        currentProvider is ProviderSetting.Codex -> 3
-        showAccounts -> 5
-        else -> 4
-    }
+    val pages = providerPages(currentProvider, showAccounts)
+    val pageCount = pages.size
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val pillScrollState = rememberScrollState()
@@ -284,9 +280,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
                     pillScrollState.animateScrollTo(clamped.roundToInt())
                 }
-                val currentProvider = internalProvider
-                val providerPoolOn = currentProvider is PoolableProvider && currentProvider.poolEnabled
-                val headersIndex = if (providerPoolOn) 3 else 2
                 BouncingTabButton(
                     checked = pager.currentPage == 0,
                     onCheckedChange = { scope.launch { pager.animateScrollToPage(0) } },
@@ -318,12 +311,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     exit = shrinkHorizontally() + fadeOut(),
                 ) {
                     BouncingTabButton(
-                        checked = pager.currentPage == 2,
-                        onCheckedChange = { scope.launch { pager.animateScrollToPage(2) } },
+                        checked = pager.currentPage == pages.indexOf(ProviderPage.ACCOUNTS),
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.ACCOUNTS)) } },
                         modifier = Modifier
                             .onGloballyPositioned {
-                                pillPositions[2] = it.positionInParent().x.toFloat()
-                                pillWidths[2] = it.size.width
+                                pillPositions[pages.indexOf(ProviderPage.ACCOUNTS)] = it.positionInParent().x.toFloat()
+                                pillWidths[pages.indexOf(ProviderPage.ACCOUNTS)] = it.size.width
                             }
                             .padding(end = 8.dp),
                     ) {
@@ -332,12 +325,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 }
                 if (codexProvider == null) {
                     BouncingTabButton(
-                        checked = pager.currentPage == headersIndex,
-                        onCheckedChange = { scope.launch { pager.animateScrollToPage(headersIndex) } },
+                        checked = pager.currentPage == pages.indexOf(ProviderPage.HEADERS),
+                        onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.HEADERS)) } },
                         modifier = Modifier
                             .onGloballyPositioned {
-                                pillPositions[headersIndex] = it.positionInParent().x.toFloat()
-                                pillWidths[headersIndex] = it.size.width
+                                pillPositions[pages.indexOf(ProviderPage.HEADERS)] = it.positionInParent().x.toFloat()
+                                pillWidths[pages.indexOf(ProviderPage.HEADERS)] = it.size.width
                             }
                             .padding(end = 8.dp),
                     ) {
@@ -345,12 +338,12 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                     }
                 }
                 BouncingTabButton(
-                    checked = pager.currentPage == pageCount - 1,
-                    onCheckedChange = { scope.launch { pager.animateScrollToPage(pageCount - 1) } },
+                    checked = pager.currentPage == pages.indexOf(ProviderPage.BODIES),
+                    onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.BODIES)) } },
                     modifier = Modifier
                         .onGloballyPositioned {
-                            pillPositions[pageCount - 1] = it.positionInParent().x.toFloat()
-                            pillWidths[pageCount - 1] = it.size.width
+                            pillPositions[pages.indexOf(ProviderPage.BODIES)] = it.positionInParent().x.toFloat()
+                            pillWidths[pages.indexOf(ProviderPage.BODIES)] = it.size.width
                         },
                 ) {
                     Text(stringResource(R.string.assistant_page_custom_bodies))
@@ -360,73 +353,63 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 state = pager,
                 modifier = Modifier.weight(1f),
             ) { page ->
-                when (page) {
-                    0 -> {
-                        SettingProviderConfigPage(
-                            provider = internalProvider,
-                            onEdit = { internalProvider = it },
-                            onSave = {
-                                onEdit(internalProvider)
-                            },
-                            onDelete = {
-                                onDelete()
-                            }
-                        )
-                    }
-
-                    1 -> {
-                        SettingProviderModelPage(
-                            provider = provider,
-                            onEdit = onEdit
-                        )
-                    }
-
-                    2 -> {
-                        when {
-                            internalProvider is ProviderSetting.Codex && showAccounts -> SettingProviderCodexAccountsPage()
-                            internalProvider is ProviderSetting.Codex -> SettingProviderCustomBodyPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
-                            showAccounts -> SettingProviderAccountsPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
-                            else -> SettingProviderHeadersPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
+                when (pages[page]) {
+                    ProviderPage.CONFIGURATION -> SettingProviderConfigPage(
+                        provider = internalProvider,
+                        onEdit = { internalProvider = it },
+                        onSave = {
+                            onEdit(internalProvider)
+                        },
+                        onDelete = {
+                            onDelete()
                         }
-                    }
+                    )
 
-                    3 -> {
-                        when {
-                            internalProvider is ProviderSetting.Codex -> SettingProviderCustomBodyPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
-                            showAccounts -> SettingProviderHeadersPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
-                            else -> SettingProviderCustomBodyPage(
-                                provider = internalProvider,
-                                onEdit = { internalProvider = it }
-                            )
-                        }
-                    }
+                    ProviderPage.MODELS -> SettingProviderModelPage(
+                        provider = provider,
+                        onEdit = onEdit
+                    )
 
-                    4 -> {
-                        SettingProviderCustomBodyPage(
+                    ProviderPage.ACCOUNTS -> if (internalProvider is ProviderSetting.Codex) {
+                        SettingProviderCodexAccountsPage()
+                    } else {
+                        SettingProviderAccountsPage(
                             provider = internalProvider,
                             onEdit = { internalProvider = it }
                         )
                     }
+
+                    ProviderPage.HEADERS -> SettingProviderHeadersPage(
+                        provider = internalProvider,
+                        onEdit = { internalProvider = it }
+                    )
+
+                    ProviderPage.BODIES -> SettingProviderCustomBodyPage(
+                        provider = internalProvider,
+                        onEdit = { internalProvider = it }
+                    )
                 }
             }
         }
     }
 }
+
+private enum class ProviderPage {
+    CONFIGURATION,
+    MODELS,
+    ACCOUNTS,
+    HEADERS,
+    BODIES,
+}
+
+private fun providerPages(provider: ProviderSetting, showAccounts: Boolean): List<ProviderPage> =
+    buildList {
+        add(ProviderPage.CONFIGURATION)
+        add(ProviderPage.MODELS)
+        if (showAccounts) add(ProviderPage.ACCOUNTS)
+        if (provider !is ProviderSetting.Codex) add(ProviderPage.HEADERS)
+        add(ProviderPage.BODIES)
+    }
 
 private fun Model.withRegistryMetadata(): Model = copy(
     inputModalities = ModelRegistry.MODEL_INPUT_MODALITIES.getData(modelId),
