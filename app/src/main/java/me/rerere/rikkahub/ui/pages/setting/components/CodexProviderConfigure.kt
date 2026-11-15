@@ -150,39 +150,9 @@ fun CodexProviderConfigure(
         ) {
             if (!provider.poolEnabled) {
                 if (oauthStatus is CodexOAuthStatus.Waiting) {
-                    item(
-                        onClick = oauthManager::startLogin,
-                        leadingContent = {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                RabbitLoadingIndicator(
-                                    modifier = Modifier.padding(8.dp),
-                                )
-                            }
-                        },
-                        headlineContent = {
-                            Text(stringResource(R.string.codex_waiting_authorization))
-                        },
-                        supportingContent = {
-                            Text(stringResource(R.string.codex_waiting_authorization_hint))
-                        },
-                        trailingContent = {
-                            FilledIconButton(
-                                onClick = { oauthManager.consumeResult() },
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                            ) {
-                                Icon(
-                                    HugeIcons.Cancel01,
-                                    contentDescription = stringResource(R.string.cancel),
-                                )
-                            }
-                        },
+                    codexAuthorizationPendingItem(
+                        onRetry = oauthManager::startLogin,
+                        onCancel = { oauthManager.consumeResult() },
                     )
                 } else if (accounts.isEmpty()) {
                     item(
@@ -265,39 +235,9 @@ fun CodexAccountsSection() {
             if (accounts.isNotEmpty() || oauthStatus is CodexOAuthStatus.Waiting) {
                 CardGroup {
                     if (oauthStatus is CodexOAuthStatus.Waiting) {
-                item(
-                    onClick = oauthManager::startLogin,
-                    leadingContent = {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            RabbitLoadingIndicator(
-                                modifier = Modifier.padding(8.dp),
-                            )
-                        }
-                    },
-                    headlineContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization))
-                    },
-                    supportingContent = {
-                        Text(stringResource(R.string.codex_waiting_authorization_hint))
-                    },
-                    trailingContent = {
-                        FilledIconButton(
-                            onClick = { oauthManager.consumeResult() },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ),
-                        ) {
-                            Icon(
-                                HugeIcons.Cancel01,
-                                contentDescription = stringResource(R.string.cancel),
-                            )
-                        }
-                    },
+                codexAuthorizationPendingItem(
+                    onRetry = oauthManager::startLogin,
+                    onCancel = { oauthManager.consumeResult() },
                 )
             }
             accounts.forEach { account ->
@@ -591,6 +531,46 @@ private fun CardGroupScope.codexAccountItem(
                 }
             }
         } else null,
+    )
+}
+
+private fun CardGroupScope.codexAuthorizationPendingItem(
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    item(
+        onClick = onRetry,
+        leadingContent = {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(40.dp),
+            ) {
+                RabbitLoadingIndicator(
+                    modifier = Modifier.padding(8.dp),
+                )
+            }
+        },
+        headlineContent = {
+            Text(stringResource(R.string.codex_waiting_authorization))
+        },
+        supportingContent = {
+            Text(stringResource(R.string.codex_waiting_authorization_hint))
+        },
+        trailingContent = {
+            FilledIconButton(
+                onClick = onCancel,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+            ) {
+                Icon(
+                    HugeIcons.Cancel01,
+                    contentDescription = stringResource(R.string.cancel),
+                )
+            }
+        },
     )
 }
 
