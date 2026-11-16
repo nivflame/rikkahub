@@ -1,50 +1,25 @@
 package me.rerere.rikkahub.ui.pages.setting.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
-import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,8 +32,6 @@ import kotlinx.coroutines.launch
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Add01
-import me.rerere.hugeicons.stroke.UserMultiple02
 import me.rerere.hugeicons.stroke.LoginSquare01
 import me.rerere.hugeicons.stroke.Logout01
 import me.rerere.hugeicons.stroke.Cancel01
@@ -73,7 +46,6 @@ import me.rerere.rikkahub.data.codex.mergeCodexModels
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.CardGroupScope
-import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
@@ -201,199 +173,7 @@ fun CodexProviderConfigure(
     }
 }
 
-@Composable
-fun CodexAccountsSection() {
-    val repository = koinInject<CodexAccountRepository>()
-    val oauthManager = koinInject<CodexOAuthManager>()
-    val accounts by repository.accounts.collectAsStateWithLifecycle()
-    val oauthStatus by oauthManager.status.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    var selectedAccountId by remember { mutableStateOf<String?>(null) }
-    var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .floatingToolbarVerticalNestedScroll(
-                    expanded = toolbarExpanded,
-                    onExpand = { toolbarExpanded = true },
-                    onCollapse = { toolbarExpanded = false },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (oauthStatus is CodexOAuthStatus.Waiting) {
-                CardGroup {
-                    codexAuthorizationPendingItem(
-                        onRetry = oauthManager::startLogin,
-                        onCancel = { oauthManager.consumeResult() },
-                    )
-                }
-            } else if (accounts.isEmpty()) {
-                ExpressiveEmptyState(
-                    shape = MaterialShapes.Clover4Leaf.toShape(),
-                    icon = HugeIcons.UserMultiple02,
-                    title = "No accounts",
-                    hint = "Sign in with ChatGPT to add one",
-                )
-            } else {
-                CardGroup {
-                    accounts.forEach { account ->
-                        codexAccountItem(
-                            account = account,
-                            showUsagePercent = true,
-                            onClick = { selectedAccountId = account.id },
-                        )
-                    }
-                }
-            }
-        }
-
-        accounts.firstOrNull { it.id == selectedAccountId }?.let { account ->
-            CodexAccountSheet(
-                account = account,
-                onToggleEnabled = {
-                    scope.launch { repository.setEnabled(account.id, !account.enabled) }
-                },
-                onRefresh = {
-                    scope.launch { runCatching { repository.refreshAccount(account.id) } }
-                },
-                onReauthenticate = oauthManager::startLogin,
-                onSignOut = {
-                    scope.launch {
-                        repository.delete(account.id)
-                    }
-                },
-                onDismiss = { selectedAccountId = null },
-            )
-        }
-
-        HorizontalFloatingToolbar(
-            expanded = toolbarExpanded,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -ScreenOffset),
-        ) {
-            Button(onClick = oauthManager::startLogin) {
-                Icon(HugeIcons.Add01, null)
-                AnimatedVisibility(toolbarExpanded) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.codex_sign_in))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CodexAccountSheet(
-    account: CodexAccount,
-    onToggleEnabled: () -> Unit,
-    onRefresh: () -> Unit,
-    onReauthenticate: () -> Unit,
-    onSignOut: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var showSignOutDialog by remember { mutableStateOf(false) }
-
-    if (showSignOutDialog) {
-        AlertDialog(
-            onDismissRequest = { showSignOutDialog = false },
-            title = { Text(stringResource(R.string.codex_remove_account_title)) },
-            text = { Text(stringResource(R.string.codex_remove_account_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSignOutDialog = false
-                        onSignOut()
-                        onDismiss()
-                    }
-                ) {
-                    Text(
-                        stringResource(R.string.codex_remove),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSignOutDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-        ),
-    ) {
-        LaunchedEffect(account.id) { onRefresh() }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = account.email.ifBlank { account.name },
-                style = MaterialTheme.typography.headlineSmallEmphasized,
-            )
-            val enableAccountLabel = stringResource(R.string.codex_enable_account)
-            CardGroup {
-                toggleItem(
-                    label = enableAccountLabel,
-                    checked = account.enabled,
-                    onClick = onToggleEnabled,
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilledTonalButton(
-                    onClick = onRefresh,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.codex_refresh))
-                }
-                FilledTonalButton(
-                    onClick = onReauthenticate,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.codex_reauthenticate))
-                }
-                FilledTonalButton(
-                    onClick = { showSignOutDialog = true },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ),
-                ) {
-                    Text(stringResource(R.string.codex_sign_out))
-                }
-            }
-                val windows = listOfNotNull(account.usage?.primary, account.usage?.secondary)
-                if (windows.isNotEmpty()) {
-                    CardGroup(
-                        title = { Text(stringResource(R.string.codex_usage_title)) },
-                    ) {
-                        codexUsageItems(windows)
-                    }
-                }
-        }
-    }
-}
-
-private fun CardGroupScope.codexUsageItems(windows: List<CodexUsageWindow>) {
+internal fun CardGroupScope.codexUsageItems(windows: List<CodexUsageWindow>) {
     listOf(
         300L to R.string.codex_five_hour_limit,
         10_080L to R.string.codex_weekly_limit,
@@ -449,7 +229,7 @@ private fun CardGroupScope.codexUsageItems(windows: List<CodexUsageWindow>) {
     }
 }
 
-private fun CardGroupScope.codexAccountItem(
+internal fun CardGroupScope.codexAccountItem(
     account: CodexAccount,
     onSignOut: (() -> Unit)? = null,
     showUsagePercent: Boolean = false,
@@ -536,7 +316,7 @@ private fun CardGroupScope.codexAccountItem(
     )
 }
 
-private fun CardGroupScope.codexAuthorizationPendingItem(
+internal fun CardGroupScope.codexAuthorizationPendingItem(
     onRetry: () -> Unit,
     onCancel: () -> Unit,
 ) {
