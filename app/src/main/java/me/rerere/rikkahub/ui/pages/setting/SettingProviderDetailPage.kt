@@ -168,10 +168,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
         vm.updateSettings(newSettings)
     }
     val onDelete = {
-        val newSettings = settings.copy(
-            providers = settings.providers - provider
-        )
-        vm.updateSettings(newSettings)
+        vm.deleteProvider(provider)
         navController.popBackStack()
     }
 

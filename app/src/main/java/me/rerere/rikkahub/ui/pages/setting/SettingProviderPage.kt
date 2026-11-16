@@ -208,9 +208,7 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                                 navController.navigate(Screen.SettingProviderDetail(providerId = provider.id.toString()))
                             },
                             onDelete = {
-                                vm.updateSettings(
-                                    settings.copy(providers = settings.providers - provider)
-                                )
+                                vm.deleteProvider(provider)
                             }
                         )
                     }

@@ -125,6 +125,10 @@ class CodexAccountRepository internal constructor(
         )
     }
 
+    suspend fun clearAll() = mutex.withLock {
+        updateState(CodexAccountState())
+    }
+
     suspend fun refreshAccount(accountId: String): CodexAccount = mutex.withLock {
         val account = state.accounts.firstOrNull { it.id == accountId }
             ?: error("Codex account not found")
