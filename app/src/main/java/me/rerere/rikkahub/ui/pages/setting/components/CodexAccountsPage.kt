@@ -3,6 +3,7 @@ package me.rerere.rikkahub.ui.pages.setting.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.fillParentMaxHeight
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -66,41 +67,42 @@ fun CodexAccountsSection() {
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .floatingToolbarVerticalNestedScroll(
                     expanded = toolbarExpanded,
                     onExpand = { toolbarExpanded = true },
                     onCollapse = { toolbarExpanded = false },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 96.dp),
+                ),
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (oauthStatus is CodexOAuthStatus.Waiting) {
-                CardGroup {
-                    codexAuthorizationPendingItem(
-                        onRetry = oauthManager::startLogin,
-                        onCancel = { oauthManager.consumeResult() },
-                    )
-                }
-            } else if (accounts.isEmpty()) {
-                ExpressiveEmptyState(
-                    shape = MaterialShapes.Clover4Leaf.toShape(),
-                    icon = HugeIcons.UserMultiple02,
-                    title = "No accounts",
-                    hint = "Sign in with ChatGPT to add one",
-                )
-            } else {
-                CardGroup {
-                    accounts.forEach { account ->
-                        codexAccountItem(
-                            account = account,
-                            showUsagePercent = true,
-                            onClick = { selectedAccountId = account.id },
+            item {
+                if (oauthStatus is CodexOAuthStatus.Waiting) {
+                    CardGroup {
+                        codexAuthorizationPendingItem(
+                            onRetry = oauthManager::startLogin,
+                            onCancel = { oauthManager.consumeResult() },
                         )
+                    }
+                } else if (accounts.isEmpty()) {
+                    ExpressiveEmptyState(
+                        shape = MaterialShapes.Clover4Leaf.toShape(),
+                        icon = HugeIcons.UserMultiple02,
+                        title = "No accounts",
+                        hint = "Sign in with ChatGPT to add one",
+                        modifier = Modifier.fillParentMaxHeight(0.85f),
+                    )
+                } else {
+                    CardGroup {
+                        accounts.forEach { account ->
+                            codexAccountItem(
+                                account = account,
+                                showUsagePercent = true,
+                                onClick = { selectedAccountId = account.id },
+                            )
+                        }
                     }
                 }
             }
