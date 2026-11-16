@@ -4,15 +4,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,6 +60,7 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
+import me.rerere.rikkahub.utils.plus
 import me.rerere.rikkahub.utils.writeClipboardText
 
 internal fun ProviderSetting.updatePool(
@@ -105,7 +105,7 @@ fun ProviderPoolSection(
     var toolbarExpanded by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
@@ -113,18 +113,18 @@ fun ProviderPoolSection(
                     expanded = toolbarExpanded,
                     onExpand = { toolbarExpanded = true },
                     onCollapse = { toolbarExpanded = false },
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 96.dp),
+                ),
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item {
             if (poolAccounts.isEmpty()) {
                 ExpressiveEmptyState(
                     shape = MaterialShapes.Clover4Leaf.toShape(),
                     icon = HugeIcons.UserMultiple02,
                     title = "No accounts",
                     hint = "Add an account to rotate between them",
+                    modifier = Modifier.fillParentMaxHeight(0.85f),
                 )
             } else {
                 CardGroup(
@@ -226,6 +226,7 @@ fun ProviderPoolSection(
         }
         }
         }
+            }
         }
 
         HorizontalFloatingToolbar(
