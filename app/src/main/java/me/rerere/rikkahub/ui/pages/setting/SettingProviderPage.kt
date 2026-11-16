@@ -3,7 +3,6 @@ package me.rerere.rikkahub.ui.pages.setting
 import android.net.Uri
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Camera01
-import me.rerere.hugeicons.stroke.DragDropHorizontal
 import me.rerere.hugeicons.stroke.Image02
 import me.rerere.hugeicons.stroke.FileImport
 import me.rerere.hugeicons.stroke.Add01
@@ -190,31 +189,21 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                         state = reorderableState,
                         key = provider.id
                     ) { isDragging ->
+                        val haptic = LocalHapticFeedback.current
                         ProviderItem(
                             modifier = Modifier
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .fillMaxWidth(),
                             provider = provider,
-                            dragHandle = {
-                                val haptic = LocalHapticFeedback.current
-                                IconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .longPressDraggableHandle(
-                                            onDragStarted = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                            },
-                                            onDragStopped = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                            }
-                                        )
-                                ) {
-                                    Icon(
-                                        imageVector = HugeIcons.DragDropHorizontal,
-                                        contentDescription = null
-                                    )
-                                }
-                            },
+                            dragModifier = Modifier
+                                .longPressDraggableHandle(
+                                    onDragStarted = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                    },
+                                    onDragStopped = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    }
+                                ),
                             onClick = {
                                 navController.navigate(Screen.SettingProviderDetail(providerId = provider.id.toString()))
                             },
@@ -540,7 +529,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
 private fun ProviderItem(
     provider: ProviderSetting,
     modifier: Modifier = Modifier,
-    dragHandle: @Composable () -> Unit,
+    dragModifier: Modifier = Modifier,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -560,7 +549,7 @@ private fun ProviderItem(
         modifier = modifier
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().then(dragModifier),
             colors = CardDefaults.cardColors(
                 containerColor = if (provider.enabled) {
                     CustomColors.listItemColors.containerColor
@@ -611,7 +600,6 @@ private fun ProviderItem(
                         }
                     }
                 }
-                dragHandle()
             }
         }
     }
