@@ -170,16 +170,17 @@ fun CodexProviderConfigure(
                             )
                         },
                     )
-                }
-                accounts.take(1).forEach { account ->
-                    codexAccountItem(
-                        account = account,
-                        onSignOut = {
-                            scope.launch {
-                                repository.delete(account.id)
-                            }
-                        },
-                    )
+                } else {
+                    accounts.take(1).forEach { account ->
+                        codexAccountItem(
+                            account = account,
+                            onSignOut = {
+                                scope.launch {
+                                    repository.delete(account.id)
+                                }
+                            },
+                        )
+                    }
                 }
             } else {
                 accounts.take(1).forEach { account ->
@@ -224,30 +225,30 @@ fun CodexAccountsSection() {
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (accounts.isEmpty() && oauthStatus !is CodexOAuthStatus.Waiting) {
+            if (oauthStatus is CodexOAuthStatus.Waiting) {
+                CardGroup {
+                    codexAuthorizationPendingItem(
+                        onRetry = oauthManager::startLogin,
+                        onCancel = { oauthManager.consumeResult() },
+                    )
+                }
+            } else if (accounts.isEmpty()) {
                 ExpressiveEmptyState(
                     shape = MaterialShapes.Clover4Leaf.toShape(),
                     icon = HugeIcons.UserMultiple02,
                     title = "No accounts",
                     hint = "Sign in with ChatGPT to add one",
                 )
-            }
-            if (accounts.isNotEmpty() || oauthStatus is CodexOAuthStatus.Waiting) {
+            } else {
                 CardGroup {
-                    if (oauthStatus is CodexOAuthStatus.Waiting) {
-                codexAuthorizationPendingItem(
-                    onRetry = oauthManager::startLogin,
-                    onCancel = { oauthManager.consumeResult() },
-                )
-            }
-            accounts.forEach { account ->
-                codexAccountItem(
-                    account = account,
-                    showUsagePercent = true,
-                    onClick = { selectedAccountId = account.id },
-                )
-            }
-            }
+                    accounts.forEach { account ->
+                        codexAccountItem(
+                            account = account,
+                            showUsagePercent = true,
+                            onClick = { selectedAccountId = account.id },
+                        )
+                    }
+                }
             }
         }
 
