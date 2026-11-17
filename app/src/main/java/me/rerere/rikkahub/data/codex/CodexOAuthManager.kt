@@ -46,7 +46,7 @@ class CodexOAuthManager(
     private val _status = MutableStateFlow<CodexOAuthStatus>(CodexOAuthStatus.Idle)
     val status: StateFlow<CodexOAuthStatus> = _status.asStateFlow()
 
-    fun startLogin() {
+    fun startLogin(reauthAccountId: String? = null) {
         val state = randomUrlSafe(32)
         try {
             val verifier = randomUrlSafe(64)
@@ -59,7 +59,7 @@ class CodexOAuthManager(
                 verifier = verifier,
                 redirectUri = redirect,
             )
-            _status.value = CodexOAuthStatus.Waiting
+            _status.value = CodexOAuthStatus.Waiting(reauthAccountId)
 
             val authUrl = Uri.parse(AUTHORIZE_URL).buildUpon()
                 .appendQueryParameter("response_type", "code")
@@ -322,7 +322,7 @@ private data class OAuthSession(
 
 sealed interface CodexOAuthStatus {
     data object Idle : CodexOAuthStatus
-    data object Waiting : CodexOAuthStatus
+    data class Waiting(val reauthAccountId: String? = null) : CodexOAuthStatus
     data class Success(val accountId: String) : CodexOAuthStatus
     data class Error(val message: String) : CodexOAuthStatus
 }

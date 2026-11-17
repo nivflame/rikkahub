@@ -79,14 +79,13 @@ fun CodexAccountsSection() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                if (oauthStatus is CodexOAuthStatus.Waiting) {
-                    CardGroup {
-                        codexAuthorizationPendingItem(
-                            onRetry = oauthManager::startLogin,
-                            onCancel = { oauthManager.consumeResult() },
-                        )
-                    }
-                } else if (accounts.isEmpty()) {
+                val pendingStatus = oauthStatus as? CodexOAuthStatus.Waiting
+                var frozenAccounts by remember { mutableStateOf<List<CodexAccount>>(emptyList()) }
+                LaunchedEffect(pendingStatus != null) {
+                    if (pendingStatus != null) frozenAccounts = accounts
+                }
+                val waitingAccounts = if (pendingStatus != null) frozenAccounts else accounts
+                if (pendingStatus == null && accounts.isEmpty()) {
                     ExpressiveEmptyState(
                         shape = MaterialShapes.Clover4Leaf.toShape(),
                         icon = HugeIcons.UserMultiple02,
@@ -96,11 +95,27 @@ fun CodexAccountsSection() {
                     )
                 } else {
                     CardGroup {
-                        accounts.forEach { account ->
-                            codexAccountItem(
-                                account = account,
-                                showUsagePercent = true,
-                                onClick = { selectedAccountId = account.id },
+                        val reauthId = pendingStatus?.reauthAccountId
+                        waitingAccounts.forEach { account ->
+                            if (reauthId == account.id) {
+                                codexAuthorizationPendingItem(
+                                    onRetry = { oauthManager.startLogin(reauthId) },
+                                    onCancel = { oauthManager.consumeResult() },
+                                )
+                            } else {
+                                codexAccountItem(
+                                    account = account,
+                                    showUsagePercent = true,
+                                    onClick = { selectedAccountId = account.id },
+                                )
+                            }
+                        }
+                        if (pendingStatus != null &&
+                            (reauthId == null || waitingAccounts.none { it.id == reauthId })
+                        ) {
+                            codexAuthorizationPendingItem(
+                                onRetry = { oauthManager.startLogin(reauthId) },
+                                onCancel = { oauthManager.consumeResult() },
                             )
                         }
                     }
@@ -117,7 +132,10 @@ fun CodexAccountsSection() {
                 onRefresh = {
                     scope.launch { runCatching { repository.refreshAccount(account.id) } }
                 },
-                onReauthenticate = oauthManager::startLogin,
+                onReauthenticate = {
+                    selectedAccountId = null
+                    oauthManager.startLogin(account.id)
+                },
                 onSignOut = {
                     scope.launch {
                         repository.delete(account.id)
@@ -133,7 +151,7 @@ fun CodexAccountsSection() {
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset),
         ) {
-            Button(onClick = oauthManager::startLogin) {
+            Button(onClick = { oauthManager.startLogin(null) }) {
                 Icon(HugeIcons.Add01, null)
                 AnimatedVisibility(toolbarExpanded) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
