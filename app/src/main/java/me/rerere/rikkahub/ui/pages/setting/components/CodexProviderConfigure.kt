@@ -71,7 +71,8 @@ fun CodexProviderConfigure(
     val toaster = LocalToaster.current
     val currentProvider by rememberUpdatedState(provider)
     val pendingStatus = oauthStatus as? CodexOAuthStatus.Waiting
-    val waitingAccounts = remember(pendingStatus) { if (pendingStatus != null) accounts else emptyList() }
+    val frozenAccounts = remember(pendingStatus) { accounts }
+    val waitingAccounts = if (pendingStatus != null) frozenAccounts else accounts
 
     LaunchedEffect(oauthStatus) {
         when (val status = oauthStatus) {

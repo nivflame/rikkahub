@@ -80,7 +80,8 @@ fun CodexAccountsSection() {
         ) {
             item {
                 val pendingStatus = oauthStatus as? CodexOAuthStatus.Waiting
-                val waitingAccounts = remember(pendingStatus) { if (pendingStatus != null) accounts else emptyList() }
+                val frozenAccounts = remember(pendingStatus) { accounts }
+                val waitingAccounts = if (pendingStatus != null) frozenAccounts else accounts
                 if (pendingStatus == null && accounts.isEmpty()) {
                     ExpressiveEmptyState(
                         shape = MaterialShapes.Clover4Leaf.toShape(),
