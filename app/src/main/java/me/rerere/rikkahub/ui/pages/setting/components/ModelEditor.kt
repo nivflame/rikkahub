@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -58,7 +59,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.ToggleButtonShapes
@@ -342,7 +342,7 @@ private fun ModelSettingsForm(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 16.dp)
+                            .padding(top = 16.dp, bottom = 96.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
                         OutlinedTextField(
@@ -411,7 +411,7 @@ private fun ModelSettingsForm(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(vertical = 16.dp),
+                            .padding(top = 16.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         CustomBodies(
@@ -546,40 +546,43 @@ private fun AddModelButton(
                         text = stringResource(R.string.setting_provider_page_add_model),
                         style = MaterialTheme.typography.titleLarge
                     )
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                     ) {
-                        ModelSettingsForm(
-                            model = modelState,
-                            onModelChange = { dialogState.currentState = it },
-                            isEdit = false,
-                            showBuiltInTools = parentProvider is ProviderSetting.Google ||
-                                (parentProvider is ProviderSetting.OpenAI && parentProvider.useResponseApi),
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                dialogState.dismiss()
-                            },
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(stringResource(R.string.cancel))
+                            ModelSettingsForm(
+                                model = modelState,
+                                onModelChange = { dialogState.currentState = it },
+                                isEdit = false,
+                                showBuiltInTools = parentProvider is ProviderSetting.Google ||
+                                    (parentProvider is ProviderSetting.OpenAI && parentProvider.useResponseApi),
+                            )
                         }
-                        Button(
-                            onClick = {
-                                if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
-                                    dialogState.confirm()
-                                }
-                            },
+
+                        HorizontalFloatingToolbar(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .offset(y = -ScreenOffset),
                         ) {
-                            Text(stringResource(R.string.setting_provider_page_add))
+                            FilledTonalButton(
+                                onClick = { dialogState.dismiss() },
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            Button(
+                                onClick = {
+                                    if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
+                                        dialogState.confirm()
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.setting_provider_page_add))
+                            }
                         }
                     }
                 }
@@ -1117,39 +1120,42 @@ private fun ModelCard(
                             modifier = Modifier.align(Alignment.Center),
                         )
                     }
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                     ) {
-                        ModelSettingsForm(
-                            model = editingModel,
-                            onModelChange = { dialogState.currentState = it },
-                            isEdit = true,
-                            showBuiltInTools = showBuiltInTools,
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    ) {
-                        TextButton(
-                            onClick = {
-                                dialogState.dismiss()
-                            },
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(stringResource(R.string.cancel))
+                            ModelSettingsForm(
+                                model = editingModel,
+                                onModelChange = { dialogState.currentState = it },
+                                isEdit = true,
+                                showBuiltInTools = showBuiltInTools,
+                            )
                         }
-                        Button(
-                            onClick = {
-                                if (editingModel.displayName.isNotBlank()) {
-                                    dialogState.confirm()
-                                }
-                            },
+
+                        HorizontalFloatingToolbar(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .offset(y = -ScreenOffset),
                         ) {
-                            Text(stringResource(R.string.confirm))
+                            FilledTonalButton(
+                                onClick = { dialogState.dismiss() },
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            Button(
+                                onClick = {
+                                    if (editingModel.displayName.isNotBlank()) {
+                                        dialogState.confirm()
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.confirm))
+                            }
                         }
                     }
                 }
@@ -1218,7 +1224,7 @@ private fun BuiltInToolsSettings(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         CardGroup {
