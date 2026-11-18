@@ -1,6 +1,7 @@
 package me.rerere.rikkahub.ui.pages.assistant.detail
 
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.ArrowUp01
 import me.rerere.hugeicons.stroke.Delete01
@@ -115,6 +116,17 @@ fun CustomHeaders(
                     )
                 },
                 headlineContent = {},
+            )
+        }
+        if (showAddButton) {
+            item(
+                onClick = { onUpdate(headers + CustomHeader("", "")) },
+                leadingContent = {
+                    Icon(HugeIcons.Add01, null)
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_add_header))
+                },
             )
         }
     }
@@ -233,6 +245,17 @@ fun CustomBodies(
                     )
                 },
                 headlineContent = {},
+            )
+        }
+        if (showAddButton) {
+            item(
+                onClick = { onUpdate(customBodies + CustomBody("", JsonPrimitive(""))) },
+                leadingContent = {
+                    Icon(HugeIcons.Add01, null)
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_add_body))
+                },
             )
         }
     }
