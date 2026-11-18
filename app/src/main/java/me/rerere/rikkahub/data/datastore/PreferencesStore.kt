@@ -22,6 +22,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
+import me.rerere.ai.provider.CodexRotationMode
 import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.rikkahub.AppScope
@@ -65,6 +66,16 @@ import org.koin.core.component.get
 import kotlin.uuid.Uuid
 
 private const val TAG = "PreferencesStore"
+
+internal fun List<ProviderSetting>.applyCodexRotationMigration(): List<ProviderSetting> = map { provider ->
+    if (provider is ProviderSetting.Codex && provider.rotation == CodexRotationMode.OFF && provider.poolEnabled) {
+        provider.copy(rotation = CodexRotationMode.ROUND_ROBIN, poolEnabled = false)
+    } else if (provider is ProviderSetting.Codex && provider.poolEnabled) {
+        provider.copy(poolEnabled = false)
+    } else {
+        provider
+    }
+}
 
 private val Context.settingsStore by preferencesDataStore(
     name = "settings",
@@ -357,7 +368,7 @@ class SettingsStore(
                             models = provider.models.distinctBy { model -> model.id }
                         )
                     }
-                },
+                }.applyCodexRotationMigration(),
                 assistants = settings.assistants.distinctBy { it.id }.map { assistant ->
                     assistant.copy(
                         // 过滤掉不存在的 MCP 服务器 ID
@@ -410,7 +421,8 @@ class SettingsStore(
             Log.w(TAG, "Cannot update dummy settings")
             return
         }
-        settingsFlow.value = settings
+        val providers = settings.providers.applyCodexRotationMigration()
+        settingsFlow.value = settings.copy(providers = providers)
         dataStore.edit { preferences ->
             preferences[DYNAMIC_COLOR] = settings.dynamicColor
             preferences[THEME_ID] = settings.themeId
@@ -454,7 +466,7 @@ class SettingsStore(
             preferences[AUTO_COMPRESS_TOKEN_THRESHOLD] = settings.autoCompressTokenThreshold
             preferences[AUTO_COMPRESS_KEEP_PERCENTAGE] = settings.autoCompressKeepPercentage
 
-            preferences[PROVIDERS] = JsonInstant.encodeToString(settings.providers)
+            preferences[PROVIDERS] = JsonInstant.encodeToString(providers)
 
             preferences[ASSISTANTS] = JsonInstant.encodeToString(settings.assistants)
             preferences[SELECT_ASSISTANT] = settings.assistantId.toString()

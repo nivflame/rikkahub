@@ -40,6 +40,13 @@ enum class ClaudePromptCacheTtl(val apiValue: String?) {
 }
 
 @Serializable
+enum class CodexRotationMode {
+    OFF,
+    FILL_FIRST,
+    ROUND_ROBIN,
+}
+
+@Serializable
 sealed class ProviderSetting {
     abstract val id: Uuid
     abstract val enabled: Boolean
@@ -333,6 +340,7 @@ sealed class ProviderSetting {
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
         override var customBodies: List<CustomBody> = emptyList(),
         var poolEnabled: Boolean = false,
+        var rotation: CodexRotationMode = CodexRotationMode.OFF,
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
         override val customHeaders: List<CustomHeader> get() = emptyList()

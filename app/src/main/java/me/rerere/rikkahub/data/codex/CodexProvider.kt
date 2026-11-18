@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.ReasoningLevel
+import me.rerere.ai.provider.CodexRotationMode
 import me.rerere.ai.provider.CustomBody
 import me.rerere.ai.provider.CustomHeader
 import me.rerere.ai.provider.ImageGenerationParams
@@ -46,7 +47,7 @@ class CodexProvider(
 
     override suspend fun listModels(providerSetting: ProviderSetting.Codex): List<Model> =
         withContext(Dispatchers.IO) {
-            val account = repository.acquireAccount(providerSetting.poolEnabled)
+            val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
             val request = Request.Builder()
                 .url("$CODEX_API_BASE/models?client_version=$CODEX_CLIENT_VERSION")
                 .codexHeaders(account)
@@ -99,7 +100,7 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
         ): MessageChunk {
-        val account = repository.acquireAccount(providerSetting.poolEnabled)
+        val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
         return responseApiFor(account).generateText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
@@ -113,7 +114,7 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
-        val account = repository.acquireAccount(providerSetting.poolEnabled)
+        val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
         return responseApiFor(account).streamText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),

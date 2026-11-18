@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -15,6 +16,8 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dokar.sonner.ToastType
 import kotlinx.coroutines.launch
+import me.rerere.ai.provider.CodexRotationMode
 import me.rerere.ai.provider.ProviderManager
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
@@ -111,20 +115,55 @@ fun CodexProviderConfigure(
                 checked = provider.enabled,
                 onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
             )
-            toggleItem(
-                label = "Rotate Accounts",
-                checked = provider.poolEnabled,
-                onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
-            )
+        }
+
+        CardGroup(
+            title = { Text("Rotate Accounts") }
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                ) {
+                    CodexRotationMode.entries.forEachIndexed { index, mode ->
+                        val modeWeight by animateFloatAsState(
+                            targetValue = if (provider.rotation == mode) 1.3f else 1f,
+                            label = "rotationWeight$index",
+                        )
+                        TonalToggleButton(
+                            checked = provider.rotation == mode,
+                            onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
+                            modifier = Modifier.weight(modeWeight),
+                            colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                            shapes = when (index) {
+                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                CodexRotationMode.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                            },
+                        ) {
+                            Text(
+                                text = when (mode) {
+                                    CodexRotationMode.OFF -> "Off"
+                                    CodexRotationMode.FILL_FIRST -> "Fill First"
+                                    CodexRotationMode.ROUND_ROBIN -> "Round Robin"
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         CardGroup(
             title = { Text("Account") },
-            modifier = if (provider.poolEnabled) {
+            modifier = if (provider.rotation != CodexRotationMode.OFF) {
                 Modifier.graphicsLayer { alpha = 0.38f }
             } else Modifier,
         ) {
-            if (!provider.poolEnabled) {
+            if (provider.rotation == CodexRotationMode.OFF) {
                 val reauthId = pendingStatus?.reauthAccountId
                 if (pendingStatus != null && reauthId == waitingAccounts.firstOrNull()?.id) {
                     codexAuthorizationPendingItem(
@@ -181,7 +220,7 @@ fun CodexProviderConfigure(
             }
         }
 
-        if (!provider.poolEnabled && accounts.firstOrNull()?.usage != null) {
+        if (provider.rotation == CodexRotationMode.OFF && accounts.firstOrNull()?.usage != null) {
             CardGroup(
                 title = { Text("Usage") }
             ) {

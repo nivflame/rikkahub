@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonPrimitive
+import me.rerere.ai.provider.CodexRotationMode
 import me.rerere.ai.provider.CustomBody
 import me.rerere.ai.provider.CustomHeader
 import me.rerere.ai.provider.ProviderSetting
@@ -138,7 +139,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
     var internalProvider by remember(provider) { mutableStateOf(provider) }
     val currentProvider = internalProvider
     val showAccounts = if (currentProvider is ProviderSetting.Codex) {
-        currentProvider.poolEnabled
+        currentProvider.rotation != CodexRotationMode.OFF
     } else {
         currentProvider is PoolableProvider && currentProvider.poolEnabled
     }
