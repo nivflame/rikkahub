@@ -534,26 +534,27 @@ private fun AddModelButton(
                     }
                 }
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.95f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_add_model),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        Text(
+                            text = stringResource(R.string.setting_provider_page_add_model),
+                            style = MaterialTheme.typography.titleLarge
+                        )
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
                         ) {
                             ModelSettingsForm(
                                 model = modelState,
@@ -563,25 +564,24 @@ private fun AddModelButton(
                                     (parentProvider is ProviderSetting.OpenAI && parentProvider.useResponseApi),
                             )
                         }
-
-            HorizontalFloatingToolbar(
-                expanded = true,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = -ScreenOffset),
-            ) {
-                FilledTonalButton(
-                    onClick = { dialogState.dismiss() },
-                    modifier = Modifier.padding(end = 8.dp),
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-                Button(
-                    onClick = { dialogState.confirm() },
-                    enabled = modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank(),
-                ) {
-                                Text(stringResource(R.string.setting_provider_page_add))
-                            }
+                    }
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = -ScreenOffset),
+                    ) {
+                        FilledTonalButton(
+                            onClick = { dialogState.dismiss() },
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                        Button(
+                            onClick = { dialogState.confirm() },
+                            enabled = modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank(),
+                        ) {
+                            Text(stringResource(R.string.setting_provider_page_add))
                         }
                     }
                 }
@@ -1102,31 +1102,27 @@ private fun ModelCard(
                 sheetGesturesEnabled = false,
                 dragHandle = null,
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.95f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = stringResource(R.string.setting_provider_page_edit_model),
                             style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.align(Alignment.Center),
                         )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
                         ) {
                             ModelSettingsForm(
                                 model = editingModel,
@@ -1135,25 +1131,24 @@ private fun ModelCard(
                                 showBuiltInTools = showBuiltInTools,
                             )
                         }
-
-            HorizontalFloatingToolbar(
-                expanded = true,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = -ScreenOffset),
-            ) {
-                FilledTonalButton(
-                    onClick = { dialogState.dismiss() },
-                    modifier = Modifier.padding(end = 8.dp),
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-                Button(
-                    onClick = { dialogState.confirm() },
-                    enabled = editingModel.modelId.isNotBlank() && editingModel.displayName.isNotBlank(),
-                ) {
-                                Text(stringResource(R.string.confirm))
-                            }
+                    }
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = -ScreenOffset),
+                    ) {
+                        FilledTonalButton(
+                            onClick = { dialogState.dismiss() },
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                        Button(
+                            onClick = { dialogState.confirm() },
+                            enabled = editingModel.modelId.isNotBlank() && editingModel.displayName.isNotBlank(),
+                        ) {
+                            Text(stringResource(R.string.confirm))
                         }
                     }
                 }
