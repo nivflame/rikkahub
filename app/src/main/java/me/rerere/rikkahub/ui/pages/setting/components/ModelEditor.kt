@@ -564,19 +564,20 @@ private fun AddModelButton(
                             )
                         }
 
-                        HorizontalFloatingToolbar(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .offset(y = -ScreenOffset),
-                        ) {
-                            FilledTonalButton(
-                                onClick = { dialogState.dismiss() },
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            Button(
-                                onClick = {
-                                    if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = -ScreenOffset),
+            ) {
+                FilledTonalButton(
+                    onClick = { dialogState.dismiss() },
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+                Button(
+                    onClick = {
+                        if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
                                         dialogState.confirm()
                                     }
                                 },
@@ -1137,19 +1138,20 @@ private fun ModelCard(
                             )
                         }
 
-                        HorizontalFloatingToolbar(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .offset(y = -ScreenOffset),
-                        ) {
-                            FilledTonalButton(
-                                onClick = { dialogState.dismiss() },
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            Button(
-                                onClick = {
-                                    if (editingModel.displayName.isNotBlank()) {
+            HorizontalFloatingToolbar(
+                expanded = true,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = -ScreenOffset),
+            ) {
+                FilledTonalButton(
+                    onClick = { dialogState.dismiss() },
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+                Button(
+                    onClick = {
+                        if (editingModel.displayName.isNotBlank()) {
                                         dialogState.confirm()
                                     }
                                 },
