@@ -67,7 +67,9 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -78,11 +80,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import me.rerere.ai.provider.BuiltInTools
 import me.rerere.ai.provider.Modality
@@ -244,8 +249,17 @@ private fun ModelSettingsForm(
     isEdit: Boolean,
     showBuiltInTools: Boolean = false,
 ) {
-    val pagerState = rememberPagerState { if (showBuiltInTools) 3 else 2 }
+    val pageCount = if (showBuiltInTools) 3 else 2
+    val pagerState = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
+    val pillScrollState = rememberScrollState()
+    val pillPositions = remember(pageCount) {
+        mutableStateListOf<Float>().apply { repeat(pageCount) { add(0f) } }
+    }
+    val pillWidths = remember(pageCount) {
+        mutableStateListOf<Int>().apply { repeat(pageCount) { add(0) } }
+    }
+    var pillRowWidth by remember { mutableStateOf(0) }
 
     fun setModelId(id: String) {
         val inputModality = ModelRegistry.MODEL_INPUT_MODALITIES.getData(id)
@@ -265,19 +279,40 @@ private fun ModelSettingsForm(
     Column {
         Row(
             modifier = Modifier
-                .horizontalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .onGloballyPositioned { pillRowWidth = it.size.width }
+                .horizontalScroll(pillScrollState)
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            LaunchedEffect(pagerState.currentPage, pillPositions.size, pillScrollState.maxValue, pillRowWidth) {
+                val index = pagerState.currentPage
+                val position = pillPositions.getOrNull(index) ?: return@LaunchedEffect
+                val width = pillWidths.getOrNull(index) ?: return@LaunchedEffect
+                val viewportCenter = pillRowWidth / 2f
+                val centered = position - (viewportCenter - width / 2f)
+                val clamped = centered.coerceIn(0f, pillScrollState.maxValue.toFloat())
+                pillScrollState.animateScrollTo(clamped.roundToInt())
+            }
             BouncingTabButton(
                 checked = pagerState.currentPage == 0,
                 onCheckedChange = { scope.launch { pagerState.animateScrollToPage(0) } },
+                modifier = Modifier
+                    .onGloballyPositioned {
+                        pillPositions[0] = it.positionInParent().x.toFloat()
+                        pillWidths[0] = it.size.width
+                    },
             ) {
                 Text(stringResource(R.string.setting_provider_page_basic_settings))
             }
             BouncingTabButton(
                 checked = pagerState.currentPage == 1,
                 onCheckedChange = { scope.launch { pagerState.animateScrollToPage(1) } },
+                modifier = Modifier
+                    .onGloballyPositioned {
+                        pillPositions[1] = it.positionInParent().x.toFloat()
+                        pillWidths[1] = it.size.width
+                    },
             ) {
                 Text(stringResource(R.string.setting_provider_page_advanced_settings))
             }
@@ -285,6 +320,11 @@ private fun ModelSettingsForm(
                 BouncingTabButton(
                     checked = pagerState.currentPage == 2,
                     onCheckedChange = { scope.launch { pagerState.animateScrollToPage(2) } },
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            pillPositions[2] = it.positionInParent().x.toFloat()
+                            pillWidths[2] = it.size.width
+                        },
                 ) {
                     Text(stringResource(R.string.setting_page_built_in_tools))
                 }
