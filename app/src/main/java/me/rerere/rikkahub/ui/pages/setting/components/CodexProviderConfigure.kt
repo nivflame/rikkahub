@@ -16,7 +16,6 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,18 +125,10 @@ fun CodexProviderConfigure(
                     horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                 ) {
                     CodexRotationMode.entries.forEachIndexed { index, mode ->
-                        val modeWeight by animateFloatAsState(
-                            targetValue = if (provider.rotation == mode) 1.3f else 1f,
-                            label = "rotationWeight$index",
-                        )
                         TonalToggleButton(
                             checked = provider.rotation == mode,
                             onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
-                            modifier = Modifier.weight(modeWeight),
-                            colors = ToggleButtonDefaults.tonalToggleButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
+                            modifier = Modifier.weight(1f),
                             shapes = when (index) {
                                 0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                 CodexRotationMode.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
