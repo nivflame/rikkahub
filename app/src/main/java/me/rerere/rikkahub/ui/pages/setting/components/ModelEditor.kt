@@ -572,6 +572,7 @@ private fun AddModelButton(
             ) {
                 FilledTonalButton(
                     onClick = { dialogState.dismiss() },
+                    modifier = Modifier.padding(end = 8.dp),
                 ) {
                     Text(stringResource(R.string.cancel))
                 }
@@ -1146,6 +1147,7 @@ private fun ModelCard(
             ) {
                 FilledTonalButton(
                     onClick = { dialogState.dismiss() },
+                    modifier = Modifier.padding(end = 8.dp),
                 ) {
                     Text(stringResource(R.string.cancel))
                 }
