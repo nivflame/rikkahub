@@ -47,7 +47,7 @@ class CodexProvider(
 
     override suspend fun listModels(providerSetting: ProviderSetting.Codex): List<Model> =
         withContext(Dispatchers.IO) {
-            val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
+            val account = repository.acquireAccount(providerSetting.rotation)
             val request = Request.Builder()
                 .url("$CODEX_API_BASE/models?client_version=$CODEX_CLIENT_VERSION")
                 .codexHeaders(account)
@@ -100,7 +100,7 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
         ): MessageChunk {
-        val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
+        val account = repository.acquireAccount(providerSetting.rotation)
         return responseApiFor(account).generateText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
@@ -114,7 +114,7 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
-        val account = repository.acquireAccount(providerSetting.rotation == CodexRotationMode.ROUND_ROBIN)
+        val account = repository.acquireAccount(providerSetting.rotation)
         return responseApiFor(account).streamText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),

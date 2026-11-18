@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import me.rerere.ai.provider.CodexRotationMode
 import me.rerere.common.http.await
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -86,8 +87,14 @@ class CodexAccountRepository internal constructor(
         account
     }
 
-    suspend fun acquireAccount(rotate: Boolean): CodexAccount = mutex.withLock {
+    suspend fun acquireAccount(mode: CodexRotationMode): CodexAccount = mutex.withLock {
         if (state.accounts.isEmpty()) error("No Codex account is signed in")
+        if (mode == CodexRotationMode.OFF) {
+            val first = state.accounts.first()
+            check(first.isAvailable()) { "No available Codex account" }
+            return ensureFreshLocked(first)
+        }
+        val rotate = mode == CodexRotationMode.ROUND_ROBIN
         repeat(state.accounts.size) {
             val index = selectCodexAccountIndex(
                 accounts = state.accounts,
