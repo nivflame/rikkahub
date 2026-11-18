@@ -16,6 +16,7 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,32 +117,45 @@ fun CodexProviderConfigure(
             )
         }
 
-        CardGroup(
-            title = { Text("Rotate Accounts") }
-        ) {
+        CardGroup {
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    CodexRotationMode.entries.forEachIndexed { index, mode ->
-                        TonalToggleButton(
-                            checked = provider.rotation == mode,
-                            onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
-                            modifier = Modifier.weight(1f),
-                            shapes = when (index) {
-                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                CodexRotationMode.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                            },
-                        ) {
-                            Text(
-                                text = when (mode) {
-                                    CodexRotationMode.OFF -> "Off"
-                                    CodexRotationMode.FILL_FIRST -> "Fill First"
-                                    CodexRotationMode.ROUND_ROBIN -> "Round Robin"
-                                }
-                            )
+                    Text(
+                        text = "Rotate Accounts",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                    ) {
+                        CodexRotationMode.entries.forEachIndexed { index, mode ->
+                            TonalToggleButton(
+                                checked = provider.rotation == mode,
+                                onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
+                                modifier = Modifier.weight(1f),
+                                colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                                shapes = when (index) {
+                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                    CodexRotationMode.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                },
+                            ) {
+                                Text(
+                                    text = when (mode) {
+                                        CodexRotationMode.OFF -> "Off"
+                                        CodexRotationMode.FILL_FIRST -> "Fill First"
+                                        CodexRotationMode.ROUND_ROBIN -> "Round Robin"
+                                    }
+                                )
+                            }
                         }
                     }
                 }
