@@ -577,12 +577,9 @@ private fun AddModelButton(
                     Text(stringResource(R.string.cancel))
                 }
                 Button(
-                    onClick = {
-                        if (modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank()) {
-                                        dialogState.confirm()
-                                    }
-                                },
-                            ) {
+                    onClick = { dialogState.confirm() },
+                    enabled = modelState.modelId.isNotBlank() && modelState.displayName.isNotBlank(),
+                ) {
                                 Text(stringResource(R.string.setting_provider_page_add))
                             }
                         }
@@ -1152,12 +1149,9 @@ private fun ModelCard(
                     Text(stringResource(R.string.cancel))
                 }
                 Button(
-                    onClick = {
-                        if (editingModel.displayName.isNotBlank()) {
-                                        dialogState.confirm()
-                                    }
-                                },
-                            ) {
+                    onClick = { dialogState.confirm() },
+                    enabled = editingModel.modelId.isNotBlank() && editingModel.displayName.isNotBlank(),
+                ) {
                                 Text(stringResource(R.string.confirm))
                             }
                         }
