@@ -23,20 +23,22 @@ class CodexAccountRepository internal constructor(
     private val json: Json,
 ) {
     private val mutex = Mutex()
-    private var state = store.read().let { stored ->
-        stored.copy(
-            accounts = stored.accounts.map { account ->
-                if (
-                    account.tokenStatus != CodexTokenStatus.INVALID &&
-                    account.expiresAt <= System.currentTimeMillis()
-                ) {
-                    account.copy(tokenStatus = CodexTokenStatus.EXPIRED)
-                } else {
-                    account
+    private var state = migrateLegacyCursor(
+        store.read().let { stored ->
+            stored.copy(
+                accounts = stored.accounts.map { account ->
+                    if (
+                        account.tokenStatus != CodexTokenStatus.INVALID &&
+                        account.expiresAt <= System.currentTimeMillis()
+                    ) {
+                        account.copy(tokenStatus = CodexTokenStatus.EXPIRED)
+                    } else {
+                        account
+                    }
                 }
-            }
-        )
-    }
+            )
+        }
+    )
     private val _accounts = MutableStateFlow(state.accounts)
     val accounts: StateFlow<List<CodexAccount>> = _accounts.asStateFlow()
 
@@ -87,28 +89,70 @@ class CodexAccountRepository internal constructor(
         account
     }
 
-    suspend fun acquireAccount(mode: CodexRotationMode): CodexAccount = mutex.withLock {
+    suspend fun acquireAccount(
+        mode: CodexRotationMode,
+        modelId: String? = null,
+    ): CodexAccount = mutex.withLock {
         if (state.accounts.isEmpty()) error("No Codex account is signed in")
         if (mode == CodexRotationMode.OFF) {
             val first = state.accounts.first()
-            check(first.isAvailable()) { "No available Codex account" }
+            check(first.isAvailable(modelId)) { "No available Codex account" }
             return ensureFreshLocked(first)
         }
         val rotate = mode == CodexRotationMode.ROUND_ROBIN
+        var lastPicked = state.lastPickedAccountId
         repeat(state.accounts.size) {
-            val index = selectCodexAccountIndex(
-                accounts = state.accounts,
-                startIndex = if (rotate) state.nextAccountIndex else 0,
-            ) ?: error("No available Codex account")
-            val candidate = state.accounts[index]
-            if (!candidate.isAvailable()) return@repeat
+            val picked = if (rotate) {
+                selectCodexAccountSuccessor(
+                    accounts = state.accounts,
+                    lastPickedAccountId = lastPicked,
+                    modelId = modelId,
+                )
+            } else {
+                state.accounts.firstOrNull { it.isAvailable(modelId) }
+            } ?: error("No available Codex account")
             if (rotate) {
-                updateState(state.copy(nextAccountIndex = (index + 1) % state.accounts.size))
+                updateState(state.copy(lastPickedAccountId = picked.id))
+                lastPicked = picked.id
             }
-            val fresh = runCatching { ensureFreshLocked(candidate) }.getOrNull() ?: return@repeat
+            val fresh = runCatching { ensureFreshLocked(picked) }.getOrNull() ?: return@repeat
             return fresh
         }
         error("No available Codex account")
+    }
+
+    suspend fun markCooldown(
+        accountId: String,
+        untilMillis: Long,
+        reason: String,
+        modelId: String? = null,
+    ) = mutex.withLock {
+        replaceAccount(accountId) { account ->
+            if (modelId != null) {
+                account.copy(modelCooldowns = account.modelCooldowns + (modelId to untilMillis))
+            } else {
+                account.copy(
+                    cooldownUntil = maxOf(account.cooldownUntil, untilMillis),
+                    cooldownReason = reason,
+                )
+            }
+        }
+    }
+
+    suspend fun observeQuotaHeaders(
+        accountId: String,
+        headers: Map<String, List<String>>,
+    ) = mutex.withLock {
+        val snapshot = parseCodexQuotaHeaders(headers) ?: return@withLock
+        replaceAccount(accountId) { account ->
+            account.copy(
+                usage = account.usage?.copy(
+                    primary = snapshot.primary ?: account.usage.primary,
+                    secondary = snapshot.secondary ?: account.usage.secondary,
+                    updatedAt = System.currentTimeMillis(),
+                ) ?: snapshot
+            )
+        }
     }
 
     suspend fun updateUsage(accountId: String, usage: CodexUsageSnapshot) = mutex.withLock {
@@ -273,17 +317,26 @@ internal fun isCodexRefreshAuthenticationFailure(
     return errorCode == "invalid_grant" || errorCode == "invalid_token"
 }
 
-internal fun selectCodexAccountIndex(
+internal fun migrateLegacyCursor(state: CodexAccountState): CodexAccountState {
+    if (state.lastPickedAccountId != null) return state
+    if (state.nextAccountIndex <= 0) return state
+    return state.copy(
+        nextAccountIndex = 0,
+        lastPickedAccountId = state.accounts.getOrNull(state.nextAccountIndex - 1)?.id,
+    )
+}
+
+internal fun selectCodexAccountSuccessor(
     accounts: List<CodexAccount>,
-    startIndex: Int,
+    lastPickedAccountId: String?,
+    modelId: String? = null,
     nowMillis: Long = System.currentTimeMillis(),
-): Int? {
+): CodexAccount? {
     if (accounts.isEmpty()) return null
-    repeat(accounts.size) { offset ->
-        val index = (startIndex + offset).mod(accounts.size)
-        if (accounts[index].isAvailable(nowMillis)) return index
-    }
-    return null
+    val lastPickedIndex = accounts.indexOfFirst { it.id == lastPickedAccountId }
+    return (0 until accounts.size)
+        .map { offset -> accounts[(lastPickedIndex + 1 + offset).mod(accounts.size)] }
+        .firstOrNull { it.isAvailable(modelId, nowMillis) }
 }
 
 internal fun mergeCodexAccounts(

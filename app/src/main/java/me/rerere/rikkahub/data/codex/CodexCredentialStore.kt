@@ -75,4 +75,5 @@ internal class CodexCredentialStore(
 internal data class CodexAccountState(
     val accounts: List<CodexAccount> = emptyList(),
     val nextAccountIndex: Int = 0,
+    val lastPickedAccountId: String? = null,
 )

@@ -1,5 +1,6 @@
 package me.rerere.rikkahub.data.codex
 
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import me.rerere.ai.core.ReasoningLevel
 import okhttp3.Headers
@@ -103,7 +104,7 @@ class CodexAccountTest {
     }
 
     @Test
-    fun `round robin skips disabled invalid and exhausted accounts`() {
+    fun `successor skips disabled invalid and exhausted accounts`() {
         val accounts = listOf(
             account("disabled", enabled = false),
             account("invalid", status = CodexTokenStatus.INVALID),
@@ -116,8 +117,71 @@ class CodexAccountTest {
             account("available"),
         )
 
-        assertEquals(3, selectCodexAccountIndex(accounts, startIndex = 0, nowMillis = 1_000))
-        assertNull(selectCodexAccountIndex(accounts.dropLast(1), startIndex = 0, nowMillis = 1_000))
+        assertEquals(
+            "available",
+            selectCodexAccountSuccessor(accounts, lastPickedAccountId = null, nowMillis = 1_000)?.id,
+        )
+        assertNull(
+            selectCodexAccountSuccessor(
+                accounts.dropLast(1),
+                lastPickedAccountId = null,
+                nowMillis = 1_000,
+            )
+        )
+    }
+
+    @Test
+    fun `successor continues from the last picked identity`() {
+        val accounts = listOf(account("a"), account("b"), account("c"))
+
+        assertEquals("b", selectCodexAccountSuccessor(accounts, "a", nowMillis = 1_000)?.id)
+        assertEquals("c", selectCodexAccountSuccessor(accounts, "b", nowMillis = 1_000)?.id)
+        assertEquals("a", selectCodexAccountSuccessor(accounts, "c", nowMillis = 1_000)?.id)
+    }
+
+    @Test
+    fun `successor starts at head when cursor is null or unknown`() {
+        val accounts = listOf(account("a"), account("b"))
+
+        assertEquals("a", selectCodexAccountSuccessor(accounts, null, nowMillis = 1_000)?.id)
+        assertEquals("a", selectCodexAccountSuccessor(accounts, "missing", nowMillis = 1_000)?.id)
+        assertNull(selectCodexAccountSuccessor(emptyList(), null, nowMillis = 1_000))
+    }
+
+    @Test
+    fun `successor is identity based across insertions and deletions`() {
+        val base = listOf(account("a"), account("b"), account("c"))
+
+        assertEquals("c", selectCodexAccountSuccessor(base, "b", nowMillis = 1_000)?.id)
+        assertEquals(
+            "c",
+            selectCodexAccountSuccessor(base + account("d"), "b", nowMillis = 1_000)?.id,
+        )
+        assertEquals(
+            "c",
+            selectCodexAccountSuccessor(listOf(account("z")) + base, "b", nowMillis = 1_000)?.id,
+        )
+        assertEquals(
+            "c",
+            selectCodexAccountSuccessor(base.drop(1), "b", nowMillis = 1_000)?.id,
+        )
+    }
+
+    @Test
+    fun `successor honours per model cooldown`() {
+        val accounts = listOf(
+            account("cooling").copy(modelCooldowns = mapOf("gpt-x" to 2_000L)),
+            account("healthy"),
+        )
+
+        assertEquals(
+            "healthy",
+            selectCodexAccountSuccessor(accounts, null, "gpt-x", nowMillis = 1_000)?.id,
+        )
+        assertEquals(
+            "cooling",
+            selectCodexAccountSuccessor(accounts, null, "gpt-y", nowMillis = 1_000)?.id,
+        )
     }
 
     @Test
@@ -249,6 +313,57 @@ class CodexAccountTest {
                 nowMillis = 1_000,
             ).nextAccountIndex,
         )
+    }
+
+    @Test
+    fun `legacy cursor migrates to the previously picked identity`() {
+        val state = CodexAccountState(
+            accounts = listOf(account("a"), account("b"), account("c")),
+            nextAccountIndex = 2,
+        )
+
+        val migrated = migrateLegacyCursor(state)
+
+        assertEquals("b", migrated.lastPickedAccountId)
+        assertEquals(0, migrated.nextAccountIndex)
+    }
+
+    @Test
+    fun `legacy cursor migration is a no-op when cursor is unset`() {
+        val state = CodexAccountState(accounts = listOf(account("a")), nextAccountIndex = 0)
+
+        assertEquals(state, migrateLegacyCursor(state))
+    }
+
+    @Test
+    fun `legacy cursor migration keeps an existing identity cursor`() {
+        val state = CodexAccountState(
+            accounts = listOf(account("a"), account("b")),
+            nextAccountIndex = 1,
+            lastPickedAccountId = "a",
+        )
+
+        assertEquals(state, migrateLegacyCursor(state))
+    }
+
+    @Test
+    fun `legacy cursor migration drops an out of range cursor`() {
+        val migrated = migrateLegacyCursor(
+            CodexAccountState(accounts = listOf(account("a")), nextAccountIndex = 5)
+        )
+
+        assertNull(migrated.lastPickedAccountId)
+        assertEquals(0, migrated.nextAccountIndex)
+    }
+
+    @Test
+    fun `state decodes legacy json without the cursor field`() {
+        val state = json.decodeFromString<CodexAccountState>(
+            """{"accounts":[],"nextAccountIndex":2}"""
+        )
+
+        assertNull(state.lastPickedAccountId)
+        assertEquals(2, state.nextAccountIndex)
     }
 
     private fun account(

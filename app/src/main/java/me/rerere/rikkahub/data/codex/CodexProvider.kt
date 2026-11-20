@@ -3,6 +3,7 @@ package me.rerere.rikkahub.data.codex
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -13,6 +14,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import me.rerere.ai.core.MessageRole
@@ -35,6 +37,7 @@ import me.rerere.rikkahub.AppScope
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import okhttp3.ResponseBody.Companion.asResponseBody
 
 class CodexProvider(
@@ -99,7 +102,7 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
         ): MessageChunk {
-        val account = repository.acquireAccount(providerSetting.rotation)
+        val account = repository.acquireAccount(providerSetting.rotation, params.model.modelId)
         return responseApiFor(account).generateText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
@@ -113,12 +116,15 @@ class CodexProvider(
         params: TextGenerationParams,
         onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
-        val account = repository.acquireAccount(providerSetting.rotation)
+        val account = repository.acquireAccount(providerSetting.rotation, params.model.modelId)
         return responseApiFor(account).streamText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
             params = withCodexParams(params, account, stream = true),
-        )
+        ).catch { throwable ->
+            handleStreamQuotaError(account, throwable)
+            throw throwable
+        }
     }
 
     override suspend fun generateImage(
@@ -161,6 +167,12 @@ class CodexProvider(
                 parseCodexUsage(response.headers)?.let { usage ->
                     scope.launch { repository.updateUsage(account.id, usage) }
                 }
+                scope.launch {
+                    repository.observeQuotaHeaders(account.id, response.headers.toMultimap())
+                }
+                if (response.code == 429) {
+                    handleRateLimitResponse(account, response)
+                }
                 if (response.code == 401) {
                     scope.launch { repository.markInvalid(account.id) }
                 }
@@ -183,9 +195,65 @@ class CodexProvider(
         return ResponseAPI(accountAwareClient)
     }
 
+    private fun handleRateLimitResponse(account: CodexAccount, response: Response) {
+        val body = runCatching { response.peekBody(MAX_ERROR_BODY_BYTES).string() }.getOrNull()
+        val retryAfterSeconds = response.header("Retry-After")?.toLongOrNull()
+        when (
+            classifyCodexRateLimit(
+                statusCode = response.code,
+                errorType = body?.let { parseCodexErrorType(it) },
+                retryAfterHeaderSeconds = retryAfterSeconds,
+            )
+        ) {
+            CodexRateLimitKind.QUOTA -> {
+                val cooldown = body?.let { parseCodexUsageLimitEvent(it) }
+                    ?: retryAfterSeconds?.let { seconds ->
+                        (System.currentTimeMillis() + seconds * 1000) to CODEX_USAGE_LIMIT_ERROR
+                    }
+                    ?: return
+                scope.launch { repository.markCooldown(account.id, cooldown.first, cooldown.second) }
+            }
+
+            CodexRateLimitKind.RETRY_AFTER -> {
+                val seconds = retryAfterSeconds ?: return
+                scope.launch {
+                    repository.markCooldown(
+                        account.id,
+                        System.currentTimeMillis() + seconds * 1000,
+                        "retry_after",
+                    )
+                }
+            }
+
+            CodexRateLimitKind.TRANSIENT, CodexRateLimitKind.NONE -> Unit
+        }
+    }
+
+    private fun handleStreamQuotaError(account: CodexAccount, throwable: Throwable) {
+        val message = throwable.message ?: return
+        if (!message.contains(CODEX_USAGE_LIMIT_ERROR, ignoreCase = true)) return
+        val cooldown = parseCodexUsageLimitEvent(message)
+            ?: message.indexOf('{').takeIf { it >= 0 }?.let { start ->
+                message.lastIndexOf('}').takeIf { it > start }
+                    ?.let { end -> parseCodexUsageLimitEvent(message.substring(start, end + 1)) }
+            }
+            ?: return
+        scope.launch { repository.markCooldown(account.id, cooldown.first, cooldown.second) }
+    }
+
+    private fun parseCodexErrorType(body: String): String? = runCatching {
+        val root = json.parseToJsonElement(body).jsonObject
+        val error = root["error"] as? JsonObject
+            ?: (root["body"] as? JsonObject)?.get("error") as? JsonObject
+        val payload = error ?: (root["body"] as? JsonObject) ?: root
+        payload["type"]?.jsonPrimitive?.contentOrNull
+    }.getOrNull()
+
     private companion object {
         const val CODEX_API_BASE = "${CodexAccountRepository.CODEX_BASE_URL}/codex"
         const val DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
+        const val MAX_ERROR_BODY_BYTES = 64L * 1024
+        const val CODEX_USAGE_LIMIT_ERROR = "usage_limit_reached"
     }
 }
 
