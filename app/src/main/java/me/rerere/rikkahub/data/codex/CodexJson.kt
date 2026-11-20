@@ -76,3 +76,64 @@ private fun JsonObject.toUsageWindow(): CodexUsageWindow? {
         resetsAt = this["reset_at"]?.jsonPrimitive?.longOrNull,
     )
 }
+
+private val codexQuotaJson = Json { ignoreUnknownKeys = true }
+
+internal fun parseCodexQuotaHeaders(headers: Map<String, List<String>>): CodexUsageSnapshot? {
+    val values = headers.entries.associate { it.key.lowercase() to it.value.firstOrNull() }
+    fun window(prefix: String): CodexUsageWindow? {
+        val used = values["x-codex-$prefix-used-percent"]?.toDoubleOrNull() ?: return null
+        return CodexUsageWindow(usedPercent = used)
+    }
+    val primary = window("primary")
+    val secondary = window("secondary")
+    if (primary == null && secondary == null) return null
+    return CodexUsageSnapshot(primary = primary, secondary = secondary)
+}
+
+internal fun parseCodexUsageLimitEvent(json: String): Pair<Long, String>? {
+    val root = runCatching { codexQuotaJson.parseToJsonElement(json).jsonObject }.getOrNull() ?: return null
+    val body = root["body"] as? JsonObject
+    val error = root["error"] as? JsonObject ?: body?.get("error") as? JsonObject
+    val payload = error ?: body ?: root
+    val errorType = payload["type"]?.jsonPrimitive?.contentOrNull ?: return null
+    if (!errorType.equals("usage_limit_reached", ignoreCase = true)) return null
+    val resetsAt = payload["resets_at"]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 }
+    val resetsInSeconds = payload["resets_in_seconds"]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 }
+    val resetsAtMillis = when {
+        resetsAt != null -> (resetsAt * 1000).toLong()
+        resetsInSeconds != null -> System.currentTimeMillis() + (resetsInSeconds * 1000).toLong()
+        else -> return null
+    }
+    val reason = payload["message"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+        ?: "usage_limit_reached"
+    return resetsAtMillis to reason
+}
+
+internal enum class CodexRateLimitKind {
+    QUOTA,
+    TRANSIENT,
+    RETRY_AFTER,
+    NONE,
+}
+
+internal fun classifyCodexRateLimit(
+    statusCode: Int,
+    errorType: String?,
+    retryAfterHeaderSeconds: Long?,
+): CodexRateLimitKind {
+    if (errorType.equals("usage_limit_reached", ignoreCase = true)) return CodexRateLimitKind.QUOTA
+    if (errorType.equals("rate_limit_error", ignoreCase = true) ||
+        errorType.equals("rate_limit_exceeded", ignoreCase = true)
+    ) {
+        return CodexRateLimitKind.TRANSIENT
+    }
+    if (statusCode == 429) {
+        return if (retryAfterHeaderSeconds != null && retryAfterHeaderSeconds > 0) {
+            CodexRateLimitKind.RETRY_AFTER
+        } else {
+            CodexRateLimitKind.TRANSIENT
+        }
+    }
+    return CodexRateLimitKind.NONE
+}
