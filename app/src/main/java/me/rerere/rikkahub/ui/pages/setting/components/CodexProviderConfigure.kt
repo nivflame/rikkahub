@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -159,13 +161,16 @@ fun CodexProviderConfigure(
                                 TonalToggleButton(
                                     checked = provider.rotation == mode,
                                     onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
-                                    modifier = Modifier.weight(modeWeight),
+                                    modifier = Modifier
+                                        .weight(modeWeight)
+                                        .heightIn(min = ButtonDefaults.MediumContainerHeight),
                                     colors = ToggleButtonDefaults.tonalToggleButtonColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         checkedContainerColor = MaterialTheme.colorScheme.primary,
                                         checkedContentColor = MaterialTheme.colorScheme.onPrimary,
                                     ),
+                                    contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight),
                                     shapes = when (index) {
                                         0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                         else -> ButtonGroupDefaults.connectedTrailingButtonShapes()

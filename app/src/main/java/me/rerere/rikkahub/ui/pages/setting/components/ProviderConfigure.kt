@@ -7,8 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -441,7 +442,7 @@ private fun ProviderConfigureClaude(
                                 onCheckedChange = { onEdit(provider.copy(promptCacheTtl = ttl)) },
                                 modifier = Modifier
                                     .weight(segmentWeight)
-                                    .height(48.dp),
+                                    .heightIn(min = ButtonDefaults.MediumContainerHeight),
                                 shapes = when (index) {
                                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                     ClaudePromptCacheTtl.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
@@ -453,6 +454,7 @@ private fun ProviderConfigureClaude(
                                     checkedContainerColor = MaterialTheme.colorScheme.primary,
                                     checkedContentColor = MaterialTheme.colorScheme.onPrimary,
                                 ),
+                                contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight),
                             ) {
                                 Text(
                                     text = stringResource(
