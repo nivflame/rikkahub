@@ -170,7 +170,9 @@ fun CodexProviderConfigure(
                                         checkedContainerColor = MaterialTheme.colorScheme.primary,
                                         checkedContentColor = MaterialTheme.colorScheme.onPrimary,
                                     ),
-                                    contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight),
+                                    contentPadding = ButtonDefaults.contentPaddingFor(
+                                        ButtonDefaults.MediumContainerHeight
+                                    ),
                                     shapes = when (index) {
                                         0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                                         else -> ButtonGroupDefaults.connectedTrailingButtonShapes()
