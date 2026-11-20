@@ -121,6 +121,42 @@ class CodexAccountTest {
     }
 
     @Test
+    fun `account cooldown blocks until deadline`() {
+        val now = 1_000_000L
+        val cooling = account("cooling").copy(cooldownUntil = now + 60_000)
+        assertTrue(!cooling.isAvailable(nowMillis = now))
+        val expired = account("expired").copy(cooldownUntil = now - 1)
+        assertTrue(expired.isAvailable(nowMillis = now))
+    }
+
+    @Test
+    fun `model cooldown blocks only the cooling model`() {
+        val now = 1_000_000L
+        val model = account("model").copy(
+            modelCooldowns = mapOf("gpt-x" to now + 60_000),
+        )
+        assertTrue(!model.isAvailable(modelId = "gpt-x", nowMillis = now))
+        assertTrue(model.isAvailable(modelId = "gpt-y", nowMillis = now))
+        assertTrue(model.isAvailable(nowMillis = now))
+    }
+
+    @Test
+    fun `no model overload keeps legacy availability`() {
+        val now = 1_000_000L
+        assertTrue(!account("off", enabled = false).isAvailable(nowMillis = now))
+        assertTrue(!account("bad", status = CodexTokenStatus.INVALID).isAvailable(nowMillis = now))
+        assertTrue(
+            !account(
+                "exhausted",
+                usage = CodexUsageSnapshot(
+                    primary = CodexUsageWindow(usedPercent = 100.0, resetsAt = 2_000_000_000)
+                )
+            ).isAvailable(nowMillis = now)
+        )
+        assertTrue(account("healthy").isAvailable(nowMillis = now))
+    }
+
+    @Test
     fun `auto reasoning omits Codex effort`() {
         assertNull(codexReasoningEffort(ReasoningLevel.AUTO))
         assertEquals("high", codexReasoningEffort(ReasoningLevel.HIGH))

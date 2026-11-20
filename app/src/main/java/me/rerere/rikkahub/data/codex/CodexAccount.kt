@@ -16,6 +16,9 @@ data class CodexAccount(
     val tokenStatus: CodexTokenStatus = CodexTokenStatus.UNKNOWN,
     val usage: CodexUsageSnapshot? = null,
     val planType: String? = null,
+    val cooldownUntil: Long = 0L,
+    val cooldownReason: String? = null,
+    val modelCooldowns: Map<String, Long> = emptyMap(),
 )
 
 @Serializable
@@ -40,8 +43,16 @@ data class CodexUsageWindow(
     val resetsAt: Long? = null,
 )
 
-internal fun CodexAccount.isAvailable(nowMillis: Long = System.currentTimeMillis()): Boolean {
+internal fun CodexAccount.isAvailable(nowMillis: Long = System.currentTimeMillis()): Boolean =
+    isAvailable(modelId = null, nowMillis = nowMillis)
+
+internal fun CodexAccount.isAvailable(
+    modelId: String?,
+    nowMillis: Long = System.currentTimeMillis(),
+): Boolean {
     if (!enabled || tokenStatus == CodexTokenStatus.INVALID) return false
+    if (cooldownUntil > nowMillis) return false
+    if (modelId != null && (modelCooldowns[modelId] ?: 0L) > nowMillis) return false
     val exhausted = listOfNotNull(usage?.primary, usage?.secondary)
         .any { it.usedPercent >= 100.0 && (it.resetsAt == null || it.resetsAt * 1000 > nowMillis) }
     return !exhausted
