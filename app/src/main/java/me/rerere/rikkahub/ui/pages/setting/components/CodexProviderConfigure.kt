@@ -118,47 +118,68 @@ fun CodexProviderConfigure(
         }
 
         CardGroup {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Rotate Accounts",
-                        style = MaterialTheme.typography.titleSmall,
+            toggleItem(
+                label = "Rotate Accounts",
+                checked = provider.rotation != CodexRotationMode.OFF,
+                onClick = {
+                    onEdit(
+                        provider.copy(
+                            rotation = if (provider.rotation == CodexRotationMode.OFF) {
+                                CodexRotationMode.FILL_FIRST
+                            } else {
+                                CodexRotationMode.OFF
+                            }
+                        )
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-                    ) {
-                        CodexRotationMode.entries.forEachIndexed { index, mode ->
-                            TonalToggleButton(
-                                checked = provider.rotation == mode,
-                                onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
-                                modifier = Modifier.weight(1f),
-                                colors = ToggleButtonDefaults.tonalToggleButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    checkedContainerColor = MaterialTheme.colorScheme.primary,
-                                    checkedContentColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                                shapes = when (index) {
-                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                                    CodexRotationMode.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                                },
-                            ) {
-                                Text(
-                                    text = when (mode) {
-                                        CodexRotationMode.OFF -> "Off"
-                                        CodexRotationMode.FILL_FIRST -> "Fill First"
-                                        CodexRotationMode.ROUND_ROBIN -> "Round Robin"
-                                    }
+                },
+            )
+            if (provider.rotation != CodexRotationMode.OFF) {
+                item(
+                    headlineContent = {
+                        Text(
+                            text = "Mode",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    supportingContent = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                        ) {
+                            listOf(CodexRotationMode.FILL_FIRST, CodexRotationMode.ROUND_ROBIN).forEachIndexed { index, mode ->
+                                val modeWeight by animateFloatAsState(
+                                    targetValue = if (provider.rotation == mode) 1.5f else 1f,
+                                    label = "modeWeight",
                                 )
+                                TonalToggleButton(
+                                    checked = provider.rotation == mode,
+                                    onCheckedChange = { onEdit(provider.copy(rotation = mode)) },
+                                    modifier = Modifier.weight(modeWeight),
+                                    colors = ToggleButtonDefaults.tonalToggleButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        checkedContainerColor = MaterialTheme.colorScheme.primary,
+                                        checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                                    shapes = when (index) {
+                                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        else -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                    },
+                                ) {
+                                    Text(
+                                        text = when (mode) {
+                                            CodexRotationMode.FILL_FIRST -> "Fill First"
+                                            CodexRotationMode.ROUND_ROBIN -> "Round Robin"
+                                            CodexRotationMode.OFF -> ""
+                                        }
+                                    )
+                                }
                             }
                         }
-                    }
-                }
+                    },
+                )
             }
         }
 
