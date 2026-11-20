@@ -148,7 +148,10 @@ fun CodexProviderConfigure(
                                 .padding(top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
                         ) {
-                            listOf(CodexRotationMode.FILL_FIRST, CodexRotationMode.ROUND_ROBIN).forEachIndexed { index, mode ->
+                            listOf(
+                                CodexRotationMode.FILL_FIRST,
+                                CodexRotationMode.ROUND_ROBIN,
+                            ).forEachIndexed { index, mode ->
                                 val modeWeight by animateFloatAsState(
                                     targetValue = if (provider.rotation == mode) 1.5f else 1f,
                                     label = "modeWeight",
