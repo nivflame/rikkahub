@@ -886,9 +886,6 @@ private fun ModelTypeSelector(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-                contentPadding = ButtonDefaults.contentPaddingFor(
-                    ButtonDefaults.MediumContainerHeight
-                ),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     ModelType.entries.size - 1 -> ButtonGroupDefaults.connectedTrailingButtonShapes()
