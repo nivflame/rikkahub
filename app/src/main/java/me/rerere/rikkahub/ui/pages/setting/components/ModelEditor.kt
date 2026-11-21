@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
@@ -40,6 +41,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
@@ -878,10 +880,15 @@ private fun ModelTypeSelector(
             TonalToggleButton(
                 checked = selectedType == type,
                 onCheckedChange = { onTypeSelected(type) },
-                modifier = Modifier.weight(typeWeight),
+                modifier = Modifier
+                    .weight(typeWeight)
+                    .heightIn(min = ButtonDefaults.MediumContainerHeight),
                 colors = ToggleButtonDefaults.tonalToggleButtonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                contentPadding = ButtonDefaults.contentPaddingFor(
+                    ButtonDefaults.MediumContainerHeight
                 ),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
