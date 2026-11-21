@@ -338,12 +338,12 @@ sealed class ProviderSetting {
         @Transient override val builtIn: Boolean = false,
         @Transient override val description: @Composable (() -> Unit) = {},
         @Transient override val shortDescription: @Composable (() -> Unit) = {},
+        override var customHeaders: List<CustomHeader> = emptyList(),
         override var customBodies: List<CustomBody> = emptyList(),
         var poolEnabled: Boolean = false,
         var rotation: CodexRotationMode = CodexRotationMode.OFF,
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
-        override val customHeaders: List<CustomHeader> get() = emptyList()
         override fun addModel(model: Model): ProviderSetting = copy(models = models + model)
 
         override fun editModel(model: Model): ProviderSetting = copy(models = models.map { if (it.id == model.id) model.copy() else it })
@@ -355,7 +355,9 @@ sealed class ProviderSetting {
             add(to, model)
         })
 
-        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting = this
+        override fun updateHeaders(headers: List<CustomHeader>): ProviderSetting {
+            return copy(customHeaders = headers)
+        }
 
         override fun updateBodies(bodies: List<CustomBody>): ProviderSetting =
             copy(customBodies = bodies)

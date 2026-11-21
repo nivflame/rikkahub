@@ -250,7 +250,6 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                 ) {
                     Text(stringResource(R.string.setting_provider_page_models))
                 }
-                val codexProvider = internalProvider as? ProviderSetting.Codex
                 val accountsIndex = pages.indexOf(ProviderPage.ACCOUNTS)
                 AnimatedVisibility(
                     visible = showAccounts,
@@ -272,19 +271,17 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                         Text("Accounts")
                     }
                 }
-                if (codexProvider == null) {
-                    BouncingTabButton(
-                        checked = pager.currentPage == pages.indexOf(ProviderPage.HEADERS),
-                        onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.HEADERS)) } },
-                        modifier = Modifier
-                            .onGloballyPositioned {
-                                pillPositions[pages.indexOf(ProviderPage.HEADERS)] = it.positionInParent().x.toFloat()
-                                pillWidths[pages.indexOf(ProviderPage.HEADERS)] = it.size.width
-                            }
-                            .padding(end = 8.dp),
-                    ) {
-                        Text(stringResource(R.string.assistant_page_custom_headers))
-                    }
+                BouncingTabButton(
+                    checked = pager.currentPage == pages.indexOf(ProviderPage.HEADERS),
+                    onCheckedChange = { scope.launch { pager.animateScrollToPage(pages.indexOf(ProviderPage.HEADERS)) } },
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            pillPositions[pages.indexOf(ProviderPage.HEADERS)] = it.positionInParent().x.toFloat()
+                            pillWidths[pages.indexOf(ProviderPage.HEADERS)] = it.size.width
+                        }
+                        .padding(end = 8.dp),
+                ) {
+                    Text(stringResource(R.string.assistant_page_custom_headers))
                 }
                 BouncingTabButton(
                     checked = pager.currentPage == pages.indexOf(ProviderPage.BODIES),
@@ -356,7 +353,7 @@ private fun providerPages(provider: ProviderSetting, showAccounts: Boolean): Lis
         add(ProviderPage.CONFIGURATION)
         add(ProviderPage.MODELS)
         if (showAccounts) add(ProviderPage.ACCOUNTS)
-        if (provider !is ProviderSetting.Codex) add(ProviderPage.HEADERS)
+        add(ProviderPage.HEADERS)
         add(ProviderPage.BODIES)
     }
 
