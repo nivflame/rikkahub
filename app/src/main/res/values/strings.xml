@@ -1337,8 +1337,8 @@
   <string name="codex_refresh">Refresh</string>
   <string name="codex_reauthenticate">Re-auth</string>
   <string name="codex_sign_out">Sign out</string>
-  <string name="codex_remove_account_title">Remove account</string>
-  <string name="codex_remove_account_message">Are you sure you want to remove this account?</string>
+  <string name="codex_remove_account_title">Remove this account?</string>
+  <string name="codex_remove_account_message">The account is signed out and its credentials are removed from this device. You can sign in again to re-add it.</string>
   <string name="codex_remove">Remove</string>
   <string name="codex_oauth_ports_unavailable">Unable to start OAuth callback server. Ports 1455 and 1457 are in use.</string>
 </resources>
