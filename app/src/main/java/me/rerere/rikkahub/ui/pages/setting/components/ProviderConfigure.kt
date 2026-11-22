@@ -126,11 +126,56 @@ fun <T : ProviderSetting> ProxyCard(
         onEdit(provider.withProxyConfig(newConfig) as T)
     }
 
+    val proxy = remember(config) { config.toJavaProxy() }
+    var status by remember(config) { mutableStateOf<String?>(null) }
+    var isError by remember(config) { mutableStateOf(false) }
+    val latestConfig by rememberUpdatedState(config)
+    LaunchedEffect(proxy) {
+        if (proxy == null) {
+            status = null
+            return@LaunchedEffect
+        }
+        status = null
+        isError = false
+        delay(500)
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                OkHttpClient()
+                    .newBuilder()
+                    .proxy(proxy)
+                    .apply { config.proxyAuthenticator()?.let { proxyAuthenticator(it) } }
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .build()
+                    .newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build())
+                    .execute()
+                    .use { it.code }
+            }
+        }
+        if (latestConfig != config) return@LaunchedEffect
+        val code = result.getOrNull()
+        status = when {
+            result.isSuccess && code == 204 -> "Connected"
+            result.isSuccess -> "Unexpected response: $code"
+            else -> result.exceptionOrNull()?.message ?: "Connection failed"
+        }
+        isError = result.isFailure || code != 204
+    }
+
     CardGroup {
         toggleItem(
             label = "Proxy",
             checked = config.enabled,
             onClick = { update(config.copy(enabled = !config.enabled)) },
+            supportingContent = {
+                val text = status
+                if (text != null) {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
         )
         if (config.enabled) {
             item(
@@ -168,7 +213,6 @@ fun <T : ProviderSetting> ProxyCard(
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                         )
-                        ProxyTestStatus(config)
                     }
                 },
             )
@@ -181,52 +225,6 @@ private fun ProviderSetting.withProxyConfig(config: ProxyConfig): ProviderSettin
     is ProviderSetting.Google -> copy(proxyConfig = config)
     is ProviderSetting.Claude -> copy(proxyConfig = config)
     is ProviderSetting.Codex -> copy(proxyConfig = config)
-}
-
-@Composable
-private fun ProxyTestStatus(config: ProxyConfig) {
-    val proxy = remember(config) { config.toJavaProxy() }
-    var status by remember(config) { mutableStateOf<String?>(null) }
-    var isError by remember(config) { mutableStateOf(false) }
-    val latestConfig by rememberUpdatedState(config)
-    LaunchedEffect(proxy) {
-        if (proxy == null) {
-            status = null
-            return@LaunchedEffect
-        }
-        status = null
-        isError = false
-        delay(500)
-        val result = runCatching {
-            withContext(Dispatchers.IO) {
-                OkHttpClient()
-                    .newBuilder()
-                    .proxy(proxy)
-                    .apply { config.proxyAuthenticator()?.let { proxyAuthenticator(it) } }
-                    .connectTimeout(10, TimeUnit.SECONDS)
-                    .build()
-                    .newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build())
-                    .execute()
-                    .use { it.code }
-            }
-        }
-        if (latestConfig != config) return@LaunchedEffect
-        val code = result.getOrNull()
-        status = when {
-            result.isSuccess && code == 204 -> "Connected"
-            result.isSuccess -> "Unexpected response: $code"
-            else -> result.exceptionOrNull()?.message ?: "Connection failed"
-        }
-        isError = result.isFailure || code != 204
-    }
-    val text = status
-    if (text != null) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-        )
-    }
 }
 
 fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSetting {

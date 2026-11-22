@@ -73,6 +73,7 @@ interface CardGroupScope {
         label: String,
         checked: Boolean,
         onClick: () -> Unit,
+        supportingContent: (@Composable () -> Unit)? = null,
     )
 }
 
@@ -105,10 +106,16 @@ private class CardGroupScopeImpl : CardGroupScope {
         )
     }
 
-    override fun toggleItem(label: String, checked: Boolean, onClick: () -> Unit) {
+    override fun toggleItem(
+        label: String,
+        checked: Boolean,
+        onClick: () -> Unit,
+        supportingContent: (@Composable () -> Unit)?,
+    ) {
         item(
             onClick = onClick,
             headlineContent = { Text(text = label, style = MaterialTheme.typography.titleMedium) },
+            supportingContent = supportingContent,
             trailingContent = { Switch(checked = checked, onCheckedChange = null) },
         )
     }
