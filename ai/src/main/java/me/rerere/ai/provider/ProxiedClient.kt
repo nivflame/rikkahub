@@ -7,7 +7,9 @@ import java.net.Proxy
 import java.util.concurrent.ConcurrentHashMap
 
 fun OkHttpClient.forProxy(config: ProxyConfig): OkHttpClient {
-    val proxy = config.toJavaProxy() ?: return this
+    if (!config.enabled) return this
+    val proxy = config.toJavaProxy()
+        ?: error("Proxy is enabled but the address is invalid")
     val key = this to config.copy(address = config.address.trim())
     return clientCache.getOrPut(key) {
         newBuilder().apply {

@@ -262,7 +262,12 @@ fun <T : ProviderSetting> ProxyCard(
 
 @Composable
 private fun ProxyStatusDot(status: String?, isError: Boolean, enabled: Boolean, address: String) {
-    if (!enabled || address.isBlank()) return
+    if (!enabled) return
+    val parseable = remember(address) { ProxyConfig(enabled = true, address = address).toJavaProxy() != null }
+    if (!parseable) {
+        Box(modifier = Modifier.size(10.dp).background(MaterialTheme.colorScheme.error, CircleShape))
+        return
+    }
     val probing = status == null
     val targetColor = when {
         probing -> MaterialTheme.colorScheme.outline

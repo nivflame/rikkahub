@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -79,6 +80,37 @@ class ProxyConfigTest {
         val client = OkHttpClient()
 
         assertSame(client, client.forProxy(ProxyConfig()))
+    }
+
+    @Test
+    fun `forProxy throws when enabled with garbage address`() {
+        val client = OkHttpClient()
+
+        try {
+            client.forProxy(ProxyConfig(enabled = true, address = "not a url"))
+            fail("Expected forProxy to throw for invalid address")
+        } catch (e: IllegalStateException) {
+            assertEquals("Proxy is enabled but the address is invalid", e.message)
+        }
+    }
+
+    @Test
+    fun `forProxy throws when enabled with blank address`() {
+        val client = OkHttpClient()
+
+        try {
+            client.forProxy(ProxyConfig(enabled = true, address = ""))
+            fail("Expected forProxy to throw for blank address")
+        } catch (e: IllegalStateException) {
+            assertEquals("Proxy is enabled but the address is invalid", e.message)
+        }
+    }
+
+    @Test
+    fun `forProxy returns same instance when disabled with garbage address`() {
+        val client = OkHttpClient()
+
+        assertSame(client, client.forProxy(ProxyConfig(enabled = false, address = "garbage")))
     }
 
     @Test
