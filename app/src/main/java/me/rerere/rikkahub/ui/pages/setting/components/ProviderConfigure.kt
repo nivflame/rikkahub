@@ -14,10 +14,12 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
@@ -29,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +52,7 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.CardGroupScope
 import me.rerere.rikkahub.utils.writeClipboardText
 import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.ArrowRight01
 import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Refresh03
 import me.rerere.hugeicons.stroke.View
@@ -121,6 +125,7 @@ fun <T : ProviderSetting> ProxyCard(
     onEdit: (T) -> Unit,
 ) {
     val config = provider.proxyConfig
+    var showProxySheet by remember { mutableStateOf(false) }
 
     fun update(newConfig: ProxyConfig) {
         onEdit(provider.withProxyConfig(newConfig) as T)
@@ -162,10 +167,9 @@ fun <T : ProviderSetting> ProxyCard(
     }
 
     CardGroup {
-        toggleItem(
-            label = "Proxy",
-            checked = config.enabled,
-            onClick = { update(config.copy(enabled = !config.enabled)) },
+        item(
+            onClick = { showProxySheet = true },
+            headlineContent = { FieldLabel("Proxy") },
             supportingContent = {
                 val text = status
                 if (text != null) {
@@ -176,46 +180,73 @@ fun <T : ProviderSetting> ProxyCard(
                     )
                 }
             },
+            trailingContent = {
+                Icon(HugeIcons.ArrowRight01, null)
+            },
         )
-        if (config.enabled) {
-            item(
-                headlineContent = { FieldLabel("Proxy Server") },
-                supportingContent = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        OutlinedTextField(
-                            value = config.address,
-                            onValueChange = {
-                                update(config.copy(address = it.trim()))
-                            },
-                            label = { Text("Address") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = config.username,
-                            onValueChange = {
-                                update(config.copy(username = it))
-                            },
-                            label = { Text("User (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = config.password,
-                            onValueChange = {
-                                update(config.copy(password = it))
-                            },
-                            label = { Text("Password (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            visualTransformation = PasswordVisualTransformation(),
-                        )
-                    }
-                },
-            )
+    }
+
+    if (showProxySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showProxySheet = false },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "Proxy Server",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(
+                        checked = config.enabled,
+                        onCheckedChange = { update(config.copy(enabled = it)) },
+                    )
+                }
+                CardGroup(modifier = Modifier.padding(top = 16.dp)) {
+                    item(
+                        headlineContent = { FieldLabel("Address") },
+                        supportingContent = {
+                            OutlinedTextField(
+                                value = config.address,
+                                onValueChange = { update(config.copy(address = it.trim())) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                            )
+                        },
+                    )
+                    item(
+                        headlineContent = { FieldLabel("User (optional)") },
+                        supportingContent = {
+                            OutlinedTextField(
+                                value = config.username,
+                                onValueChange = { update(config.copy(username = it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                            )
+                        },
+                    )
+                    item(
+                        headlineContent = { FieldLabel("Password (optional)") },
+                        supportingContent = {
+                            OutlinedTextField(
+                                value = config.password,
+                                onValueChange = { update(config.copy(password = it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation(),
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }
