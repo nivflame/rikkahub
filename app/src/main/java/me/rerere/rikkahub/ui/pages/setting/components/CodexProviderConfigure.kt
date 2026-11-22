@@ -265,6 +265,8 @@ fun CodexProviderConfigure(
                 codexUsageItems(windows)
             }
         }
+
+        ProxyCard(provider = provider, onEdit = onEdit)
     }
 }
 

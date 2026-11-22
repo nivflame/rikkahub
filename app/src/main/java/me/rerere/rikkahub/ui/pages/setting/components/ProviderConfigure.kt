@@ -39,6 +39,7 @@ import com.dokar.sonner.ToastType
 import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.ProviderSetting
+import me.rerere.ai.provider.ProxyConfig
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
@@ -53,7 +54,11 @@ import me.rerere.hugeicons.stroke.ViewOff
 import me.rerere.rikkahub.ui.context.LocalToaster
 import me.rerere.rikkahub.ui.theme.JetbrainsMono
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -105,6 +110,114 @@ fun ProviderConfigure(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun ProxyCard(
+    provider: ProviderSetting,
+    onEdit: (ProviderSetting) -> Unit,
+) {
+    val config = provider.proxyConfig
+    CardGroup {
+        toggleItem(
+            label = "Proxy",
+            checked = config.enabled,
+            onClick = { onEdit(provider.withProxyConfig(config.copy(enabled = !config.enabled))) },
+        )
+        if (config.enabled) {
+            item(
+                headlineContent = { FieldLabel("Proxy Server") },
+                supportingContent = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = config.address,
+                            onValueChange = {
+                                onEdit(provider.withProxyConfig(config.copy(address = it.trim())))
+                            },
+                            label = { Text("Address") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = config.username,
+                            onValueChange = {
+                                onEdit(provider.withProxyConfig(config.copy(username = it)))
+                            },
+                            label = { Text("User (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = config.password,
+                            onValueChange = {
+                                onEdit(provider.withProxyConfig(config.copy(password = it)))
+                            },
+                            label = { Text("Password (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                        )
+                        ProxyTestStatus(config)
+                    }
+                },
+            )
+        }
+    }
+}
+
+private fun ProviderSetting.withProxyConfig(config: ProxyConfig): ProviderSetting = when (this) {
+    is ProviderSetting.OpenAI -> copy(proxyConfig = config)
+    is ProviderSetting.Google -> copy(proxyConfig = config)
+    is ProviderSetting.Claude -> copy(proxyConfig = config)
+    is ProviderSetting.Codex -> copy(proxyConfig = config)
+}
+
+@Composable
+private fun ProxyTestStatus(config: ProxyConfig) {
+    val proxy = remember(config) { config.toJavaProxy() }
+    var status by remember(config) { mutableStateOf<String?>(null) }
+    var isError by remember(config) { mutableStateOf(false) }
+    val latestConfig by rememberUpdatedState(config)
+    LaunchedEffect(proxy) {
+        if (proxy == null) {
+            status = null
+            return@LaunchedEffect
+        }
+        status = null
+        isError = false
+        delay(500)
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                OkHttpClient()
+                    .newBuilder()
+                    .proxy(proxy)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .build()
+                    .newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build())
+                    .execute()
+                    .use { it.code }
+            }
+        }
+        if (latestConfig != config) return@LaunchedEffect
+        val code = result.getOrNull()
+        status = when {
+            result.isSuccess && code == 204 -> "Connected"
+            result.isSuccess -> "Unexpected response: $code"
+            else -> result.exceptionOrNull()?.message ?: "Connection failed"
+        }
+        isError = result.isFailure || code != 204
+    }
+    val text = status
+    if (text != null) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
@@ -337,6 +450,8 @@ private fun ProviderConfigureOpenAI(
             onClick = { onEdit(provider.copy(autoRetry = !provider.autoRetry)) },
         )
     }
+
+    ProxyCard(provider = provider, onEdit = onEdit)
 }
 
 @Composable
@@ -471,6 +586,8 @@ private fun ProviderConfigureClaude(
             )
         }
     }
+
+    ProxyCard(provider = provider, onEdit = onEdit)
 }
 
 @Composable
@@ -670,6 +787,8 @@ private fun ProviderConfigureGoogle(
             )
         }
     }
+
+    ProxyCard(provider = provider, onEdit = onEdit)
 }
 
 private fun CardGroupScope.apiKeyItem(
