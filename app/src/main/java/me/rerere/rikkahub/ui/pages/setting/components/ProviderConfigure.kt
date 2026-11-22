@@ -131,11 +131,10 @@ fun <T : ProviderSetting> ProxyCard(
         onEdit(provider.withProxyConfig(newConfig) as T)
     }
 
-    val proxy = remember(config) { config.toJavaProxy() }
     var status by remember(config) { mutableStateOf<String?>(null) }
     var isError by remember(config) { mutableStateOf(false) }
-    val latestConfig by rememberUpdatedState(config)
-    LaunchedEffect(proxy) {
+    LaunchedEffect(config) {
+        val proxy = config.toJavaProxy()
         if (proxy == null) {
             status = null
             return@LaunchedEffect
@@ -156,11 +155,11 @@ fun <T : ProviderSetting> ProxyCard(
                     .use { it.code }
             }
         }
-        if (latestConfig != config) return@LaunchedEffect
         val code = result.getOrNull()
         status = when {
             result.isSuccess && code == 204 -> "Connected"
             result.isSuccess -> "Unexpected response: $code"
+            config.username.isBlank() -> "Proxy requires authentication (fill user and password)"
             else -> result.exceptionOrNull()?.message ?: "Connection failed"
         }
         isError = result.isFailure || code != 204
