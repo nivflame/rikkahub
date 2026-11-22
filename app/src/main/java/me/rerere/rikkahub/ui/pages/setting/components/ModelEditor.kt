@@ -2,7 +2,6 @@ package me.rerere.rikkahub.ui.pages.setting.components
 
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Package01
-import me.rerere.hugeicons.stroke.ArrowDown01
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.Tick01
@@ -453,7 +452,6 @@ private fun AddModelButton(
     onUpdateProvider: (ProviderSetting) -> Unit
 ) {
     val dialogState = useEditState<Model> { onAddModel(it) }
-    val scope = rememberCoroutineScope()
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -524,18 +522,7 @@ private fun AddModelButton(
                 },
                 sheetState = sheetState,
                 sheetGesturesEnabled = false,
-                dragHandle = {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                sheetState.hide()
-                                dialogState.dismiss()
-                            }
-                        }
-                    ) {
-                        Icon(HugeIcons.ArrowDown01, null)
-                    }
-                }
+                dragHandle = null,
             ) {
                 Box(
                     modifier = Modifier
