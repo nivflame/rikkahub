@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,16 +115,21 @@ fun ProviderConfigure(
 }
 
 @Composable
-fun ProxyCard(
-    provider: ProviderSetting,
-    onEdit: (ProviderSetting) -> Unit,
+fun <T : ProviderSetting> ProxyCard(
+    provider: T,
+    onEdit: (T) -> Unit,
 ) {
     val config = provider.proxyConfig
+
+    fun update(newConfig: ProxyConfig) {
+        onEdit(provider.withProxyConfig(newConfig) as T)
+    }
+
     CardGroup {
         toggleItem(
             label = "Proxy",
             checked = config.enabled,
-            onClick = { onEdit(provider.withProxyConfig(config.copy(enabled = !config.enabled))) },
+            onClick = { update(config.copy(enabled = !config.enabled)) },
         )
         if (config.enabled) {
             item(
@@ -136,7 +142,7 @@ fun ProxyCard(
                         OutlinedTextField(
                             value = config.address,
                             onValueChange = {
-                                onEdit(provider.withProxyConfig(config.copy(address = it.trim())))
+                                update(config.copy(address = it.trim()))
                             },
                             label = { Text("Address") },
                             modifier = Modifier.fillMaxWidth(),
@@ -145,7 +151,7 @@ fun ProxyCard(
                         OutlinedTextField(
                             value = config.username,
                             onValueChange = {
-                                onEdit(provider.withProxyConfig(config.copy(username = it)))
+                                update(config.copy(username = it))
                             },
                             label = { Text("User (optional)") },
                             modifier = Modifier.fillMaxWidth(),
@@ -154,7 +160,7 @@ fun ProxyCard(
                         OutlinedTextField(
                             value = config.password,
                             onValueChange = {
-                                onEdit(provider.withProxyConfig(config.copy(password = it)))
+                                update(config.copy(password = it))
                             },
                             label = { Text("Password (optional)") },
                             modifier = Modifier.fillMaxWidth(),
