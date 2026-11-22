@@ -28,6 +28,7 @@ import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.TextGenerationParams
+import me.rerere.ai.provider.forProxy
 import me.rerere.ai.provider.providers.openai.ResponseAPI
 import me.rerere.ai.ui.ImageGenerationItem
 import me.rerere.ai.ui.MessageChunk
@@ -55,7 +56,7 @@ class CodexProvider(
                 .codexHeaders(account)
                 .get()
                 .build()
-            val response = client.newCall(request).await()
+            val response = client.forProxy(providerSetting.proxyConfig).newCall(request).await()
             if (!response.isSuccessful) {
                 if (response.code == 401) repository.markInvalid(account.id)
                 error("Failed to get Codex models: ${response.code} ${response.body.string()}")
@@ -103,7 +104,7 @@ class CodexProvider(
         onRetry: ((attempt: Int) -> Unit)?,
         ): MessageChunk {
         val account = repository.acquireAccount(providerSetting.rotation, params.model.modelId)
-        return responseApiFor(account).generateText(
+        return responseApiFor(providerSetting, account).generateText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
             params = withCodexParams(params, account, stream = false),
@@ -117,7 +118,7 @@ class CodexProvider(
         onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
         val account = repository.acquireAccount(providerSetting.rotation, params.model.modelId)
-        return responseApiFor(account).streamText(
+        return responseApiFor(providerSetting, account).streamText(
             providerSetting = syntheticSetting(providerSetting, account),
             messages = withDefaultInstructions(messages),
             params = withCodexParams(params, account, stream = true),
@@ -160,7 +161,7 @@ class CodexProvider(
             listOf(UIMessage.system(DEFAULT_INSTRUCTIONS)) + messages
         }
 
-    private fun responseApiFor(account: CodexAccount): ResponseAPI {
+    private fun responseApiFor(providerSetting: ProviderSetting.Codex, account: CodexAccount): ResponseAPI {
         val accountAwareClient = client.newBuilder()
             .addNetworkInterceptor { chain ->
                 val response = chain.proceed(chain.request())
@@ -192,7 +193,7 @@ class CodexProvider(
                 }
             }
             .build()
-        return ResponseAPI(accountAwareClient)
+        return ResponseAPI(accountAwareClient.forProxy(providerSetting.proxyConfig))
     }
 
     private fun handleRateLimitResponse(account: CodexAccount, response: Response) {

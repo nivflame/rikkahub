@@ -36,6 +36,7 @@ import me.rerere.ai.provider.ModelType
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.TextGenerationParams
+import me.rerere.ai.provider.forProxy
 import me.rerere.ai.provider.providers.vertex.ServiceAccountTokenProvider
 import me.rerere.ai.registry.ModelRegistry
 import me.rerere.ai.ui.GoogleThoughtMetadata
@@ -79,6 +80,8 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
     private val serviceAccountTokenProvider by lazy {
         ServiceAccountTokenProvider(client)
     }
+
+    private fun clientFor(setting: ProviderSetting.Google) = client.forProxy(setting.proxyConfig)
 
     private fun buildUrl(providerSetting: ProviderSetting.Google, path: String): HttpUrl {
         return if (!providerSetting.vertexAI) {
@@ -126,7 +129,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                     .get()
                     .build()
             )
-            val response = client.newCall(request).await()
+            val response = clientFor(providerSetting).newCall(request).await()
             if (response.isSuccessful) {
                 val body = response.body?.string() ?: error("empty body")
                 Log.d(TAG, "listModels: $body")
@@ -184,7 +187,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                 .build()
         )
 
-        val response = client.newCall(request).await()
+        val response = clientFor(providerSetting).newCall(request).await()
         if (!response.isSuccessful) {
             throw Exception("Failed to get response: ${response.code} ${response.body?.string()}")
         }
@@ -339,7 +342,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
             }
         }
 
-        val eventSource = EventSources.createFactory(client)
+        val eventSource = EventSources.createFactory(clientFor(providerSetting))
                 .newEventSource(request, listener)
 
         awaitClose {
@@ -808,7 +811,7 @@ class GoogleProvider(private val client: OkHttpClient, context: Context? = null)
                     .build()
             )
 
-            val response = client.newCall(request).await()
+            val response = clientFor(providerSetting).newCall(request).await()
             if (!response.isSuccessful) {
                 error("Failed to generate image: ${response.code} ${response.body.string()}")
             }

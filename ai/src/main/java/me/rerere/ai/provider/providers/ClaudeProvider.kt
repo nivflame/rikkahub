@@ -32,6 +32,7 @@ import me.rerere.ai.provider.ModelAbility
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.TextGenerationParams
+import me.rerere.ai.provider.forProxy
 import me.rerere.ai.ui.ImageGenerationItem
 import me.rerere.ai.ui.MessageChunk
 import me.rerere.ai.ui.UIMessage
@@ -66,6 +67,8 @@ private const val ANTHROPIC_VERSION = "2023-06-01"
 class ClaudeProvider(private val client: OkHttpClient, context: Context? = null) : Provider<ProviderSetting.Claude> {
     private val keyRoulette = if (context != null) KeyRoulette.lru(context) else KeyRoulette.default()
 
+    private fun clientFor(setting: ProviderSetting.Claude) = client.forProxy(setting.proxyConfig)
+
     override suspend fun listModels(providerSetting: ProviderSetting.Claude): List<Model> =
         withContext(Dispatchers.IO) {
             val request = Request.Builder()
@@ -75,7 +78,7 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
                 .get()
                 .build()
 
-            val response = client.newCall(request).execute()
+            val response = clientFor(providerSetting).newCall(request).execute()
             if (!response.isSuccessful) {
                 error("Failed to get models: ${response.code} ${response.body?.string()}")
             }
@@ -121,7 +124,7 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
 
         Log.i(TAG, "generateText: ${json.encodeToString(requestBody)}")
 
-        val response = client.newCall(request).await()
+        val response = clientFor(providerSetting).newCall(request).await()
         if (!response.isSuccessful) {
             throw Exception("Failed to get response: ${response.code} ${response.body?.string()}")
         }
@@ -254,7 +257,7 @@ class ClaudeProvider(private val client: OkHttpClient, context: Context? = null)
             }
         }
 
-        val eventSource = EventSources.createFactory(client)
+        val eventSource = EventSources.createFactory(clientFor(providerSetting))
             .newEventSource(request, listener)
 
         awaitClose {

@@ -17,6 +17,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import me.rerere.ai.provider.EmbeddingGenerationParams
+import me.rerere.ai.provider.ProxyConfig
 import me.rerere.ai.provider.EmbeddingGenerationResult
 import me.rerere.ai.provider.ImageEditParams
 import me.rerere.ai.provider.ImageGenerationParams
@@ -24,6 +25,7 @@ import me.rerere.ai.provider.Model
 import me.rerere.ai.provider.Provider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.TextGenerationParams
+import me.rerere.ai.provider.forProxy
 import me.rerere.ai.provider.providers.openai.ChatCompletionsAPI
 import me.rerere.ai.provider.providers.openai.ResponseAPI
 import me.rerere.ai.registry.ModelRegistry
@@ -56,8 +58,21 @@ class OpenAIProvider(
 ) : Provider<ProviderSetting.OpenAI> {
     private val keyRoulette = if (context != null) KeyRoulette.lru(context) else KeyRoulette.default()
 
-    private val chatCompletionsAPI = ChatCompletionsAPI(client = client, keyRoulette = keyRoulette)
-    private val responseAPI = ResponseAPI(client = client, keyRoulette = keyRoulette)
+    private var cachedConfig: ProxyConfig? = null
+    private var cachedAPIs: Pair<ChatCompletionsAPI, ResponseAPI>? = null
+
+    private fun clientFor(setting: ProviderSetting.OpenAI) = client.forProxy(setting.proxyConfig)
+
+    @Synchronized
+    private fun apisFor(setting: ProviderSetting.OpenAI): Pair<ChatCompletionsAPI, ResponseAPI> {
+        if (cachedConfig != setting.proxyConfig) {
+            val proxied = client.forProxy(setting.proxyConfig)
+            cachedAPIs = ChatCompletionsAPI(client = proxied, keyRoulette = keyRoulette) to
+                ResponseAPI(client = proxied, keyRoulette = keyRoulette)
+            cachedConfig = setting.proxyConfig
+        }
+        return cachedAPIs!!
+    }
 
 
     override suspend fun listModels(providerSetting: ProviderSetting.OpenAI): List<Model> =
@@ -69,7 +84,7 @@ class OpenAIProvider(
                 .get()
                 .build()
 
-            val response = client.newCall(request).await()
+            val response = clientFor(providerSetting).newCall(request).await()
             if (!response.isSuccessful) {
                 error("Failed to get models: ${response.code} ${response.body?.string()}")
             }
@@ -105,7 +120,7 @@ class OpenAIProvider(
             .addHeader("Authorization", "Bearer $key")
             .get()
             .build()
-        val response = client.newCall(request).await()
+        val response = clientFor(providerSetting).newCall(request).await()
         if (!response.isSuccessful) {
             error("Failed to get balance: ${response.code} ${response.body?.string()}")
         }
@@ -128,9 +143,9 @@ class OpenAIProvider(
         onRetry: ((attempt: Int) -> Unit)?,
     ): Flow<MessageChunk> {
         val flow = if (providerSetting.useResponseApi) {
-            responseAPI.streamText(providerSetting, messages, params)
+            apisFor(providerSetting).second.streamText(providerSetting, messages, params)
         } else {
-            chatCompletionsAPI.streamText(providerSetting, messages, params)
+            apisFor(providerSetting).first.streamText(providerSetting, messages, params)
         }
         return if (providerSetting.autoRetry) {
             var retryCount = 0
@@ -162,18 +177,18 @@ class OpenAIProvider(
     ): MessageChunk {
         if (!providerSetting.autoRetry) {
             return if (providerSetting.useResponseApi) {
-                responseAPI.generateText(providerSetting, messages, params)
+                apisFor(providerSetting).second.generateText(providerSetting, messages, params)
             } else {
-                chatCompletionsAPI.generateText(providerSetting, messages, params)
+                apisFor(providerSetting).first.generateText(providerSetting, messages, params)
             }
         }
         var attempt = 0
         while (true) {
             try {
                 return if (providerSetting.useResponseApi) {
-                    responseAPI.generateText(providerSetting, messages, params)
+                    apisFor(providerSetting).second.generateText(providerSetting, messages, params)
                 } else {
-                    chatCompletionsAPI.generateText(providerSetting, messages, params)
+                    apisFor(providerSetting).first.generateText(providerSetting, messages, params)
                 }
             } catch (e: Exception) {
                 val is429 = e.message?.lowercase()?.contains("429") == true
@@ -217,7 +232,7 @@ class OpenAIProvider(
             .post(requestBody.toRequestBody("application/json".toMediaType()))
             .build()
 
-        val response = client.newCall(request).await()
+        val response = clientFor(providerSetting).newCall(request).await()
         if (!response.isSuccessful) {
             error("Failed to generate embedding: ${response.code} ${response.body?.string()}")
         }
@@ -277,11 +292,11 @@ class OpenAIProvider(
             .build()
 
         val items = withContext(Dispatchers.IO) {
-            val response = client.newCall(request).await()
+            val response = clientFor(providerSetting).newCall(request).await()
             if (!response.isSuccessful) {
                 error("Failed to generate image: ${response.code} ${response.body?.string()}")
             }
-            parseImageResponse(response.body.string())
+            parseImageResponse(response.body.string(), clientFor(providerSetting))
         }
 
         items.forEach { emit(it) }
@@ -345,17 +360,17 @@ class OpenAIProvider(
             .build()
 
         val items = withContext(Dispatchers.IO) {
-            val response = client.newCall(request).await()
+            val response = clientFor(providerSetting).newCall(request).await()
             if (!response.isSuccessful) {
                 error("Failed to edit image: ${response.code} ${response.body?.string()}")
             }
-            parseImageResponse(response.body.string())
+            parseImageResponse(response.body.string(), clientFor(providerSetting))
         }
 
         items.forEach { emit(it) }
     }
 
-    private suspend fun parseImageResponse(bodyStr: String): List<ImageGenerationItem> {
+    private suspend fun parseImageResponse(bodyStr: String, httpClient: OkHttpClient): List<ImageGenerationItem> {
         val body = json.parseToJsonElement(bodyStr).jsonObject
         val defaultFormat = body["output_format"]?.jsonPrimitive?.contentOrNull ?: "png"
         val data = body["data"]?.jsonArray ?: error("No data in image response")
@@ -371,19 +386,19 @@ class OpenAIProvider(
             } else {
                 val url = obj["url"]?.jsonPrimitive?.contentOrNull
                     ?: error("No b64_json or url in image response")
-                downloadImageAsBase64(url)
+                downloadImageAsBase64(url, httpClient)
             }
         }
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    private suspend fun downloadImageAsBase64(url: String): ImageGenerationItem {
+    private suspend fun downloadImageAsBase64(url: String, httpClient: OkHttpClient): ImageGenerationItem {
         val request = Request.Builder()
             .url(url)
             .get()
             .build()
 
-        val response = client.newCall(request).await()
+        val response = httpClient.newCall(request).await()
         if (!response.isSuccessful) {
             error("Failed to download generated image: ${response.code} ${response.body.string()}")
         }
