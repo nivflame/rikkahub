@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 fun OkHttpClient.forProxy(config: ProxyConfig): OkHttpClient {
     val proxy = config.toJavaProxy() ?: return this
-    val key = config.copy(address = config.address.trim())
+    val key = this to config.copy(address = config.address.trim())
     return clientCache.getOrPut(key) {
         newBuilder().apply {
             proxy(proxy)
@@ -22,4 +22,4 @@ fun OkHttpClient.forProxy(config: ProxyConfig): OkHttpClient {
     }
 }
 
-private val clientCache = ConcurrentHashMap<ProxyConfig, OkHttpClient>()
+private val clientCache = ConcurrentHashMap<Pair<OkHttpClient, ProxyConfig>, OkHttpClient>()
