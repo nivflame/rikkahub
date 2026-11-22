@@ -2,13 +2,25 @@ package me.rerere.rikkahub.ui.pages.setting.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
@@ -33,6 +45,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -168,19 +182,15 @@ fun <T : ProviderSetting> ProxyCard(
     CardGroup {
         item(
             onClick = { showProxySheet = true },
-            headlineContent = { FieldLabel("Proxy") },
-            supportingContent = {
-                val text = status
-                if (text != null) {
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    )
-                }
-            },
+            headlineContent = { Text("Proxy", style = MaterialTheme.typography.titleMedium) },
             trailingContent = {
-                Icon(HugeIcons.ArrowRight01, null)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ProxyStatusDot(status = status, isError = isError, enabled = config.enabled, address = config.address)
+                    Icon(HugeIcons.ArrowRight01, null)
+                }
             },
         )
     }
@@ -248,6 +258,48 @@ fun <T : ProviderSetting> ProxyCard(
             }
         }
     }
+}
+
+@Composable
+private fun ProxyStatusDot(status: String?, isError: Boolean, enabled: Boolean, address: String) {
+    if (!enabled || address.isBlank()) return
+    val probing = status == null
+    val targetColor = when {
+        probing -> MaterialTheme.colorScheme.outline
+        isError -> MaterialTheme.colorScheme.error
+        else -> Color(0xFF34C759)
+    }
+    val color by animateColorAsState(targetColor, label = "proxyDotColor")
+    val scale: Float
+    if (probing) {
+        val transition = rememberInfiniteTransition(label = "proxyDotPulse")
+        val pulse by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.4f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(400),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "proxyDotPulse",
+        )
+        scale = pulse
+    } else {
+        val settle by animateFloatAsState(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+            ),
+            label = "proxyDotSettle",
+        )
+        scale = settle
+    }
+    Box(
+        modifier = Modifier
+            .size(10.dp)
+            .scale(scale)
+            .background(color, CircleShape),
+    )
 }
 
 private fun ProviderSetting.withProxyConfig(config: ProxyConfig): ProviderSetting = when (this) {
