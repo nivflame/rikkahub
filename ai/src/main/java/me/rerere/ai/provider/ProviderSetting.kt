@@ -56,6 +56,7 @@ sealed class ProviderSetting {
     abstract val balanceOption: BalanceOption
     abstract val customHeaders: List<CustomHeader>
     abstract val customBodies: List<CustomBody>
+    abstract val proxyConfig: ProxyConfig
 
     abstract val builtIn: Boolean
     abstract val description: @Composable() () -> Unit
@@ -92,6 +93,7 @@ sealed class ProviderSetting {
         override var apiKey: String = "",
         var baseUrl: String = "https://api.openai.com/v1",
         var chatCompletionsPath: String = "/chat/completions",
+        override val proxyConfig: ProxyConfig = ProxyConfig(),
         var useResponseApi: Boolean = false,
         var includeHistoryReasoning: Boolean = true,
         var autoRetry: Boolean = false,
@@ -180,6 +182,7 @@ sealed class ProviderSetting {
         var serviceAccountEmail: String = "", // only for vertex AI service account
         var location: String = "us-central1", // only for vertex AI service account
         var projectId: String = "", // only for vertex AI service account
+        override val proxyConfig: ProxyConfig = ProxyConfig(),
         override var customHeaders: List<CustomHeader> = emptyList(),
         override var customBodies: List<CustomBody> = emptyList(),
         override var poolEnabled: Boolean = false,
@@ -261,6 +264,7 @@ sealed class ProviderSetting {
         var baseUrl: String = "https://api.anthropic.com/v1",
         var promptCaching: Boolean = false,
         var promptCacheTtl: ClaudePromptCacheTtl = ClaudePromptCacheTtl.FIVE_MINUTES,
+        override val proxyConfig: ProxyConfig = ProxyConfig(),
         override var customHeaders: List<CustomHeader> = emptyList(),
         override var customBodies: List<CustomBody> = emptyList(),
         override var poolEnabled: Boolean = false,
@@ -342,6 +346,7 @@ sealed class ProviderSetting {
         override var customBodies: List<CustomBody> = emptyList(),
         var poolEnabled: Boolean = false,
         var rotation: CodexRotationMode = CodexRotationMode.OFF,
+        override val proxyConfig: ProxyConfig = ProxyConfig(),
     ) : ProviderSetting() {
         override val apiKey: String get() = ""
         override fun addModel(model: Model): ProviderSetting = copy(models = models + model)
