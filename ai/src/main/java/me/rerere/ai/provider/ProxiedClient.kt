@@ -1,5 +1,6 @@
 package me.rerere.ai.provider
 
+import okhttp3.Authenticator
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import java.net.Proxy
@@ -11,14 +12,19 @@ fun OkHttpClient.forProxy(config: ProxyConfig): OkHttpClient {
     return clientCache.getOrPut(key) {
         newBuilder().apply {
             proxy(proxy)
-            if (proxy.type() == Proxy.Type.HTTP && config.username.isNotBlank()) {
-                proxyAuthenticator { _, response ->
-                    response.request.newBuilder()
-                        .header("Proxy-Authorization", Credentials.basic(config.username, config.password))
-                        .build()
-                }
-            }
+            config.proxyAuthenticator()?.let { proxyAuthenticator(it) }
         }.build()
+    }
+}
+
+fun ProxyConfig.proxyAuthenticator(): Authenticator? {
+    val proxy = toJavaProxy() ?: return null
+    if (proxy.type() != Proxy.Type.HTTP || username.isBlank()) return null
+    return Authenticator { _, response ->
+        if (response.request.header("Proxy-Authorization") != null) null
+        else response.request.newBuilder()
+            .header("Proxy-Authorization", Credentials.basic(username, password))
+            .build()
     }
 }
 

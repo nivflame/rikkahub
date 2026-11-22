@@ -41,6 +41,7 @@ import me.rerere.ai.provider.ClaudePromptCacheTtl
 import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.ProxyConfig
+import me.rerere.ai.provider.proxyAuthenticator
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.rerere.rikkahub.R
@@ -201,6 +202,7 @@ private fun ProxyTestStatus(config: ProxyConfig) {
                 OkHttpClient()
                     .newBuilder()
                     .proxy(proxy)
+                    .apply { config.proxyAuthenticator()?.let { proxyAuthenticator(it) } }
                     .connectTimeout(10, TimeUnit.SECONDS)
                     .build()
                     .newCall(Request.Builder().url("https://www.gstatic.com/generate_204").build())
