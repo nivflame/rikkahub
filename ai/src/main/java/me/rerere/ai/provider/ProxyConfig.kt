@@ -21,8 +21,8 @@ data class ProxyConfig(
         val port = uri.port.takeIf { it > 0 } ?: return null
         val scheme = uri.scheme?.lowercase()
         return when (scheme) {
-            null, "http", "https" -> Proxy(Proxy.Type.HTTP, InetSocketAddress(host, port))
-            "socks5", "socks" -> Proxy(Proxy.Type.SOCKS, InetSocketAddress(host, port))
+            null, "http", "https" -> Proxy(Proxy.Type.HTTP, InetSocketAddress.createUnresolved(host, port))
+            "socks5", "socks" -> Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved(host, port))
             else -> null
         }
     }
