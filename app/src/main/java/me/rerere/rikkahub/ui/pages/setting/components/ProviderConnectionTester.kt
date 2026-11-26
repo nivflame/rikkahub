@@ -98,19 +98,19 @@ fun ProviderConnectionTester(
                     }
 
                     TestResultItem(
-                        label = "非流式",
+                        label = "Non-streaming",
                         state = nonStreamingState,
                         resultText = (nonStreamingState as? UiState.Success)?.data ?: ""
                     )
 
                     TestResultItem(
-                        label = "流式",
+                        label = "Streaming",
                         state = streamingState,
                         resultText = streamingText
                     )
 
                     TestResultItem(
-                        label = "工具调用",
+                        label = "Tool Call",
                         state = toolsState,
                         resultText = (toolsState as? UiState.Success)?.data ?: ""
                     )
@@ -202,12 +202,12 @@ fun ProviderConnectionTester(
                                             ?.filterIsInstance<UIMessagePart.Tool>()
                                             ?.firstOrNull()
                                         if (toolCall != null) {
-                                            "调用: ${toolCall.toolName}  入参: ${toolCall.input}"
+                                            "Call: ${toolCall.toolName}  Input: ${toolCall.input}"
                                         } else {
                                             val text = message?.parts
                                                 ?.filterIsInstance<UIMessagePart.Text>()
                                                 ?.joinToString("") { it.text } ?: ""
-                                            "未调用工具，响应: $text"
+                                            "No tool called, response: $text"
                                         }
                                     }
                                     toolsState = UiState.Success(result)
