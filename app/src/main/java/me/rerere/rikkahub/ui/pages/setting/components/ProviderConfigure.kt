@@ -140,6 +140,7 @@ fun <T : ProviderSetting> ProxyCard(
 ) {
     val config = provider.proxyConfig
     var showProxySheet by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     fun update(newConfig: ProxyConfig) {
         onEdit(provider.withProxyConfig(newConfig) as T)
@@ -250,7 +251,15 @@ fun <T : ProviderSetting> ProxyCard(
                                 onValueChange = { update(config.copy(password = it)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                visualTransformation = PasswordVisualTransformation(),
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                trailingIcon = {
+                                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                        Icon(
+                                            if (passwordVisible) HugeIcons.ViewOff else HugeIcons.View,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                },
                             )
                         },
                     )
