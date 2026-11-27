@@ -46,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
@@ -186,6 +187,21 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingVM = koinViewModel()) {
                         AutoAIIcon(provider.name, modifier = Modifier.size(22.dp))
                         Text(text = provider.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
+                },
+                actions = {
+                    Switch(
+                        checked = currentProvider.enabled,
+                        onCheckedChange = { enabled ->
+                            onEdit(
+                                when (val p = currentProvider) {
+                                    is ProviderSetting.OpenAI -> p.copy(enabled = enabled)
+                                    is ProviderSetting.Google -> p.copy(enabled = enabled)
+                                    is ProviderSetting.Claude -> p.copy(enabled = enabled)
+                                    is ProviderSetting.Codex -> p.copy(enabled = enabled)
+                                }
+                            )
+                        },
+                    )
                 }
             )
         },

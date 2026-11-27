@@ -468,16 +468,6 @@ private fun ProviderConfigureOpenAI(
 
     provider.description()
 
-    val enableLabel = stringResource(R.string.setting_provider_page_enable)
-
-    CardGroup {
-        toggleItem(
-            label = enableLabel,
-            checked = provider.enabled,
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-        )
-    }
-
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
     val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
@@ -582,16 +572,6 @@ private fun ProviderConfigureClaude(
     onEdit: (provider: ProviderSetting.Claude) -> Unit
 ) {
     provider.description()
-
-    val enableLabel = stringResource(R.string.setting_provider_page_enable)
-
-    CardGroup {
-        toggleItem(
-            label = enableLabel,
-            checked = provider.enabled,
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-        )
-    }
 
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)
@@ -749,16 +729,6 @@ private fun ProviderConfigureGoogle(
     }
 
     provider.description()
-
-    val enableLabel = stringResource(R.string.setting_provider_page_enable)
-
-    CardGroup {
-        toggleItem(
-            label = enableLabel,
-            checked = provider.enabled,
-            onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-        )
-    }
 
     val nameLabel = stringResource(R.string.setting_provider_page_name)
     val apiKeyLabel = stringResource(R.string.setting_provider_page_api_key)

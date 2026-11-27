@@ -114,15 +114,6 @@ fun CodexProviderConfigure(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        val enableLabel = stringResource(R.string.setting_provider_page_enable)
-        CardGroup {
-            toggleItem(
-                label = enableLabel,
-                checked = provider.enabled,
-                onClick = { onEdit(provider.copy(enabled = !provider.enabled)) },
-            )
-        }
-
         CardGroup {
             toggleItem(
                 label = "Rotate Accounts",
