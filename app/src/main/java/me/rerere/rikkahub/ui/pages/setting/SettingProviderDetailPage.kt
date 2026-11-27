@@ -91,7 +91,6 @@ import me.rerere.rikkahub.ui.pages.setting.components.ModelList
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConfigure
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderPoolSection
 import me.rerere.rikkahub.ui.pages.setting.components.ProviderConnectionTester
-import me.rerere.rikkahub.ui.pages.setting.components.SettingProviderBalanceOption
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
@@ -395,14 +394,6 @@ private fun SettingProviderConfigPage(
             provider = provider,
             onEdit = onEdit
         )
-
-        if (provider is ProviderSetting.OpenAI) {
-            SettingProviderBalanceOption(
-                provider = provider,
-                balanceOption = provider.balanceOption,
-                onEdit = { onEdit(provider.copyProvider(balanceOption = it)) }
-            )
-        }
 
         // 硅基流动图标
         if (provider is ProviderSetting.OpenAI && provider.baseUrl.contains("siliconflow.cn")) {

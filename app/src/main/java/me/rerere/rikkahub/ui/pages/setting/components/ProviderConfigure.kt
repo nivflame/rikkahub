@@ -473,6 +473,7 @@ private fun ProviderConfigureOpenAI(
     val baseUrlLabel = stringResource(R.string.setting_provider_page_api_base_url)
     val apiPathLabel = stringResource(R.string.setting_provider_page_api_path)
     var keyVisible by remember { mutableStateOf(false) }
+    var showQuotaSheet by remember { mutableStateOf(false) }
 
     CardGroup {
         item(
@@ -533,6 +534,15 @@ private fun ProviderConfigureOpenAI(
                     readOnly = provider.useResponseApi,
                 )
             },
+        )
+        quotaLauncherItem(provider = provider, balanceOption = provider.balanceOption) { showQuotaSheet = true }
+    }
+
+    if (showQuotaSheet) {
+        QuotaSheet(
+            balanceOption = provider.balanceOption,
+            onDismiss = { showQuotaSheet = false },
+            onEdit = { onEdit(provider.copy(balanceOption = it)) },
         )
     }
 
