@@ -536,7 +536,6 @@ private fun ProviderItem(
             )
         },
         enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = false,
         gesturesEnabled = !provider.builtIn,
         modifier = modifier
     ) {

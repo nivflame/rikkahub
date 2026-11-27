@@ -1167,7 +1167,6 @@ private fun ModelCard(
             )
         },
         enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = false,
         gesturesEnabled = true,
         modifier = modifier
     ) {
