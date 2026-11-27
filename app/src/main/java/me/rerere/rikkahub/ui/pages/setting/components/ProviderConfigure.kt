@@ -55,7 +55,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.dokar.sonner.ToastType
 import me.rerere.ai.provider.ClaudePromptCacheTtl
-import me.rerere.ai.provider.PoolableProvider
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.ai.provider.ProxyConfig
 import me.rerere.ai.provider.proxyAuthenticator
@@ -119,16 +118,6 @@ fun ProviderConfigure(
             is ProviderSetting.Google -> ProviderConfigureGoogle(provider, onEdit)
             is ProviderSetting.Claude -> ProviderConfigureClaude(provider, onEdit)
             is ProviderSetting.Codex -> CodexProviderConfigure(provider, onEdit)
-        }
-
-        if (provider is PoolableProvider) {
-            CardGroup {
-                toggleItem(
-                    label = "Rotate Accounts",
-                    checked = provider.poolEnabled,
-                    onClick = { onEdit(provider.updatePool(!provider.poolEnabled, provider.poolAccounts)) },
-                )
-            }
         }
     }
 }
@@ -268,28 +257,6 @@ fun ProxySheet(
 }
 
 @Composable
-fun <T : ProviderSetting> ProxyCard(
-    provider: T,
-    onEdit: (T) -> Unit,
-) {
-    val config = provider.proxyConfig
-    var showProxySheet by remember { mutableStateOf(false) }
-    val proxyStatus = rememberProxyStatus(config)
-
-    fun update(newConfig: ProxyConfig) {
-        onEdit(provider.withProxyConfig(newConfig) as T)
-    }
-
-    CardGroup {
-        proxyLauncherItem(config = config, status = proxyStatus) { showProxySheet = true }
-    }
-
-    if (showProxySheet) {
-        ProxySheet(config = config, onDismiss = { showProxySheet = false }, onUpdate = { update(it) })
-    }
-}
-
-@Composable
 private fun ProxyStatusDot(status: String?, isError: Boolean, enabled: Boolean, address: String) {
     if (!enabled) return
     val parseable = remember(address) { ProxyConfig(enabled = true, address = address).toJavaProxy() != null }
@@ -334,13 +301,6 @@ private fun ProxyStatusDot(status: String?, isError: Boolean, enabled: Boolean, 
             .scale(scale)
             .background(color, CircleShape),
     )
-}
-
-private fun ProviderSetting.withProxyConfig(config: ProxyConfig): ProviderSetting = when (this) {
-    is ProviderSetting.OpenAI -> copy(proxyConfig = config)
-    is ProviderSetting.Google -> copy(proxyConfig = config)
-    is ProviderSetting.Claude -> copy(proxyConfig = config)
-    is ProviderSetting.Codex -> copy(proxyConfig = config)
 }
 
 fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSetting {
@@ -549,7 +509,20 @@ private fun ProviderConfigureOpenAI(
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
     val responseAPILabel = stringResource(R.string.setting_provider_page_response_api)
     val includeHistoryReasoningLabel = stringResource(R.string.setting_provider_page_include_history_reasoning)
+    val proxyStatus = rememberProxyStatus(provider.proxyConfig)
+    var showProxySheet by remember { mutableStateOf(false) }
     CardGroup {
+        proxyLauncherItem(config = provider.proxyConfig, status = proxyStatus) { showProxySheet = true }
+        toggleItem(
+            label = "Rotate Accounts",
+            checked = provider.poolEnabled,
+            onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
+        )
+        toggleItem(
+            label = "Auto Retry",
+            checked = provider.autoRetry,
+            onClick = { onEdit(provider.copy(autoRetry = !provider.autoRetry)) },
+        )
         toggleItem(
             label = responseAPILabel,
             checked = provider.useResponseApi,
@@ -566,14 +539,15 @@ private fun ProviderConfigureOpenAI(
             checked = provider.includeHistoryReasoning,
             onClick = { onEdit(provider.copy(includeHistoryReasoning = !provider.includeHistoryReasoning)) },
         )
-        toggleItem(
-            label = "Auto Retry",
-            checked = provider.autoRetry,
-            onClick = { onEdit(provider.copy(autoRetry = !provider.autoRetry)) },
-        )
     }
 
-    ProxyCard(provider = provider, onEdit = onEdit)
+    if (showProxySheet) {
+        ProxySheet(
+            config = provider.proxyConfig,
+            onDismiss = { showProxySheet = false },
+            onUpdate = { onEdit(provider.copy(proxyConfig = it)) },
+        )
+    }
 }
 
 @Composable
@@ -638,7 +612,15 @@ private fun ProviderConfigureClaude(
     }
 
     val promptCachingLabel = stringResource(R.string.setting_provider_page_claude_prompt_caching)
+    val proxyStatus = rememberProxyStatus(provider.proxyConfig)
+    var showProxySheet by remember { mutableStateOf(false) }
     CardGroup {
+        proxyLauncherItem(config = provider.proxyConfig, status = proxyStatus) { showProxySheet = true }
+        toggleItem(
+            label = "Rotate Accounts",
+            checked = provider.poolEnabled,
+            onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
+        )
         toggleItem(
             label = promptCachingLabel,
             checked = provider.promptCaching,
@@ -699,7 +681,13 @@ private fun ProviderConfigureClaude(
         }
     }
 
-    ProxyCard(provider = provider, onEdit = onEdit)
+    if (showProxySheet) {
+        ProxySheet(
+            config = provider.proxyConfig,
+            onDismiss = { showProxySheet = false },
+            onUpdate = { onEdit(provider.copy(proxyConfig = it)) },
+        )
+    }
 }
 
 @Composable
@@ -890,7 +878,24 @@ private fun ProviderConfigureGoogle(
         }
     }
 
-    ProxyCard(provider = provider, onEdit = onEdit)
+    val proxyStatus = rememberProxyStatus(provider.proxyConfig)
+    var showProxySheet by remember { mutableStateOf(false) }
+    CardGroup {
+        proxyLauncherItem(config = provider.proxyConfig, status = proxyStatus) { showProxySheet = true }
+        toggleItem(
+            label = "Rotate Accounts",
+            checked = provider.poolEnabled,
+            onClick = { onEdit(provider.copy(poolEnabled = !provider.poolEnabled)) },
+        )
+    }
+
+    if (showProxySheet) {
+        ProxySheet(
+            config = provider.proxyConfig,
+            onDismiss = { showProxySheet = false },
+            onUpdate = { onEdit(provider.copy(proxyConfig = it)) },
+        )
+    }
 }
 
 private fun CardGroupScope.apiKeyItem(
