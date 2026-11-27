@@ -941,10 +941,10 @@
   <string name="setting_provider_page_balance_json_key">Result JSON Key</string>
   <string name="setting_provider_page_basic_settings">Basic Settings</string>
   <string name="setting_provider_page_chat_model">Chat</string>
-  <string name="setting_provider_page_claude_prompt_cache_ttl">Prompt cache TTL</string>
+  <string name="setting_provider_page_claude_prompt_cache_ttl">Cache Duration</string>
   <string name="setting_provider_page_claude_prompt_cache_ttl_1h">1 hour</string>
   <string name="setting_provider_page_claude_prompt_cache_ttl_5m">5 minutes</string>
-  <string name="setting_provider_page_claude_prompt_caching">Prompt caching (cache_control)</string>
+  <string name="setting_provider_page_claude_prompt_caching">Prompt Caching</string>
   <string name="setting_provider_page_configuration">Configuration</string>
   <string name="setting_provider_page_delete_dialog_title">Delete this provider?</string>
   <string name="setting_provider_page_delete_dialog_text">This provider and its models will be permanently removed. This action cannot be undone.</string>
