@@ -536,8 +536,8 @@ private fun ProviderItem(
             )
         },
         enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = false,
         gesturesEnabled = !provider.builtIn,
-        confirmValueChange = { false },
         modifier = modifier
     ) {
         Card(

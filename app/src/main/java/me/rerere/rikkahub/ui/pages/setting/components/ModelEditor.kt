@@ -1167,8 +1167,8 @@ private fun ModelCard(
             )
         },
         enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = false,
         gesturesEnabled = true,
-        confirmValueChange = { false },
         modifier = modifier
     ) {
         CardGroup {
