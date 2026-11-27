@@ -23,9 +23,11 @@ import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -79,6 +81,8 @@ fun CodexProviderConfigure(
     val pendingStatus = oauthStatus as? CodexOAuthStatus.Waiting
     val frozenAccounts = remember(pendingStatus) { accounts }
     val waitingAccounts = if (pendingStatus != null) frozenAccounts else accounts
+    val proxyStatus = rememberProxyStatus(provider.proxyConfig)
+    var showProxySheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(oauthStatus) {
         when (val status = oauthStatus) {
@@ -191,6 +195,7 @@ fun CodexProviderConfigure(
                     },
                 )
             }
+            proxyLauncherItem(config = provider.proxyConfig, status = proxyStatus) { showProxySheet = true }
         }
 
         CardGroup(
@@ -266,7 +271,13 @@ fun CodexProviderConfigure(
             }
         }
 
-        ProxyCard(provider = provider, onEdit = onEdit)
+        if (showProxySheet) {
+            ProxySheet(
+                config = provider.proxyConfig,
+                onDismiss = { showProxySheet = false },
+                onUpdate = { onEdit(provider.copy(proxyConfig = it)) },
+            )
+        }
     }
 }
 

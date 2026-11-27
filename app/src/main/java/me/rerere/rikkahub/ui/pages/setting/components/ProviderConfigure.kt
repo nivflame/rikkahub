@@ -133,19 +133,10 @@ fun ProviderConfigure(
     }
 }
 
+data class ProxyStatus(val text: String?, val isError: Boolean)
+
 @Composable
-fun <T : ProviderSetting> ProxyCard(
-    provider: T,
-    onEdit: (T) -> Unit,
-) {
-    val config = provider.proxyConfig
-    var showProxySheet by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    fun update(newConfig: ProxyConfig) {
-        onEdit(provider.withProxyConfig(newConfig) as T)
-    }
-
+fun rememberProxyStatus(config: ProxyConfig): ProxyStatus {
     var status by remember(config) { mutableStateOf<String?>(null) }
     var isError by remember(config) { mutableStateOf(false) }
     LaunchedEffect(config) {
@@ -179,93 +170,122 @@ fun <T : ProviderSetting> ProxyCard(
         }
         isError = result.isFailure || code != 204
     }
+    return ProxyStatus(status, isError)
+}
+
+fun CardGroupScope.proxyLauncherItem(config: ProxyConfig, status: ProxyStatus, onClick: () -> Unit) {
+    item(
+        onClick = onClick,
+        headlineContent = { Text("Proxy", style = MaterialTheme.typography.titleMedium) },
+        trailingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ProxyStatusDot(status = status.text, isError = status.isError, enabled = config.enabled, address = config.address)
+                Icon(HugeIcons.ArrowRight01, null)
+            }
+        },
+    )
+}
+
+@Composable
+fun ProxySheet(
+    config: ProxyConfig,
+    onDismiss: () -> Unit,
+    onUpdate: (ProxyConfig) -> Unit,
+) {
+    var passwordVisible by remember { mutableStateOf(false) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Proxy Server",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = config.enabled,
+                    onCheckedChange = { onUpdate(config.copy(enabled = it)) },
+                )
+            }
+            CardGroup(modifier = Modifier.padding(top = 16.dp)) {
+                item(
+                    headlineContent = { FieldLabel("Address") },
+                    supportingContent = {
+                        OutlinedTextField(
+                            value = config.address,
+                            onValueChange = { onUpdate(config.copy(address = it.trim())) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    },
+                )
+                item(
+                    headlineContent = { FieldLabel("User (optional)") },
+                    supportingContent = {
+                        OutlinedTextField(
+                            value = config.username,
+                            onValueChange = { onUpdate(config.copy(username = it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    },
+                )
+                item(
+                    headlineContent = { FieldLabel("Password (optional)") },
+                    supportingContent = {
+                        OutlinedTextField(
+                            value = config.password,
+                            onValueChange = { onUpdate(config.copy(password = it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        if (passwordVisible) HugeIcons.ViewOff else HugeIcons.View,
+                                        contentDescription = null,
+                                    )
+                                }
+                            },
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun <T : ProviderSetting> ProxyCard(
+    provider: T,
+    onEdit: (T) -> Unit,
+) {
+    val config = provider.proxyConfig
+    var showProxySheet by remember { mutableStateOf(false) }
+    val proxyStatus = rememberProxyStatus(config)
+
+    fun update(newConfig: ProxyConfig) {
+        onEdit(provider.withProxyConfig(newConfig) as T)
+    }
 
     CardGroup {
-        item(
-            onClick = { showProxySheet = true },
-            headlineContent = { Text("Proxy", style = MaterialTheme.typography.titleMedium) },
-            trailingContent = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    ProxyStatusDot(status = status, isError = isError, enabled = config.enabled, address = config.address)
-                    Icon(HugeIcons.ArrowRight01, null)
-                }
-            },
-        )
+        proxyLauncherItem(config = config, status = proxyStatus) { showProxySheet = true }
     }
 
     if (showProxySheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showProxySheet = false },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        text = "Proxy Server",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(
-                        checked = config.enabled,
-                        onCheckedChange = { update(config.copy(enabled = it)) },
-                    )
-                }
-                CardGroup(modifier = Modifier.padding(top = 16.dp)) {
-                    item(
-                        headlineContent = { FieldLabel("Address") },
-                        supportingContent = {
-                            OutlinedTextField(
-                                value = config.address,
-                                onValueChange = { update(config.copy(address = it.trim())) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
-                        },
-                    )
-                    item(
-                        headlineContent = { FieldLabel("User (optional)") },
-                        supportingContent = {
-                            OutlinedTextField(
-                                value = config.username,
-                                onValueChange = { update(config.copy(username = it)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
-                        },
-                    )
-                    item(
-                        headlineContent = { FieldLabel("Password (optional)") },
-                        supportingContent = {
-                            OutlinedTextField(
-                                value = config.password,
-                                onValueChange = { update(config.copy(password = it)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                trailingIcon = {
-                                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                        Icon(
-                                            if (passwordVisible) HugeIcons.ViewOff else HugeIcons.View,
-                                            contentDescription = null,
-                                        )
-                                    }
-                                },
-                            )
-                        },
-                    )
-                }
-            }
-        }
+        ProxySheet(config = config, onDismiss = { showProxySheet = false }, onUpdate = { update(it) })
     }
 }
 
