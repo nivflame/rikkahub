@@ -104,7 +104,7 @@ import me.rerere.rikkahub.ui.components.ai.ModelTypeTag
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
-import me.rerere.rikkahub.ui.components.ui.SwipeDeleteBackground
+import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.setting.BouncingTabButton
@@ -1159,7 +1159,7 @@ private fun ModelCard(
     SwipeToDismissBox(
         state = swipeToDismissBoxState,
         backgroundContent = {
-            SwipeDeleteBackground(
+            SwipeActionButtons(
                 state = swipeToDismissBoxState,
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
@@ -1168,6 +1168,7 @@ private fun ModelCard(
         },
         enableDismissFromStartToEnd = false,
         gesturesEnabled = true,
+        confirmValueChange = { false },
         modifier = modifier
     ) {
         CardGroup {

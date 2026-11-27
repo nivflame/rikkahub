@@ -75,7 +75,7 @@ import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.CardGroup
-import me.rerere.rikkahub.ui.components.ui.SwipeDeleteBackground
+import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
 import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.decodeProviderSetting
@@ -528,7 +528,7 @@ private fun ProviderItem(
     SwipeToDismissBox(
         state = swipeToDismissBoxState,
         backgroundContent = {
-            SwipeDeleteBackground(
+            SwipeActionButtons(
                 state = swipeToDismissBoxState,
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
@@ -537,6 +537,7 @@ private fun ProviderItem(
         },
         enableDismissFromStartToEnd = false,
         gesturesEnabled = !provider.builtIn,
+        confirmValueChange = { false },
         modifier = modifier
     ) {
         Card(
