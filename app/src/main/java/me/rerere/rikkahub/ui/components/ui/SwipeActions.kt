@@ -45,9 +45,9 @@ class SwipeToRevealState(private val revealPx: Float) {
         offset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
     }
 
-    fun dragBy(deltaPx: Float) {
+    suspend fun dragBy(deltaPx: Float) {
         val next = (offset.value + deltaPx).coerceIn(-revealPx, 0f)
-        offset.trySnapTo(next)
+        offset.snapTo(next)
     }
 }
 
@@ -76,7 +76,7 @@ fun SwipeToRevealBox(
                         detectHorizontalDragGestures(
                             onHorizontalDrag = { change, amount ->
                                 change.consume()
-                                state.dragBy(amount)
+                                scope.launch { state.dragBy(amount) }
                             },
                             onDragEnd = { scope.launch { state.settle() } },
                             onDragCancel = { scope.launch { state.settle() } },
