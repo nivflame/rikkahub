@@ -188,6 +188,7 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                         val haptic = LocalHapticFeedback.current
                         ProviderItem(
                             modifier = Modifier
+                                .animateItem()
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .fillMaxWidth(),
                             provider = provider,
@@ -206,6 +207,16 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                             },
                             onDelete = {
                                 vm.deleteProvider(provider)
+                            },
+                            onDuplicate = {
+                                val index = settings.providers.indexOf(provider)
+                                vm.updateSettings(
+                                    settings.copy(
+                                        providers = settings.providers.toMutableList().apply {
+                                            add(index, provider.copyProvider(id = Uuid.random()))
+                                        }
+                                    )
+                                )
                             }
                         )
                     }
@@ -528,8 +539,9 @@ private fun ProviderItem(
     dragModifier: Modifier = Modifier,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: () -> Unit,
 ) {
-    val swipeState = rememberSwipeToRevealState()
+    val swipeState = rememberSwipeToRevealState(revealWidth = 176.dp)
     SwipeToRevealBox(
         state = swipeState,
         gesturesEnabled = !provider.builtIn,
@@ -541,6 +553,7 @@ private fun ProviderItem(
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
                 cancelContentDescription = stringResource(R.string.cancel),
+                onDuplicate = onDuplicate,
                 coordinator = swipeCoordinator,
             )
         },

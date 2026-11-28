@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -31,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
+import me.rerere.hugeicons.stroke.Copy01
 import me.rerere.hugeicons.stroke.Delete01
 
 class SwipeToRevealState(private val revealPx: Float) {
@@ -79,8 +81,8 @@ class SwipeRevealCoordinator {
 fun rememberSwipeRevealCoordinator(): SwipeRevealCoordinator = remember { SwipeRevealCoordinator() }
 
 @Composable
-fun rememberSwipeToRevealState(): SwipeToRevealState {
-    val revealPx = with(LocalDensity.current) { 120.dp.toPx() }
+fun rememberSwipeToRevealState(revealWidth: Dp = 120.dp): SwipeToRevealState {
+    val revealPx = with(LocalDensity.current) { revealWidth.toPx() }
     return remember { SwipeToRevealState(revealPx) }
 }
 
@@ -124,6 +126,8 @@ fun SwipeActionButtons(
     onDelete: () -> Unit,
     deleteContentDescription: String,
     cancelContentDescription: String,
+    onDuplicate: (() -> Unit)? = null,
+    duplicateContentDescription: String = "Duplicate",
     coordinator: SwipeRevealCoordinator? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -135,6 +139,26 @@ fun SwipeActionButtons(
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (onDuplicate != null) {
+            Box(
+                modifier = Modifier
+                    .height(56.dp)
+                    .width(48.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.extraLarge)
+                    .clickable {
+                        onDuplicate()
+                        scope.launch { state.close(); coordinator?.release(state) }
+                    }
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Copy01,
+                    contentDescription = duplicateContentDescription,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
         Box(
             modifier = Modifier
                 .height(56.dp)
