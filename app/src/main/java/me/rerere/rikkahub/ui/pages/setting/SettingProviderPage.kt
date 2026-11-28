@@ -43,12 +43,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -76,6 +74,8 @@ import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
+import me.rerere.rikkahub.ui.components.ui.SwipeToRevealBox
+import me.rerere.rikkahub.ui.components.ui.rememberSwipeToRevealState
 import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
 import me.rerere.rikkahub.ui.components.ui.decodeProviderSetting
@@ -524,20 +524,19 @@ private fun ProviderItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
+    val swipeState = rememberSwipeToRevealState()
+    SwipeToRevealBox(
+        state = swipeState,
+        gesturesEnabled = !provider.builtIn,
+        modifier = modifier,
         backgroundContent = {
             SwipeActionButtons(
-                state = swipeToDismissBoxState,
+                state = swipeState,
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
                 cancelContentDescription = stringResource(R.string.cancel),
             )
         },
-        enableDismissFromStartToEnd = false,
-        gesturesEnabled = !provider.builtIn,
-        modifier = modifier
     ) {
         Card(
             modifier = Modifier.fillMaxWidth().then(dragModifier),

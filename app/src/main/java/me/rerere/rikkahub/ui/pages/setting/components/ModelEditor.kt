@@ -54,7 +54,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -65,7 +64,6 @@ import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.material3.toShape
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -105,6 +103,8 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
+import me.rerere.rikkahub.ui.components.ui.SwipeToRevealBox
+import me.rerere.rikkahub.ui.components.ui.rememberSwipeToRevealState
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
 import me.rerere.rikkahub.ui.pages.setting.BouncingTabButton
@@ -1088,8 +1088,7 @@ private fun ModelCard(
     val dialogState = useEditState<Model> {
         onEdit(it)
     }
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-
+    val swipeState = rememberSwipeToRevealState()
 
     if (dialogState.isEditing) {
         dialogState.currentState?.let { editingModel ->
@@ -1156,19 +1155,18 @@ private fun ModelCard(
         }
     }
 
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
+    SwipeToRevealBox(
+        state = swipeState,
+        gesturesEnabled = true,
+        modifier = modifier,
         backgroundContent = {
             SwipeActionButtons(
-                state = swipeToDismissBoxState,
+                state = swipeState,
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
                 cancelContentDescription = stringResource(R.string.cancel),
             )
         },
-        enableDismissFromStartToEnd = false,
-        gesturesEnabled = true,
-        modifier = modifier
     ) {
         CardGroup {
             item(
