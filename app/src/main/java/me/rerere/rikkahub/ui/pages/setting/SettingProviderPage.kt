@@ -74,7 +74,9 @@ import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
+import me.rerere.rikkahub.ui.components.ui.SwipeRevealCoordinator
 import me.rerere.rikkahub.ui.components.ui.SwipeToRevealBox
+import me.rerere.rikkahub.ui.components.ui.rememberSwipeRevealCoordinator
 import me.rerere.rikkahub.ui.components.ui.rememberSwipeToRevealState
 import me.rerere.rikkahub.ui.components.ui.Tag
 import me.rerere.rikkahub.ui.components.ui.TagType
@@ -102,6 +104,7 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
         }
         vm.updateSettings(settings.copy(providers = newProviders))
     }
+    val swipeCoordinator = rememberSwipeRevealCoordinator()
 
     val filteredProviders = remember(settings.providers, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -188,6 +191,7 @@ fun SettingProviderPage(vm: SettingVM = koinViewModel()) {
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .fillMaxWidth(),
                             provider = provider,
+                            swipeCoordinator = swipeCoordinator,
                             dragModifier = Modifier
                                 .longPressDraggableHandle(
                                     onDragStarted = {
@@ -519,6 +523,7 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
 @Composable
 private fun ProviderItem(
     provider: ProviderSetting,
+    swipeCoordinator: SwipeRevealCoordinator,
     modifier: Modifier = Modifier,
     dragModifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -528,6 +533,7 @@ private fun ProviderItem(
     SwipeToRevealBox(
         state = swipeState,
         gesturesEnabled = !provider.builtIn,
+        coordinator = swipeCoordinator,
         modifier = modifier,
         backgroundContent = {
             SwipeActionButtons(
@@ -535,6 +541,7 @@ private fun ProviderItem(
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
                 cancelContentDescription = stringResource(R.string.cancel),
+                coordinator = swipeCoordinator,
             )
         },
     ) {

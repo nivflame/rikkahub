@@ -103,7 +103,9 @@ import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.components.ui.ExpressiveEmptyState
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.SwipeActionButtons
+import me.rerere.rikkahub.ui.components.ui.SwipeRevealCoordinator
 import me.rerere.rikkahub.ui.components.ui.SwipeToRevealBox
+import me.rerere.rikkahub.ui.components.ui.rememberSwipeRevealCoordinator
 import me.rerere.rikkahub.ui.components.ui.rememberSwipeToRevealState
 import me.rerere.rikkahub.ui.hooks.useEditState
 import me.rerere.rikkahub.ui.pages.assistant.detail.CustomBodies
@@ -161,6 +163,7 @@ internal fun ModelList(
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         onUpdateProvider(providerSetting.moveMove(from.index, to.index))
     }
+    val swipeCoordinator = rememberSwipeRevealCoordinator()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -195,6 +198,7 @@ internal fun ModelList(
                     ) { isDragging ->
                         ModelCard(
                             model = item,
+                            swipeCoordinator = swipeCoordinator,
                             onDelete = {
                                 onUpdateProvider(providerSetting.delModel(item))
                             },
@@ -1080,6 +1084,7 @@ private fun ModelAbilitySelector(
 @Composable
 private fun ModelCard(
     model: Model,
+    swipeCoordinator: SwipeRevealCoordinator,
     modifier: Modifier = Modifier,
     onDelete: () -> Unit,
     onEdit: (Model) -> Unit,
@@ -1158,6 +1163,7 @@ private fun ModelCard(
     SwipeToRevealBox(
         state = swipeState,
         gesturesEnabled = true,
+        coordinator = swipeCoordinator,
         modifier = modifier,
         backgroundContent = {
             SwipeActionButtons(
@@ -1165,6 +1171,7 @@ private fun ModelCard(
                 onDelete = onDelete,
                 deleteContentDescription = stringResource(R.string.chat_page_delete),
                 cancelContentDescription = stringResource(R.string.cancel),
+                coordinator = swipeCoordinator,
             )
         },
     ) {

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Cancel01
@@ -51,6 +52,32 @@ class SwipeToRevealState(private val revealPx: Float) {
     }
 }
 
+class SwipeRevealCoordinator {
+    var activeState: SwipeToRevealState? = null
+        private set
+
+    fun open(state: SwipeToRevealState, scope: CoroutineScope) {
+        val previous = activeState
+        if (previous != null && previous !== state) {
+            scope.launch { previous.close() }
+        }
+        activeState = state
+    }
+
+    fun release(state: SwipeToRevealState) {
+        if (activeState === state) activeState = null
+    }
+
+    fun closeActive(scope: CoroutineScope) {
+        val state = activeState ?: return
+        activeState = null
+        scope.launch { state.close() }
+    }
+}
+
+@Composable
+fun rememberSwipeRevealCoordinator(): SwipeRevealCoordinator = remember { SwipeRevealCoordinator() }
+
 @Composable
 fun rememberSwipeToRevealState(): SwipeToRevealState {
     val revealPx = with(LocalDensity.current) { 120.dp.toPx() }
@@ -61,6 +88,7 @@ fun rememberSwipeToRevealState(): SwipeToRevealState {
 fun SwipeToRevealBox(
     state: SwipeToRevealState,
     gesturesEnabled: Boolean,
+    coordinator: SwipeRevealCoordinator? = null,
     modifier: Modifier = Modifier,
     backgroundContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
@@ -74,12 +102,13 @@ fun SwipeToRevealBox(
                 .then(
                     if (gesturesEnabled) Modifier.pointerInput(state) {
                         detectHorizontalDragGestures(
+                            onDragStart = { coordinator?.open(state, scope) },
                             onHorizontalDrag = { change, amount ->
                                 change.consume()
                                 scope.launch { state.dragBy(amount) }
                             },
-                            onDragEnd = { scope.launch { state.settle() } },
-                            onDragCancel = { scope.launch { state.settle() } },
+                            onDragEnd = { scope.launch { state.settle(); if (!state.open) coordinator?.release(state) } },
+                            onDragCancel = { scope.launch { state.settle(); if (!state.open) coordinator?.release(state) } },
                         )
                     } else Modifier
                 ),
@@ -95,6 +124,7 @@ fun SwipeActionButtons(
     onDelete: () -> Unit,
     deleteContentDescription: String,
     cancelContentDescription: String,
+    coordinator: SwipeRevealCoordinator? = null,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -110,7 +140,7 @@ fun SwipeActionButtons(
                 .height(56.dp)
                 .width(48.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.extraLarge)
-                .clickable { scope.launch { state.close() } }
+                .clickable { scope.launch { state.close(); coordinator?.release(state) } }
                 .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -127,7 +157,7 @@ fun SwipeActionButtons(
                 .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.extraLarge)
                 .clickable {
                     onDelete()
-                    scope.launch { state.close() }
+                    scope.launch { state.close(); coordinator?.release(state) }
                 }
                 .padding(8.dp),
             contentAlignment = Alignment.Center,
