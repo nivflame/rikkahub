@@ -53,7 +53,7 @@ class SwipeToRevealState(private val revealPx: Float) {
 
 @Composable
 fun rememberSwipeToRevealState(): SwipeToRevealState {
-    val revealPx = with(LocalDensity.current) { 184.dp.toPx() }
+    val revealPx = with(LocalDensity.current) { 120.dp.toPx() }
     return remember { SwipeToRevealState(revealPx) }
 }
 
@@ -101,17 +101,17 @@ fun SwipeActionButtons(
     Row(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(72.dp)
+                .width(48.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.extraLarge)
                 .clickable { scope.launch { state.close() } }
-                .padding(horizontal = 16.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -123,13 +123,13 @@ fun SwipeActionButtons(
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(72.dp)
+                .width(48.dp)
                 .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.extraLarge)
                 .clickable {
                     onDelete()
                     scope.launch { state.close() }
                 }
-                .padding(horizontal = 16.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
